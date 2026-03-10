@@ -1,20 +1,23 @@
 set(GAME_NAME "Moonwright")
 set(GAME_SHORT_NAME "Moonwright")
+set(GAME_ASSET_ARCHIVE "${GAME_SHORT_NAME}.o2r")
 
 set(HM64_ROOT ${CMAKE_CURRENT_SOURCE_DIR})
 set(MOONWRIGHT_ROOT ${HM64_ROOT}/moonwright)
 set(MOONWRIGHT_PROJECT_ROOT ${HM64_ROOT}/..)
+
+find_package(Python3 COMPONENTS Interpreter REQUIRED)
 
 set(HM64_PORT_SOURCES
     ${MOONWRIGHT_ROOT}/src/main.cpp
     ${MOONWRIGHT_ROOT}/src/game_stubs.c
     ${MOONWRIGHT_ROOT}/src/hm64_game.cpp
     ${MOONWRIGHT_ROOT}/src/hm64_gu_compat.c
-    ${MOONWRIGHT_ROOT}/src/hm64_host_rom.cpp
     ${MOONWRIGHT_ROOT}/src/hm64_host_shims.c
     ${MOONWRIGHT_ROOT}/src/hm64_ram.cpp
     ${MOONWRIGHT_ROOT}/src/hm64_title_globals.c
     ${MOONWRIGHT_ROOT}/src/hm64_title_runtime.cpp
+    ${MOONWRIGHT_ROOT}/src/moonwright_blobs.cpp
     ${MOONWRIGHT_ROOT}/src/nugfx.cpp
     ${MOONWRIGHT_ROOT}/src/ultra64_compat.cpp
     ${MOONWRIGHT_ROOT}/src/ld_symbols.c
@@ -116,26 +119,85 @@ set_target_properties(${GAME_SHORT_NAME} PROPERTIES
 )
 
 file(GLOB_RECURSE HM64_ASSET_FILES CONFIGURE_DEPENDS
-    "${HM64_ROOT}/assets/*"
+    "${HM64_ROOT}/assets/sprites/overlayScreens/titleSprites/*"
+    "${HM64_ROOT}/assets/sprites/overlayScreens/dialogueButtonIcons/*"
+    "${HM64_ROOT}/assets/sprites/entitySprites/animals/dog/*"
+    "${HM64_ROOT}/assets/sprites/overlayScreens/logos/*"
+    "${HM64_ROOT}/assets/sprites/effects/funeralIntro/*"
+    "${HM64_ROOT}/assets/cutscenes/farmBusiness.s"
+    "${HM64_ROOT}/assets/cutscenes/funeralIntro.s"
+    "${HM64_ROOT}/assets/cutscenes/demos.s"
+    "${HM64_ROOT}/assets/audio/sequences/opening.seq"
+    "${HM64_ROOT}/assets/audio/sequences/title.seq"
+    "${HM64_ROOT}/assets/audio/sequences/spring.seq"
+    "${HM64_ROOT}/assets/audio/sequences/namingScreen.seq"
+    "${HM64_ROOT}/assets/audio/sequences/mountain.seq"
+    "${HM64_ROOT}/assets/audio/sequences/village.seq"
 )
 file(GLOB_RECURSE HM64_SHADER_FILES CONFIGURE_DEPENDS
     "${LIBULTRASHIP_DIR}/src/fast/shaders/*"
 )
+file(GLOB_RECURSE HM64_TOOL_FILES CONFIGURE_DEPENDS
+    "${HM64_ROOT}/tools/libhm64/*"
+)
 
-set(HM64_RUNTIME_ASSET_STAMP "${CMAKE_CURRENT_BINARY_DIR}/copy_assets.stamp")
+set(HM64_CUSTOM_ASSET_DIR "${HM64_ROOT}/assets/custom")
+set(HM64_CUSTOM_ASSET_STAMP "${CMAKE_CURRENT_BINARY_DIR}/stage_custom_assets.stamp")
 add_custom_command(
-    OUTPUT ${HM64_RUNTIME_ASSET_STAMP}
-    COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/assets
-    COMMAND ${CMAKE_COMMAND} -E copy_directory
-        ${HM64_ROOT}/assets
-        ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/assets
-    COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/assets/shaders
+    OUTPUT ${HM64_CUSTOM_ASSET_STAMP}
+    COMMAND ${CMAKE_COMMAND} -E rm -rf ${HM64_CUSTOM_ASSET_DIR}
+    COMMAND ${Python3_EXECUTABLE}
+        ${HM64_ROOT}/tools/build_custom_assets.py
+        --output-dir ${HM64_CUSTOM_ASSET_DIR}
     COMMAND ${CMAKE_COMMAND} -E copy_directory
         ${LIBULTRASHIP_DIR}/src/fast/shaders
-        ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/assets/shaders
+        ${HM64_CUSTOM_ASSET_DIR}/shaders
+    COMMAND ${CMAKE_COMMAND} -E touch ${HM64_CUSTOM_ASSET_STAMP}
+    DEPENDS
+        ${HM64_ROOT}/tools/build_custom_assets.py
+        ${HM64_ASSET_FILES}
+        ${HM64_SHADER_FILES}
+        ${HM64_TOOL_FILES}
+    COMMENT "Staging Moonwright custom assets"
+    VERBATIM
+)
+add_custom_target(StageMoonwrightCustomAssets DEPENDS ${HM64_CUSTOM_ASSET_STAMP})
+
+set(HM64_O2R_FILE "${CMAKE_CURRENT_BINARY_DIR}/${GAME_ASSET_ARCHIVE}")
+add_custom_command(
+    OUTPUT ${HM64_O2R_FILE}
+    COMMAND ${CMAKE_COMMAND} -E rm -f ${HM64_O2R_FILE}
+    COMMAND ${Python3_EXECUTABLE}
+        ${MOONWRIGHT_PROJECT_ROOT}/OTRExporter/extract_assets.py
+        -z "$<TARGET_FILE:ZAPD>"
+        --norom
+        --custom-otr-file ${HM64_O2R_FILE}
+        --custom-assets-path ${HM64_CUSTOM_ASSET_DIR}
+    DEPENDS
+        ${MOONWRIGHT_PROJECT_ROOT}/OTRExporter/extract_assets.py
+        ${HM64_CUSTOM_ASSET_STAMP}
+        ZAPD
+    WORKING_DIRECTORY ${HM64_ROOT}
+    COMMENT "Generating ${GAME_ASSET_ARCHIVE}"
+    VERBATIM
+)
+add_custom_target(GenerateMoonwrightOtr DEPENDS ${HM64_O2R_FILE})
+add_dependencies(GenerateMoonwrightOtr StageMoonwrightCustomAssets)
+add_dependencies(${GAME_SHORT_NAME} GenerateMoonwrightOtr)
+
+add_custom_target(ExtractAssets DEPENDS ${HM64_O2R_FILE})
+add_dependencies(ExtractAssets GenerateMoonwrightOtr)
+
+set(HM64_RUNTIME_ASSET_STAMP "${CMAKE_CURRENT_BINARY_DIR}/copy_o2r.stamp")
+add_custom_command(
+    OUTPUT ${HM64_RUNTIME_ASSET_STAMP}
+    COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        ${HM64_O2R_FILE}
+        ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${GAME_ASSET_ARCHIVE}
     COMMAND ${CMAKE_COMMAND} -E touch ${HM64_RUNTIME_ASSET_STAMP}
-    DEPENDS ${HM64_ASSET_FILES} ${HM64_SHADER_FILES}
-    COMMENT "Copying assets and libultraship shaders to build directory"
+    DEPENDS ${HM64_O2R_FILE}
+    COMMENT "Copying ${GAME_ASSET_ARCHIVE} to build output"
     VERBATIM
 )
 add_custom_target(copy_assets DEPENDS ${HM64_RUNTIME_ASSET_STAMP})
@@ -159,20 +221,16 @@ add_dependencies(${GAME_SHORT_NAME} copy_config)
 if(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
     set(APP_RESOURCES ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/$<TARGET_BUNDLE_DIR_NAME:${GAME_SHORT_NAME}>/Contents/Resources)
 
-    set(HM64_BUNDLE_ASSET_STAMP "${CMAKE_CURRENT_BINARY_DIR}/copy_assets_to_bundle.stamp")
+    set(HM64_BUNDLE_ASSET_STAMP "${CMAKE_CURRENT_BINARY_DIR}/copy_o2r_to_bundle.stamp")
     add_custom_command(
         OUTPUT ${HM64_BUNDLE_ASSET_STAMP}
         COMMAND ${CMAKE_COMMAND} -E make_directory ${APP_RESOURCES}
-        COMMAND ${CMAKE_COMMAND} -E copy_directory
-            ${HM64_ROOT}/assets
-            ${APP_RESOURCES}/assets
-        COMMAND ${CMAKE_COMMAND} -E make_directory ${APP_RESOURCES}/assets/shaders
-        COMMAND ${CMAKE_COMMAND} -E copy_directory
-            ${LIBULTRASHIP_DIR}/src/fast/shaders
-            ${APP_RESOURCES}/assets/shaders
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            ${HM64_O2R_FILE}
+            ${APP_RESOURCES}/${GAME_ASSET_ARCHIVE}
         COMMAND ${CMAKE_COMMAND} -E touch ${HM64_BUNDLE_ASSET_STAMP}
-        DEPENDS ${HM64_ASSET_FILES} ${HM64_SHADER_FILES}
-        COMMENT "Copying assets and libultraship shaders to app bundle"
+        DEPENDS ${HM64_O2R_FILE}
+        COMMENT "Copying ${GAME_ASSET_ARCHIVE} to app bundle"
         VERBATIM
     )
     add_custom_target(copy_assets_to_bundle DEPENDS ${HM64_BUNDLE_ASSET_STAMP})
@@ -199,7 +257,7 @@ install(TARGETS ${GAME_SHORT_NAME}
     BUNDLE DESTINATION .
 )
 
-install(DIRECTORY ${HM64_ROOT}/assets
+install(FILES ${HM64_O2R_FILE}
     DESTINATION share/${GAME_SHORT_NAME}
 )
 

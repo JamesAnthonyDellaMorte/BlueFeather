@@ -2,7 +2,6 @@
 // Maps N64 nuGfx functions to libultraship
 
 #include "nugfx.h"
-#include "hm64_host_rom.h"
 #include <libultraship/libultra.h>
 #include <fast/Fast3dWindow.h>
 #include <fast/interpreter.h>
@@ -216,20 +215,18 @@ extern "C" void nuPiReadRomCompat(uintptr_t romAddr, uintptr_t bufAddr, u32 size
         }
     }
     
-    if (pcBufPtr != nullptr && HM64Host_ReadRom(romAddr, pcBufPtr, size)) {
-        // HM64 streams sprite and logo textures into reused RAM buffers.
-        // With clean upstream libultraship we only have whole-cache invalidation.
-        gfx_texture_cache_clear();
-        return;
-    }
-
     if (pcBufPtr != nullptr) {
         static int warnedCount = 0;
         if (warnedCount < 8) {
-            std::cerr << "[HM64_ROM] Unmapped ROM read at 0x" << std::hex << romAddr << std::dec
-                      << " for " << size << " bytes" << std::endl;
+            std::cerr << "[Moonwright] Unexpected nuPiReadRom request at runtime: 0x" << std::hex << romAddr
+                      << std::dec << " (" << size << " bytes). This path must be ported to archive resources."
+                      << std::endl;
+            if (warnedCount == 7) {
+                std::cerr << "[Moonwright] Suppressing further nuPiReadRom warnings..." << std::endl;
+            }
         }
         warnedCount++;
+        std::memset(pcBufPtr, 0, size);
     }
 }
 

@@ -24,8 +24,6 @@ import sys
 from pathlib import Path
 from typing import Dict, List, Tuple
 
-from PIL import Image
-
 from ..common import colors
 
 
@@ -65,6 +63,8 @@ def load_texture_from_ci(ci_path: Path, tex_info: dict) -> Tuple[bytes, int, int
 
 def load_texture_from_png(png_path: Path) -> Tuple[bytes, int, int, str]:
     """Load indexed PNG and extract CI data."""
+    from PIL import Image
+
     img = Image.open(png_path)
 
     if img.mode != 'P':

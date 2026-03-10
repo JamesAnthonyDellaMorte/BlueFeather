@@ -1,5 +1,6 @@
 .DS_Store
 .claude/
+AGENTS.md
 __pycache__/
 *.pyc
 
@@ -23,6 +24,7 @@ hm64/assets/
 hm64/tools/gcc-2.7.2/
 
 Shipwright/
+SpaghettiKart/
 oot/
 src/
 include/

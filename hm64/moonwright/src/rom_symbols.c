@@ -1,5 +1,6 @@
-// ROM segment symbols - defined using inline assembly with actual ROM addresses
-// These match the addresses in hm64_host_rom.h
+// ROM segment symbols - defined using inline assembly with actual ROM addresses.
+// Moonwright keeps these ROM offsets so the original HM64 code can reference the
+// same startup ranges while the port resolves the bytes from archive blobs.
 
 __asm__(
     // Title screen sprites - texture
@@ -37,11 +38,11 @@ __asm__(
     ".set __dogSpritesheetIndexSegmentRomStart, 0x00630EE0\n"
     ".globl __dogSpritesheetIndexSegmentRomEnd\n"
     ".set __dogSpritesheetIndexSegmentRomEnd, 0x00631400\n"
-    // Cutscene segments - addresses from tools/libhm64/data/symbols.py + 0x10000000 (ROM base)
+    // Cutscene segments - startup ranges exported into Moonwright.o2r
     ".globl __farmBusinessSegmentRomStart\n"
-    ".set __farmBusinessSegmentRomStart, 0x10149A50\n"
+    ".set __farmBusinessSegmentRomStart, 0x100FF5C0\n"
     ".globl __farmBusinessSegmentRomEnd\n"
-    ".set __farmBusinessSegmentRomEnd, 0x10149CC0\n"
+    ".set __farmBusinessSegmentRomEnd, 0x10100180\n"
     ".globl __funeralIntroSegmentRomStart\n"
     ".set __funeralIntroSegmentRomStart, 0x10149CC0\n"
     ".globl __funeralIntroSegmentRomEnd\n"
@@ -49,7 +50,7 @@ __asm__(
     ".globl __demosSegmentRomStart\n"
     ".set __demosSegmentRomStart, 0x1014B8F0\n"
     ".globl __demosSegmentRomEnd\n"
-    ".set __demosSegmentRomEnd, 0x1014C880\n"
+    ".set __demosSegmentRomEnd, 0x10150120\n"
     // More cutscene segments (need to add proper addresses)
     ".globl __farmVisitsSegmentRomStart\n"
     ".set __farmVisitsSegmentRomStart, 0x10030000\n"

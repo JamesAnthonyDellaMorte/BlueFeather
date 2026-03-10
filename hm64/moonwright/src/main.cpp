@@ -12,18 +12,16 @@
 #include <unordered_set>
 
 #include "hm64_game.h"
-#include "hm64_host_rom.h"
+#include "moonwright_blobs.h"
 
 int main(int argc, char* argv[]) {
-    std::cout << "[INFO] Harvest Moon 64 PC Port starting..." << std::endl;
+    std::cout << "[INFO] Moonwright starting..." << std::endl;
     
     // On macOS, libultraship will look for the config in the app bundle's Resources folder
     // Just pass the filename and let libultraship handle the path resolution
     std::string configFileName = "hm64.json";
     
-    // Set up asset paths - libultraship supports directories, .otr, .o2r, .zip, and .mpq.
-    // Add every valid source we can find instead of stopping at the first match, so
-    // the extracted assets folder can sit alongside a bundled hm64.o2r archive.
+    // Shipwright-style asset loading: mount packaged archives, not loose extracted assets.
     std::vector<std::string> archivePaths;
     std::unordered_set<std::string> seenArchivePaths;
 
@@ -47,31 +45,20 @@ int main(int argc, char* argv[]) {
     };
 
     const auto executablePath = std::filesystem::path(argv[0]).parent_path();
-    HM64Host_SetExecutablePath(argv[0]);
     std::vector<std::filesystem::path> possibleAssetPaths = {
-        executablePath / ".." / "Resources" / "hm64.o2r",
-        executablePath / ".." / "Resources" / "assets",
-        executablePath / "hm64.o2r",
-        executablePath / "assets",
-        std::filesystem::path("hm64.o2r"),
-        std::filesystem::path("assets"),
-        std::filesystem::path("../assets"),
-        std::filesystem::path("../../assets"),
+        executablePath / ".." / "Resources" / "Moonwright.o2r",
+        executablePath / "Moonwright.o2r",
+        std::filesystem::path("Moonwright.o2r"),
+        std::filesystem::path("../Moonwright.o2r"),
+        std::filesystem::path("../../Moonwright.o2r"),
     };
 
     for (const auto& path : possibleAssetPaths) {
         addArchivePathIfExists(path);
-
-        // If an assets directory contains an .o2r archive, libultraship mounts the archive
-        // but not other loose files in the same directory. Mount shaders separately.
-        if (path.filename() == "assets") {
-            addArchivePathIfExists(path / "shaders");
-        }
     }
     
     if (archivePaths.empty()) {
-        std::cerr << "[WARN] No assets folder found! Game may not function correctly." << std::endl;
-        // Continue anyway - libultraship might work without assets for now
+        std::cerr << "[WARN] No Moonwright.o2r found. Runtime asset loading may fail." << std::endl;
     } else {
         std::cout << "[INFO] Total asset sources: " << archivePaths.size() << std::endl;
     }
@@ -121,6 +108,11 @@ int main(int argc, char* argv[]) {
                 window,
                 controlDeck)) {
             std::cerr << "[ERROR] Failed to initialize libultraship context!" << std::endl;
+            return 1;
+        }
+
+        if (!MW_RegisterArchiveBlobFactory()) {
+            std::cerr << "[ERROR] Failed to register archive blob factory!" << std::endl;
             return 1;
         }
 

@@ -72,6 +72,7 @@ static inline void* readN64Ptr(void* bytecodePtr) {
 
 #include "mainproc.h"
 
+
 // forward declarations
 void updateCutsceneSpriteAnimation(u16);                               
 void endCutsceneSpriteAnimationSequence(u16 index);

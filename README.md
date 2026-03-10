@@ -109,7 +109,7 @@ cd /Users/jamesdellamorte/Moonwright/build/bin
 
 ```
 [INFO] Moonwright starting...
-[INFO] Added asset source: "/Users/jamesdellamorte/Moonwright/build/bin/Moonwright.app/Contents/Resources/assets"
+[INFO] Added asset source: "/Users/jamesdellamorte/Moonwright/build/bin/Moonwright.app/Contents/Resources/Moonwright.o2r"
 [DEBUG] Creating libultraship bootstrap context...
 [DEBUG] Creating window and control deck...
 [DEBUG] Initializing libultraship context...
@@ -134,7 +134,7 @@ Moonwright/
 ├── hm64.json               # Runtime configuration
 ├── hm64/                   # Game subtree, analogous to Shipwright's soh/
 │   ├── CMakeLists.txt      # Game target wiring
-│   ├── assets/             # Imported HM64 assets snapshot
+│   ├── assets/             # Imported HM64 assets snapshot used to build Moonwright.o2r
 │   ├── include/            # Imported HM64 headers snapshot
 │   ├── src/                # Imported HM64 source snapshot
 │   ├── tools/              # Imported HM64 tools snapshot
@@ -243,18 +243,13 @@ brew install cmake sdl2 glew libzip spdlog fmt tinyxml2 nlohmann-json
 
 ## Next Steps for Development
 
-### 1. Create .OTR Asset Archive
+### 1. Asset Archive
 
-Libultraship uses `.otr` files (MPQ-compatible archives) for assets:
+Moonwright now follows the Shipwright-style packaged-archive path:
 
-```bash
-# Need to create tools to:
-# 1. Extract sprites/textures from ROM
-# 2. Convert to modern formats (PNG, OGG)
-# 3. Pack into .otr archive
-```
-
-See how [Ship of Harkinian](https://github.com/HarbourMasters/Shipwright) does this with their `OTRExporter`.
+- build `Moonwright.o2r` from `hm64/assets`
+- copy `Moonwright.o2r` beside the executable / into the app bundle
+- mount the archive at runtime instead of loose asset directories
 
 ### 2. Integrate Game Code
 

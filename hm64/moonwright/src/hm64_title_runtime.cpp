@@ -1,6 +1,5 @@
 #include "hm64_title_runtime.h"
 
-#include "hm64_host_rom.h"
 #include "hm64_ram.h"
 
 #include <cstdlib>
@@ -45,11 +44,6 @@ bool HM64TitleRuntime::Init(const std::shared_ptr<Ship::Context>& context) {
     HM64Host_ClearRam();
     HM64Host_ResetShimState();
     std::srand(0x486D3634);
-
-    if (!HM64Host_LoadTitleRomSegments()) {
-        std::cerr << "[HM64] Title runtime could not load ROM-backed title assets" << std::endl;
-        return false;
-    }
 
     auto window = m_context ? m_context->GetWindow() : nullptr;
     if (window) {
