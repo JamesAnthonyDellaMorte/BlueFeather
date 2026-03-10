@@ -1,0 +1,3 @@
+[submodule "libultraship"]
+	path = libultraship
+	url = git@github.com:Kenix3/libultraship.git

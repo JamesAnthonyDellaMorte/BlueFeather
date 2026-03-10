@@ -1,0 +1,29 @@
+#ifndef HM64_PC_BUFFERS_H
+#define HM64_PC_BUFFERS_H
+
+#include <stdint.h>
+
+#include "hm64_ram.h"
+
+#define DIALOGUE_ICON_TEXTURE_BUFFER                   ((uintptr_t)HM64_RAM_PTR(0x8023B400))
+#define DIALOGUE_ICON_PALETTE_BUFFER                   ((uintptr_t)HM64_RAM_PTR(0x8023CC00))
+#define DIALOGUE_ICON_ANIMATION_FRAME_METADATA_BUFFER  ((uintptr_t)HM64_RAM_PTR(0x8023CE00))
+#define DIALOGUE_ICON_TEXTURE_TO_PALETTE_LOOKUP_BUFFER ((uintptr_t)HM64_RAM_PTR(0x8023D200))
+
+#define DOG_TITLE_TEXTURE_1_BUFFER                     ((uintptr_t)HM64_RAM_PTR(0x80240B00))
+#define DOG_TITLE_TEXTURE_2_BUFFER                     ((uintptr_t)HM64_RAM_PTR(0x80243B00))
+#define DOG_TITLE_PALETTE_BUFFER                       ((uintptr_t)HM64_RAM_PTR(0x80246B00))
+#define DOG_TITLE_ANIMATION_FRAME_METADATA_BUFFER      ((uintptr_t)HM64_RAM_PTR(0x8024AB00))
+#define DOG_TITLE_SPRITESHEET_INDEX_BUFFER             ((uintptr_t)HM64_RAM_PTR(0x80252300))
+#define DOG_TITLE_TEXTURE_TO_PALETTE_LOOKUP_BUFFER     ((uintptr_t)HM64_RAM_PTR(0x80252B00))
+
+#define MAP_DATA_BUFFER                                ((uintptr_t)HM64_RAM_PTR(0x80255000))
+
+#define TITLE_SCREEN_SPRITES_TEXTURE_BUFFER            ((uintptr_t)HM64_RAM_PTR(0x80255000))
+#define TITLE_SCREEN_SPRITES_PALETTE_BUFFER            ((uintptr_t)HM64_RAM_PTR(0x8026E100))
+#define TITLE_SCREEN_SPRITE_ANIMATION_FRAME_METADATA_BUFFER ((uintptr_t)HM64_RAM_PTR(0x8026E500))
+#define TITLE_SCREEN_SPRITES_TEXTURE_TO_PALETTE_LOOKUP_BUFFER ((uintptr_t)HM64_RAM_PTR(0x8026E900))
+
+#define FRAME_BUFFER                                   ((uintptr_t)HM64_RAM_PTR(0x8038F800))
+
+#endif

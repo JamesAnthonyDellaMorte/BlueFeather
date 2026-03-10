@@ -1,0 +1,174 @@
+diff --git a/include/fast/interpreter.h b/include/fast/interpreter.h
+index ee526729..2e01218d 100644
+--- a/include/fast/interpreter.h
++++ b/include/fast/interpreter.h
+@@ -527,5 +527,6 @@ const char* GfxGetOpcodeName(int8_t opcode);
+ } // namespace Fast
+ 
+ extern "C" void gfx_texture_cache_clear();
++extern "C" void gfx_texture_cache_delete(const uint8_t* origAddr);
+ extern "C" int gfx_create_framebuffer(uint32_t width, uint32_t height, uint32_t native_width, uint32_t native_height,
+                                       uint8_t resize);
+diff --git a/src/fast/interpreter.cpp b/src/fast/interpreter.cpp
+index 73a29336..661a8c57 100644
+--- a/src/fast/interpreter.cpp
++++ b/src/fast/interpreter.cpp
+@@ -497,8 +497,8 @@ void Interpreter::ImportTextureRgba16(int tile, bool importReplacement) {
+         mRdp->loaded_texture[mRdp->texture_tile[tile].tmem_index].full_image_line_size_bytes;
+     uint32_t line_size_bytes = mRdp->loaded_texture[mRdp->texture_tile[tile].tmem_index].line_size_bytes;
+ 
+-    uint32_t width = mRdp->texture_tile[tile].line_size_bytes / 2;
+-    uint32_t height = sizeBytes / mRdp->texture_tile[tile].line_size_bytes;
++    uint32_t width = line_size_bytes / 2;
++    uint32_t height = line_size_bytes == 0 ? 0 : sizeBytes / line_size_bytes;
+ 
+     // A single line of pixels should not equal the entire image (height == 1 non-withstanding)
+     if (fullImageLineSizeBytes == sizeBytes) {
+@@ -546,8 +546,8 @@ void Interpreter::ImportTextureRgba32(int tile, bool importReplacement) {
+     uint32_t line_size_bytes = mRdp->loaded_texture[mRdp->texture_tile[tile].tmem_index].line_size_bytes;
+     SUPPORT_CHECK(full_image_line_size_bytes == line_size_bytes);
+ 
+-    uint32_t width = mRdp->texture_tile[tile].line_size_bytes / 2;
+-    uint32_t height = (size_bytes / 2) / mRdp->texture_tile[tile].line_size_bytes;
++    uint32_t width = line_size_bytes / 4;
++    uint32_t height = line_size_bytes == 0 ? 0 : size_bytes / line_size_bytes;
+     mRapi->UploadTexture(addr, width, height);
+ }
+ 
+@@ -583,8 +583,8 @@ void Interpreter::ImportTextureIA4(int tile, bool importReplacement) {
+         mTexUploadBuffer[4 * i + 3] = alpha ? 255 : 0;
+     }
+ 
+-    uint32_t width = mRdp->texture_tile[tile].line_size_bytes * 2;
+-    uint32_t height = sizeBytes / mRdp->texture_tile[tile].line_size_bytes;
++    uint32_t width = lineSizeBytes * 2;
++    uint32_t height = lineSizeBytes == 0 ? 0 : sizeBytes / lineSizeBytes;
+ 
+     mRapi->UploadTexture(mTexUploadBuffer, width, height);
+ }
+@@ -619,8 +619,8 @@ void Interpreter::ImportTextureIA8(int tile, bool importReplacement) {
+         mTexUploadBuffer[4 * i + 3] = SCALE_4_8(alpha);
+     }
+ 
+-    uint32_t width = mRdp->texture_tile[tile].line_size_bytes;
+-    uint32_t height = sizeBytes / mRdp->texture_tile[tile].line_size_bytes;
++    uint32_t width = lineSizeBytes;
++    uint32_t height = lineSizeBytes == 0 ? 0 : sizeBytes / lineSizeBytes;
+ 
+     mRapi->UploadTexture(mTexUploadBuffer, width, height);
+ }
+@@ -642,8 +642,8 @@ void Interpreter::ImportTextureIA16(int tile, bool importReplacement) {
+         mRdp->loaded_texture[mRdp->texture_tile[tile].tmem_index].full_image_line_size_bytes;
+     uint32_t line_size_bytes = mRdp->loaded_texture[mRdp->texture_tile[tile].tmem_index].line_size_bytes;
+ 
+-    uint32_t width = mRdp->texture_tile[tile].line_size_bytes / 2;
+-    uint32_t height = size_bytes / mRdp->texture_tile[tile].line_size_bytes;
++    uint32_t width = line_size_bytes / 2;
++    uint32_t height = line_size_bytes == 0 ? 0 : size_bytes / line_size_bytes;
+ 
+     // A single line of pixels should not equal the entire image (height == 1 non-withstanding)
+     if (full_image_line_size_bytes == size_bytes) {
+@@ -690,8 +690,8 @@ void Interpreter::ImportTextureI4(int tile, bool importReplacement) {
+         mRdp->loaded_texture[mRdp->texture_tile[tile].tmem_index].full_image_line_size_bytes;
+     uint32_t lineSizeBytes = mRdp->loaded_texture[mRdp->texture_tile[tile].tmem_index].line_size_bytes;
+ 
+-    uint32_t width = mRdp->texture_tile[tile].line_size_bytes * 2;
+-    uint32_t height = sizeBytes / mRdp->texture_tile[tile].line_size_bytes;
++    uint32_t width = lineSizeBytes * 2;
++    uint32_t height = lineSizeBytes == 0 ? 0 : sizeBytes / lineSizeBytes;
+ 
+     // A single line of pixels should not equal the entire image (height == 1 non-withstanding)
+     if (fullImageLineSizeBytes == sizeBytes) {
+@@ -748,8 +748,8 @@ void Interpreter::ImportTextureI8(int tile, bool importReplacement) {
+         mTexUploadBuffer[4 * i + 3] = intensity;
+     }
+ 
+-    uint32_t width = mRdp->texture_tile[tile].line_size_bytes;
+-    uint32_t height = sizeBytes / mRdp->texture_tile[tile].line_size_bytes;
++    uint32_t width = line_size_bytes;
++    uint32_t height = line_size_bytes == 0 ? 0 : sizeBytes / line_size_bytes;
+ 
+     mRapi->UploadTexture(mTexUploadBuffer, width, height);
+ }
+@@ -795,13 +795,8 @@ void Interpreter::ImportTextureCi4(int tile, bool importReplacement) {
+         mTexUploadBuffer[4 * i + 3] = a ? 255 : 0;
+     }
+ 
+-    uint32_t resultLineSizeBytes = mRdp->texture_tile[tile].line_size_bytes;
+-    if (metadata->h_byte_scale != 1) {
+-        resultLineSizeBytes *= metadata->h_byte_scale;
+-    }
+-
+-    uint32_t width = resultLineSizeBytes * 2;
+-    uint32_t height = sizeBytes / resultLineSizeBytes;
++    uint32_t width = lineSizeBytes * 2;
++    uint32_t height = lineSizeBytes == 0 ? 0 : sizeBytes / lineSizeBytes;
+ 
+     mRapi->UploadTexture(mTexUploadBuffer, width, height);
+ }
+@@ -839,13 +834,8 @@ void Interpreter::ImportTextureCi8(int tile, bool importReplacement) {
+         }
+     }
+ 
+-    uint32_t resultLineSizeBytes = mRdp->texture_tile[tile].line_size_bytes;
+-    if (metadata->h_byte_scale != 1) {
+-        resultLineSizeBytes *= metadata->h_byte_scale;
+-    }
+-
+-    uint32_t width = resultLineSizeBytes;
+-    uint32_t height = sizeBytes / resultLineSizeBytes;
++    uint32_t width = lineSizeBytes;
++    uint32_t height = lineSizeBytes == 0 ? 0 : sizeBytes / lineSizeBytes;
+ 
+     mRapi->UploadTexture(mTexUploadBuffer, width, height);
+ }
+@@ -1602,7 +1592,7 @@ void Interpreter::GfxSpTri1(uint8_t vtx1_idx, uint8_t vtx2_idx, uint8_t vtx3_idx
+             uint8_t cmt = mRdp->texture_tile[tile].cmt;
+ 
+             uint32_t tex_size_bytes = mRdp->loaded_texture[mRdp->texture_tile[tile].tmem_index].orig_size_bytes;
+-            uint32_t line_size = mRdp->texture_tile[tile].line_size_bytes;
++            uint32_t line_size = mRdp->loaded_texture[mRdp->texture_tile[tile].tmem_index].line_size_bytes;
+ 
+             if (line_size == 0) {
+                 line_size = 1;
+@@ -1616,11 +1606,10 @@ void Interpreter::GfxSpTri1(uint8_t vtx1_idx, uint8_t vtx2_idx, uint8_t vtx3_idx
+                 case G_IM_SIZ_8b:
+                     break;
+                 case G_IM_SIZ_16b:
+-                    line_size /= G_IM_SIZ_16b_LINE_BYTES;
++                    line_size >>= 1;
+                     break;
+                 case G_IM_SIZ_32b:
+-                    line_size /= G_IM_SIZ_32b_LINE_BYTES; // this is 2!
+-                    tex_height[i] /= 2;
++                    line_size >>= 2;
+                     break;
+             }
+             tex_width[i] = line_size;
+@@ -3989,6 +3978,9 @@ static constexpr UcodeHandler rdpHandlers = {
+     { RDP_G_RDPPIPESYNC, { "mRdpPIPESYNC", gfx_stubbed_command_handler } },          // mRdpPIPESYNC (-25)
+     { RDP_G_RDPTILESYNC, { "mRdpTILESYNC", gfx_stubbed_command_handler } },          // mRdpPIPESYNC (-24)
+     { RDP_G_RDPFULLSYNC, { "mRdpFULLSYNC", gfx_stubbed_command_handler } },          // mRdpFULLSYNC (-23)
++    { RDP_G_SETCONVERT, { "G_SETCONVERT", gfx_stubbed_command_handler } },          // G_SETCONVERT (-20)
++    { RDP_G_SETKEYR, { "G_SETKEYR", gfx_stubbed_command_handler } },                // G_SETKEYR (-21)
++    { RDP_G_SETKEYGB, { "G_SETKEYGB", gfx_stubbed_command_handler } },              // G_SETKEYGB (-22)
+     { RDP_G_SETSCISSOR, { "G_SETSCISSOR", gfx_SetScissor_handler_rdp } },            // G_SETSCISSOR (-19)
+     { RDP_G_SETPRIMDEPTH, { "G_SETPRIMDEPTH", gfx_set_prim_depth_handler_rdp } },    // G_SETPRIMDEPTH (-18)
+     { RDP_G_RDPSETOTHERMODE, { "mRdpSETOTHERMODE", gfx_rdp_set_other_mode_rdp } },   // mRdpSETOTHERMODE (-17)
+@@ -4755,5 +4747,15 @@ extern "C" int gfx_create_framebuffer(uint32_t width, uint32_t height, uint32_t
+ }
+ 
+ extern "C" void gfx_texture_cache_clear() {
+-    Fast::mInstance.lock().get()->TextureCacheClear();
++    auto instance = Fast::mInstance.lock();
++    if (instance) {
++        instance.get()->TextureCacheClear();
++    }
++}
++
++extern "C" void gfx_texture_cache_delete(const uint8_t* origAddr) {
++    auto instance = Fast::mInstance.lock();
++    if (instance && origAddr != nullptr) {
++        instance.get()->TextureCacheDelete(origAddr);
++    }
+ }

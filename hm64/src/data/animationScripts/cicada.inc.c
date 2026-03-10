@@ -1,0 +1,12 @@
+#include "common.h"
+
+#include "animationScripts.h"
+
+u16 cicadaAnimationScripts[] = {
+        
+	PACK_ANIM_DATA(0, ANIM_TYPE_LOOP, 0),
+	PACK_ANIM_DATA(0, ANIM_TYPE_LOOP, FLIP_HORIZONTAL),
+	PACK_ANIM_DATA(1, ANIM_TYPE_LOOP, 0),
+	PACK_ANIM_DATA(1, ANIM_TYPE_LOOP, FLIP_HORIZONTAL)
+
+};

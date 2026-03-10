@@ -1,0 +1,16 @@
+{
+    "Window": {
+        "AudioBackend": "coreaudio",
+        "Backend": {
+            "Id": 2,
+            "Name": "Metal"
+        },
+        "Fullscreen": {
+            "Enabled": false
+        },
+        "Height": 480,
+        "PositionX": 100,
+        "PositionY": 100,
+        "Width": 640
+    }
+}
