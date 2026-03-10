@@ -217,7 +217,9 @@ extern "C" void nuPiReadRomCompat(uintptr_t romAddr, uintptr_t bufAddr, u32 size
     }
     
     if (pcBufPtr != nullptr && HM64Host_ReadRom(romAddr, pcBufPtr, size)) {
-        gfx_texture_cache_delete(static_cast<const uint8_t*>(pcBufPtr));
+        // HM64 streams sprite and logo textures into reused RAM buffers.
+        // With clean upstream libultraship we only have whole-cache invalidation.
+        gfx_texture_cache_clear();
         return;
     }
 

@@ -60,15 +60,6 @@ If you already cloned without submodules:
 git submodule update --init --recursive
 ```
 
-### 2. Apply the current Moonwright libultraship patch set
-
-Moonwright currently depends on a small local `libultraship` patch set that is
-tracked in this repo:
-
-```bash
-git -C libultraship apply ../patches/libultraship/0001-moonwright-runtime-texture-fixes.patch
-```
-
 ## Building
 
 ### CMake Builds
