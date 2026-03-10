@@ -414,7 +414,7 @@ static const Gfx D_8011ECE0 = gsDPSetRenderMode(G_RM_AA_TEX_EDGE, G_RM_AA_TEX_ED
 
 //INCLUDE_ASM("asm/nonmatchings/system/sprite", setBitmapBlendModeDisplayList);
 
-inline Gfx* setBitmapBlendModeDisplayList(Gfx* dl, u16 flag) {
+static Gfx* setBitmapBlendModeDisplayList(Gfx* dl, u16 flag) {
 
     switch (flag) {
         case SPRITE_BLEND_DEFAULT:
@@ -446,7 +446,7 @@ inline Gfx* setBitmapBlendModeDisplayList(Gfx* dl, u16 flag) {
 
 //INCLUDE_ASM("asm/nonmatchings/system/sprite", calculateSceneNodePosition);
 
-inline void calculateSceneNodePosition(Vec3f* calculatedPosition, BitmapObject* sprite) {
+static void calculateSceneNodePosition(Vec3f* calculatedPosition, BitmapObject* sprite) {
     
     s32 width;
     s32 height;

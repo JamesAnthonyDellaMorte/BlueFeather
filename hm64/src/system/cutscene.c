@@ -402,7 +402,11 @@ bool deactivateCutsceneExecutor(u16 index) {
 
     bool result = FALSE;
 
-    if (index < MAX_BYTECODE_EXECUTORS && (cutsceneExecutors[index].flags & CUTSCENE_ASSET_ACTIVE)) {
+    if (index >= MAX_BYTECODE_EXECUTORS) {
+        return result;
+    }
+
+    if (cutsceneExecutors[index].flags & CUTSCENE_ASSET_ACTIVE) {
 
         if (cutsceneExecutors[index].flags & CUTSCENE_SPRITE_ASSET) {
             deactivateSprite(cutsceneExecutors[index].assetIndex);
@@ -513,7 +517,7 @@ void resumeCutsceneExecutors(void) {
 //INCLUDE_ASM("asm/nonmatchings/system/cutscene", cutsceneUpdateValue);
 
 // same as adjustValue
-inline s32 cutsceneUpdateValue(s32 initial, s32 value, s32 max) {
+static s32 cutsceneUpdateValue(s32 initial, s32 value, s32 max) {
     
     s32 temp;
     s32 adjusted;
@@ -1174,11 +1178,16 @@ void cutsceneHandlerReturnFromSubroutine(u16 index) {
 
 void cutsceneHandlerBranchOnCurrentButton(u16 index) {
 
-    CutsceneBranchOnCurrentButtonCmd* ptr = (CutsceneBranchOnCurrentButtonCmd*)cutsceneExecutors[index].bytecodePtr;
+    u8* bytecodePtr = cutsceneExecutors[index].bytecodePtr;
+    u16 controllerIndex;
+    u32 buttonMask;
 
     cutsceneExecutors[index].bytecodePtr += 2;
 
-    if (controllers[ptr->controllerIndex].button & ptr->buttonMask) {
+    controllerIndex = CUTSCENE_READ_U16(bytecodePtr + 2);
+    buttonMask = CUTSCENE_READ_U32(bytecodePtr + 4);
+
+    if (controllers[controllerIndex].button & buttonMask) {
 
         cutsceneExecutors[index].bytecodePtr += 6;
         cutsceneExecutors[index].returnPtr = cutsceneExecutors[index].bytecodePtr + 4;
@@ -1194,11 +1203,16 @@ void cutsceneHandlerBranchOnCurrentButton(u16 index) {
 
 void cutsceneHandlerBranchOnButtonPressed(u16 index) {
 
-    CutsceneBranchOnButtonPressedCmd* ptr = cutsceneExecutors[index].bytecodePtr;
+    u8* bytecodePtr = cutsceneExecutors[index].bytecodePtr;
+    u16 controllerIndex;
+    u32 buttonMask;
 
     cutsceneExecutors[index].bytecodePtr += 2;
 
-    if (controllers[ptr->controllerIndex].buttonPressed & ptr->buttonMask) {
+    controllerIndex = CUTSCENE_READ_U16(bytecodePtr + 2);
+    buttonMask = CUTSCENE_READ_U32(bytecodePtr + 4);
+
+    if (controllers[controllerIndex].buttonPressed & buttonMask) {
         
         cutsceneExecutors[index].bytecodePtr += 6;
         cutsceneExecutors[index].returnPtr = cutsceneExecutors[index].bytecodePtr + 4;
@@ -1214,11 +1228,16 @@ void cutsceneHandlerBranchOnButtonPressed(u16 index) {
 
 void cutsceneHandlerBranchOnButtonRepeat(u16 index) {
 
-    CutsceneBranchOnButtonRepeatCmd* ptr = (CutsceneBranchOnButtonRepeatCmd*)cutsceneExecutors[index].bytecodePtr;
+    u8* bytecodePtr = cutsceneExecutors[index].bytecodePtr;
+    u16 controllerIndex;
+    u32 buttonMask;
 
     cutsceneExecutors[index].bytecodePtr += 2;
 
-    if (controllers[ptr->controllerIndex].buttonRepeat & ptr->buttonMask) {
+    controllerIndex = CUTSCENE_READ_U16(bytecodePtr + 2);
+    buttonMask = CUTSCENE_READ_U32(bytecodePtr + 4);
+
+    if (controllers[controllerIndex].buttonRepeat & buttonMask) {
 
         cutsceneExecutors[index].bytecodePtr += 6;
         cutsceneExecutors[index].returnPtr = cutsceneExecutors[index].bytecodePtr + 4;
@@ -1234,25 +1253,22 @@ void cutsceneHandlerBranchOnButtonRepeat(u16 index) {
 
 void cutsceneHandlerSpawnExecutor(u16 index) {
 
-    CutsceneSpawnExecutorCmd* ptr = (CutsceneSpawnExecutorCmd*)cutsceneExecutors[index].bytecodePtr;
-
     u16 executorIndex;
     s16 offset;
     u8* branchBase;
     void* spawnedPtr;
+    u8* bytecodePtr = cutsceneExecutors[index].bytecodePtr;
 
     cutsceneExecutors[index].bytecodePtr += 2;
 
-    // PC port: Byte-swap from big-endian bytecode
-    executorIndex = BE16SWAP(ptr->executorIndex);
+    executorIndex = CUTSCENE_READ_U16(bytecodePtr + 2);
 
     cutsceneExecutors[index].bytecodePtr += 2;
     branchBase = cutsceneExecutors[index].bytecodePtr;
 
-    // PC port: Byte-swap from big-endian bytecode
-    offset = (s16)BE16SWAP((u16)ptr->offset);
+    offset = CUTSCENE_READ_S16(bytecodePtr + 4);
     
-    printf("[SPAWN] executor %d: rawOffset=0x%04x, offset=%d\n", index, (u16)ptr->offset, offset);
+    printf("[SPAWN] executor %d: rawOffset=0x%04x, offset=%d\n", index, (u16)CUTSCENE_READ_U16(bytecodePtr + 4), offset);
     
     cutsceneExecutors[index].bytecodePtr += 4;
     
@@ -1271,22 +1287,20 @@ void cutsceneHandlerSpawnExecutor(u16 index) {
 
 void cutsceneHandlerSetOtherExecutorBytecodePtr(u16 index) {
 
-    CutsceneSetOtherExecutorPtrCmd* ptr = (CutsceneSetOtherExecutorPtrCmd*)cutsceneExecutors[index].bytecodePtr;
     u16 executorIndex;
     s16 offset;
     u8* branchBase;
     void* spawnedPtr;
+    u8* bytecodePtr = cutsceneExecutors[index].bytecodePtr;
 
     cutsceneExecutors[index].bytecodePtr += 2;
 
-    // PC port: Byte-swap from big-endian bytecode
-    executorIndex = BE16SWAP(ptr->executorIndex);
+    executorIndex = CUTSCENE_READ_U16(bytecodePtr + 2);
 
     cutsceneExecutors[index].bytecodePtr += 2;
     branchBase = cutsceneExecutors[index].bytecodePtr;
 
-    // PC port: Byte-swap from big-endian bytecode
-    offset = (s16)BE16SWAP((u16)ptr->offset);
+    offset = CUTSCENE_READ_S16(bytecodePtr + 4);
 
     cutsceneExecutors[index].bytecodePtr += 4;
 
@@ -1307,12 +1321,11 @@ void cutsceneHandlerSetOtherExecutorBytecodePtr(u16 index) {
 
 void cutsceneHandlerDeactivateExecutor(u16 index) {
 
-    CutsceneDeactivateExecutorCmd* ptr = (CutsceneDeactivateExecutorCmd*)cutsceneExecutors[index].bytecodePtr;
     u16 executorIndex;
 
     cutsceneExecutors[index].bytecodePtr += 2;
 
-    executorIndex = ptr->executorIndex;
+    executorIndex = CUTSCENE_READ_U16(cutsceneExecutors[index].bytecodePtr);
 
     cutsceneExecutors[index].bytecodePtr += 2;
     
@@ -1341,7 +1354,7 @@ void cutsceneHandlerDMASprite(u16 index) {
 #ifdef HM64_PC_PORT
     cutsceneExecutors[index].bytecodePtr += 2;
     cutsceneExecutors[index].assetIndex = CUTSCENE_READ_U16(cutsceneExecutors[index].bytecodePtr);
-    
+
     cutsceneExecutors[index].bytecodePtr += 2;
     assetType = CUTSCENE_READ_U16(cutsceneExecutors[index].bytecodePtr);
 
@@ -1353,7 +1366,7 @@ void cutsceneHandlerDMASprite(u16 index) {
 
     cutsceneExecutors[index].bytecodePtr += 4;
     romAssetsIndexStart = CUTSCENE_READ_U32(cutsceneExecutors[index].bytecodePtr);
-    
+
     cutsceneExecutors[index].bytecodePtr += 4;
     romAssetsIndexEnd = CUTSCENE_READ_U32(cutsceneExecutors[index].bytecodePtr);
 
@@ -1362,6 +1375,20 @@ void cutsceneHandlerDMASprite(u16 index) {
 
     cutsceneExecutors[index].bytecodePtr += 4;
     romSpritesheetIndexEnd = CUTSCENE_READ_U32(cutsceneExecutors[index].bytecodePtr);
+
+    {
+        u32 tex1N64 = CUTSCENE_READ_U32(cutsceneExecutors[index].bytecodePtr + 4);
+        u32 tex2N64 = CUTSCENE_READ_U32(cutsceneExecutors[index].bytecodePtr + 8);
+        u32 palN64 = CUTSCENE_READ_U32(cutsceneExecutors[index].bytecodePtr + 12);
+        u32 animN64 = CUTSCENE_READ_U32(cutsceneExecutors[index].bytecodePtr + 16);
+        u32 s2pN64 = CUTSCENE_READ_U32(cutsceneExecutors[index].bytecodePtr + 20);
+        u32 ssN64 = CUTSCENE_READ_U32(cutsceneExecutors[index].bytecodePtr + 24);
+        printf("[DMA_SPRITE] executor=%u spriteIdx=%u assetType=%u\n", index, cutsceneExecutors[index].assetIndex, assetType);
+        printf("[DMA_SPRITE] romTex=0x%08x-0x%08x romAssets=0x%08x-0x%08x romSS=0x%08x-0x%08x\n",
+               romTextureStart, romTextureEnd, romAssetsIndexStart, romAssetsIndexEnd, romSpritesheetIndexStart, romSpritesheetIndexEnd);
+        printf("[DMA_SPRITE] N64 vaddrs: tex1=0x%08x tex2=0x%08x pal=0x%08x anim=0x%08x s2p=0x%08x ss=0x%08x\n",
+               tex1N64, tex2N64, palN64, animN64, s2pN64, ssN64);
+    }
 
     cutsceneExecutors[index].bytecodePtr += 4;
     texture1Vaddr = (u8*)HM64_TranslateAddress(CUTSCENE_READ_U32(cutsceneExecutors[index].bytecodePtr));
@@ -1380,6 +1407,9 @@ void cutsceneHandlerDMASprite(u16 index) {
 
     cutsceneExecutors[index].bytecodePtr += 4;
     spritesheetIndexVaddr = (u32*)HM64_TranslateAddress(CUTSCENE_READ_U32(cutsceneExecutors[index].bytecodePtr));
+
+    printf("[DMA_SPRITE] PC ptrs: tex1=%p tex2=%p pal=%p anim=%p s2p=%p ss=%p\n",
+           texture1Vaddr, texture2Vaddr, paletteVaddr, animationVaddr, spriteToPaletteVaddr, spritesheetIndexVaddr);
 
     cutsceneExecutors[index].bytecodePtr += 4;
 #else
@@ -1599,23 +1629,21 @@ void cutsceneHandlerSetEntityAnimations(u16 index) {
 // unused
 void cutsceneHandlerDoDMA(u16 index) {
 
-    CutsceneDMACmd* ptr = (CutsceneDMACmd*)cutsceneExecutors[index].bytecodePtr;
-    
     u32 romAddrStart;
     u32 romAddrEnd; 
     void* vaddr;
     
     cutsceneExecutors[index].bytecodePtr += 4;
     
-    romAddrStart = ptr->romAddrStart;
+    romAddrStart = CUTSCENE_READ_U32(cutsceneExecutors[index].bytecodePtr);
     
     cutsceneExecutors[index].bytecodePtr += 4;
 
-    romAddrEnd = ptr->romAddrEnd;
+    romAddrEnd = CUTSCENE_READ_U32(cutsceneExecutors[index].bytecodePtr);
 
     cutsceneExecutors[index].bytecodePtr += 4;
 
-    vaddr = ptr->vaddr;
+    vaddr = readN64Ptr(cutsceneExecutors[index].bytecodePtr);
     
     cutsceneExecutors[index].bytecodePtr += 4;
     
@@ -1630,12 +1658,11 @@ void cutsceneHandlerSetU8Value(u16 index) {
 
     u8 value;
     u8* valuePtr;
-
-    CutsceneSetU8ValueCmd* ptr = (CutsceneSetU8ValueCmd*)cutsceneExecutors[index].bytecodePtr;
+    u8* bytecodePtr = cutsceneExecutors[index].bytecodePtr;
 
     cutsceneExecutors[index].bytecodePtr += 2;
 
-    value = ptr->value;
+    value = bytecodePtr[3];
 
     cutsceneExecutors[index].bytecodePtr += 2;
 
@@ -1656,20 +1683,18 @@ void cutsceneHandlerSetU8Value(u16 index) {
 // sets D_80189824
 void cutsceneHandlerSetU16Value(u16 index) {
 
-    CutsceneSetU16ValueCmd* ptr = (CutsceneSetU16ValueCmd*)cutsceneExecutors[index].bytecodePtr;
-
     u16 unk_2;
     u16* unk_4;
+    u8* bytecodePtr = cutsceneExecutors[index].bytecodePtr;
 
     cutsceneExecutors[index].bytecodePtr += 2;
 
-    // PC port: Byte-swap from big-endian bytecode
-    unk_2 = BE16SWAP(ptr->unk_2);
+    unk_2 = CUTSCENE_READ_U16(bytecodePtr + 2);
 
     cutsceneExecutors[index].bytecodePtr += 2;
 
     // PC port: Read 32-bit value from bytecode at offset 4
-    unk_4 = (u16*)readVariablePtr((u8*)ptr + 4);
+    unk_4 = (u16*)readVariablePtr(bytecodePtr + 4);
 
     cutsceneExecutors[index].bytecodePtr += 4;
 
@@ -1681,20 +1706,18 @@ void cutsceneHandlerSetU16Value(u16 index) {
 
 void cutsceneHandlerSetU32Value(u16 index) {
 
-    CutsceneSetU32ValueCmd* ptr = (CutsceneSetU32ValueCmd*)cutsceneExecutors[index].bytecodePtr;
-
     u32 cutsceneIndex;
     u32* cutsceneIndexPtr;
+    u8* bytecodePtr = cutsceneExecutors[index].bytecodePtr;
 
     cutsceneExecutors[index].bytecodePtr += 4;
 
-    // PC port: Byte-swap from big-endian bytecode
-    cutsceneIndex = BE32SWAP(ptr->cutsceneIndex);
+    cutsceneIndex = CUTSCENE_READ_U32(bytecodePtr + 4);
 
     cutsceneExecutors[index].bytecodePtr += 4;
 
     // PC port: Read 32-bit value from bytecode at offset 8
-    cutsceneIndexPtr = (u32*)readVariablePtr((u8*)ptr + 8);
+    cutsceneIndexPtr = (u32*)readVariablePtr(bytecodePtr + 8);
 
     cutsceneExecutors[index].bytecodePtr += 4;
 
@@ -1750,22 +1773,20 @@ void cutsceneHandlerBranchU16VarInRange(u16 index) {
     u16* variablePtr;
     u16 min;
     u16 max;
-
-    CutsceneBranchU16VariableWithinRange* ptr = (CutsceneBranchU16VariableWithinRange*)cutsceneExecutors[index].bytecodePtr;
-
-    cutsceneExecutors[index].bytecodePtr += 2;
-
-    // PC port: Byte-swap from big-endian bytecode
-    min = BE16SWAP(ptr->min);
+    u8* bytecodePtr = cutsceneExecutors[index].bytecodePtr;
 
     cutsceneExecutors[index].bytecodePtr += 2;
 
-    max = BE16SWAP(ptr->max);
+    min = CUTSCENE_READ_U16(bytecodePtr + 2);
+
+    cutsceneExecutors[index].bytecodePtr += 2;
+
+    max = CUTSCENE_READ_U16(bytecodePtr + 4);
 
     cutsceneExecutors[index].bytecodePtr += 4;
 
     // PC port: Read 32-bit value from bytecode at offset 8 (after functionIndex, min, max, unk_6)
-    variablePtr = (u16*)readN64Ptr((u8*)ptr + 8);
+    variablePtr = (u16*)readN64Ptr(bytecodePtr + 8);
 
     cutsceneExecutors[index].bytecodePtr += 4;
 
@@ -1790,28 +1811,23 @@ func_end:
 // branch if u32 value outside range
 void cutsceneHandlerBranchU32VarInRange(u16 index) {
 
-    CutsceneBranchU32VariableWithinRange* ptr = (CutsceneBranchU32VariableWithinRange*)cutsceneExecutors[index].bytecodePtr;
-
-    u16 unk_2;
     u32 min;
     u32 max;
     u32* variablePtr;
 
     cutsceneExecutors[index].bytecodePtr += 2;
 
-    unk_2 = ptr->unk_2;
-
     cutsceneExecutors[index].bytecodePtr += 2;
 
-    min = ptr->min;
+    min = CUTSCENE_READ_U32(cutsceneExecutors[index].bytecodePtr);
 
     cutsceneExecutors[index].bytecodePtr += 4;
 
-    max = ptr->max;
+    max = CUTSCENE_READ_U32(cutsceneExecutors[index].bytecodePtr);
 
     cutsceneExecutors[index].bytecodePtr += 4;
 
-    variablePtr = ptr->variablePtr;
+    variablePtr = readN64Ptr(cutsceneExecutors[index].bytecodePtr);
 
     cutsceneExecutors[index].bytecodePtr += 4;
  
@@ -1831,21 +1847,19 @@ void cutsceneHandlerBranchU32VarInRange(u16 index) {
 // sets gCutsceneCompletionFlags
 void cutsceneHandlerSetSpecialBit(u16 index) {
 
-    CutsceneSetSpecialBitCmd* ptr = (CutsceneSetSpecialBitCmd*)cutsceneExecutors[index].bytecodePtr;
-    
     u16 bit;
     s32* bitfield;
+    u8* bytecodePtr = cutsceneExecutors[index].bytecodePtr;
 
     cutsceneExecutors[index].bytecodePtr += 2;
 
-    // PC port: Byte-swap from big-endian bytecode
-    bit = BE16SWAP(ptr->bit);
+    bit = CUTSCENE_READ_U16(bytecodePtr + 2);
 
     cutsceneExecutors[index].bytecodePtr += 2;
 
     // PC port: Read 32-bit value from bytecode at offset 4 (after functionIndex and bit)
     // Use byte offset, not struct member, because PC pointers are 64-bit but bytecode has 32-bit values
-    bitfield = (s32*)readVariablePtr((u8*)ptr + 4);
+    bitfield = (s32*)readVariablePtr(bytecodePtr + 4);
 
     cutsceneExecutors[index].bytecodePtr += 4;
 
@@ -1857,20 +1871,18 @@ void cutsceneHandlerSetSpecialBit(u16 index) {
 
 void cutsceneHandlerClearSpecialBit(u16 index) {
 
-    CutsceneClearSpecialBitCmd* ptr = (CutsceneClearSpecialBitCmd*)cutsceneExecutors[index].bytecodePtr;
-
     u16 bit;
     u32* bitfield;
+    u8* bytecodePtr = cutsceneExecutors[index].bytecodePtr;
     
     cutsceneExecutors[index].bytecodePtr += 2;
 
-    // PC port: Byte-swap from big-endian bytecode
-    bit = BE16SWAP(ptr->bit);
+    bit = CUTSCENE_READ_U16(bytecodePtr + 2);
 
     cutsceneExecutors[index].bytecodePtr += 2;
 
     // PC port: Read 32-bit value from bytecode at offset 4
-    bitfield = (u32*)readVariablePtr((u8*)ptr + 4);
+    bitfield = (u32*)readVariablePtr(bytecodePtr + 4);
 
     cutsceneExecutors[index].bytecodePtr += 4;
 
@@ -1913,11 +1925,11 @@ void cutsceneHandlerBranchOnSpecialBit(u16 index) {
 
 void cutsceneHandlerSetAssetRotation(u16 index) {
 
-    CutsceneSetAssetRotationCmd* ptr = (CutsceneSetAssetRotationCmd*)cutsceneExecutors[index].bytecodePtr;
+    u8* bytecodePtr = cutsceneExecutors[index].bytecodePtr;
 
     cutsceneExecutors[index].bytecodePtr += 2;
     
-    cutsceneExecutors[index].entityDirectionOrMapRotation = ptr->direction;
+    cutsceneExecutors[index].entityDirectionOrMapRotation = bytecodePtr[2];
 
     cutsceneExecutors[index].bytecodePtr += 2;
 
@@ -1936,11 +1948,11 @@ void cutsceneHandlerSetAssetRotation(u16 index) {
 // set up cutscene object as map asset
 void cutsceneHandlerSetupMapAsset(u16 index) {
 
-    CutsceneMapControllerIndexCmd *ptr = (CutsceneMapControllerIndexCmd*)cutsceneExecutors[index].bytecodePtr;
+    u8* bytecodePtr = cutsceneExecutors[index].bytecodePtr;
 
     cutsceneExecutors[index].bytecodePtr += 2;
 
-    cutsceneExecutors[index].assetIndex = ptr->index;
+    cutsceneExecutors[index].assetIndex = CUTSCENE_READ_U16(bytecodePtr + 2);
 
     cutsceneExecutors[index].bytecodePtr += 2;
 
@@ -2000,22 +2012,21 @@ void cutsceneHandlerEntityWalk(u16 index) {
 
 void cutsceneHandlerSetMapRotation(u16 index) {
 
-    CutsceneSetMapRotationCmd* ptr = (CutsceneSetMapRotationCmd*)cutsceneExecutors[index].bytecodePtr;
-    
+    u8* bytecodePtr = cutsceneExecutors[index].bytecodePtr;
     u16 mapIndex;
     u8 arg1, rotation;
 
     cutsceneExecutors[index].bytecodePtr += 2;
 
-    mapIndex = ptr->mapIndex;
+    mapIndex = CUTSCENE_READ_U16(bytecodePtr + 2);
 
     cutsceneExecutors[index].bytecodePtr += 2;
 
-    arg1 = ptr->arg1;
+    arg1 = bytecodePtr[4];
 
     cutsceneExecutors[index].bytecodePtr++;
 
-    rotation = *(u8*)cutsceneExecutors[index].bytecodePtr;
+    rotation = bytecodePtr[5];
 
     cutsceneExecutors[index].bytecodePtr++;
     
@@ -2030,13 +2041,12 @@ void cutsceneHandlerSetMapRotation(u16 index) {
 // set behavior flags
 void cutsceneHandlerSetBehaviorFlags(u16 index) {
 
-    CutsceneSetBehaviorFlagsCmd* ptr = (CutsceneSetBehaviorFlagsCmd*)cutsceneExecutors[index].bytecodePtr;
-    
     u8 behaviorFlags;
+    u8* bytecodePtr = cutsceneExecutors[index].bytecodePtr;
 
     cutsceneExecutors[index].bytecodePtr += 2;
 
-    behaviorFlags = ptr->behaviorFlags;
+    behaviorFlags = bytecodePtr[2];
 
     cutsceneExecutors[index].bytecodePtr += 2;
     
@@ -2063,7 +2073,7 @@ void cutsceneHandlerSetEntityWander(u16 index) {
     
     cutsceneExecutors[index].bytecodePtr += 2;
 
-    cutsceneExecutors[index].collisionHeight = *(u16*)(cutsceneExecutors[index].bytecodePtr);
+    cutsceneExecutors[index].collisionHeight = CUTSCENE_READ_U16(cutsceneExecutors[index].bytecodePtr);
 
     cutsceneExecutors[index].bytecodePtr += 2;
     
@@ -2077,23 +2087,22 @@ void cutsceneHandlerSetEntityWander(u16 index) {
 
 void cutsceneHandlerInitializeMessageBoxType1(u16 index) {
     
-    CutsceneInitMessageBoxType1Cmd* ptr = (CutsceneInitMessageBoxType1Cmd*)cutsceneExecutors[index].bytecodePtr;
-    
+    u8* bytecodePtr = cutsceneExecutors[index].bytecodePtr;
     u16 messageBoxIndex;
     u16 textAddressesIndex;
     u16 textIndex;
 
     cutsceneExecutors[index].bytecodePtr += 2;
 
-    messageBoxIndex = ptr->messageBoxIndex;
+    messageBoxIndex = CUTSCENE_READ_U16(bytecodePtr + 2);
 
     cutsceneExecutors[index].bytecodePtr += 2;
 
-    textAddressesIndex = ptr->textAddressesIndex;
+    textAddressesIndex = CUTSCENE_READ_U16(bytecodePtr + 4);
 
     cutsceneExecutors[index].bytecodePtr += 2;
 
-    textIndex = ptr->textIndex;
+    textIndex = CUTSCENE_READ_U16(bytecodePtr + 6);
 
     cutsceneExecutors[index].bytecodePtr += 2;
 
@@ -2104,14 +2113,11 @@ void cutsceneHandlerInitializeMessageBoxType1(u16 index) {
 //INCLUDE_ASM("asm/nonmatchings/system/cutscene", cutsceneHandlerWaitMessageBoxClosed);
 
 void cutsceneHandlerWaitMessageBoxClosed(u16 index) {
-
-    CutsceneWaitMessageBoxClosedCmd* ptr = (CutsceneWaitMessageBoxClosedCmd*)cutsceneExecutors[index].bytecodePtr;
-
     u16 messageBoxIndex;
 
     cutsceneExecutors[index].bytecodePtr += 2;
 
-    messageBoxIndex = ptr->messageBoxIndex;
+    messageBoxIndex = CUTSCENE_READ_U16(cutsceneExecutors[index].bytecodePtr);
 
     cutsceneExecutors[index].bytecodePtr += 2;
 
@@ -2128,26 +2134,25 @@ void cutsceneHandlerWaitMessageBoxClosed(u16 index) {
 
 void cutsceneHandlerSetMessageBoxViewSpacePosition(u16 index) {
 
-    CutsceneSetMessageBoxPositionCmd* ptr = (CutsceneSetMessageBoxPositionCmd*)cutsceneExecutors[index].bytecodePtr;
-
+    u8* bytecodePtr = cutsceneExecutors[index].bytecodePtr;
     u16 messageBoxIndex;
     f32 x, y, z;
 
     cutsceneExecutors[index].bytecodePtr += 2;
 
-    messageBoxIndex = ptr->messageBoxIndex;
+    messageBoxIndex = CUTSCENE_READ_U16(bytecodePtr + 2);
 
     cutsceneExecutors[index].bytecodePtr += 2;
 
-    x = ptr->x;
+    x = CUTSCENE_READ_S16(bytecodePtr + 4);
 
     cutsceneExecutors[index].bytecodePtr += 2;
 
-    y = ptr->y;
+    y = CUTSCENE_READ_S16(bytecodePtr + 6);
 
     cutsceneExecutors[index].bytecodePtr += 2;
 
-    z = ptr->z;
+    z = CUTSCENE_READ_S16(bytecodePtr + 8);
 
     cutsceneExecutors[index].bytecodePtr += 4;
 
@@ -2159,14 +2164,11 @@ void cutsceneHandlerSetMessageBoxViewSpacePosition(u16 index) {
 
 // reset message box avatar
 void cutsceneHandlerResetMessageBoxAvatar(u16 index) {
-
-    CutsceneResetMessageBoxAvatarCmd* ptr = (CutsceneResetMessageBoxAvatarCmd*)cutsceneExecutors[index].bytecodePtr;
-
     u16 messageBoxIndex;
     
     cutsceneExecutors[index].bytecodePtr += 2;
 
-    messageBoxIndex = ptr->messageBoxIndex;
+    messageBoxIndex = CUTSCENE_READ_U16(cutsceneExecutors[index].bytecodePtr);
 
     cutsceneExecutors[index].bytecodePtr += 2;
 
@@ -2224,13 +2226,11 @@ void cutsceneHandlerEntityRun(u16 index) {
 
 void cutsceneHandlerSetEntityAnimation(u16 index) {
 
-    CutsceneEntitySetAnimationCmd* ptr = (CutsceneEntitySetAnimationCmd*)cutsceneExecutors[index].bytecodePtr;
-
     u16 animation;
     
     cutsceneExecutors[index].bytecodePtr += 2;
     
-    animation = ptr->animation;
+    animation = CUTSCENE_READ_U16(cutsceneExecutors[index].bytecodePtr);
 
     cutsceneExecutors[index].bytecodePtr += 2;
     
@@ -2244,13 +2244,11 @@ void cutsceneHandlerSetEntityAnimation(u16 index) {
 
 void cutsceneHandlerSetEntityAnimationWithDirectionChange(u16 index) {
 
-    CutsceneEntitySetAnimationWithDirectionCmd* ptr = (CutsceneEntitySetAnimationWithDirectionCmd*)cutsceneExecutors[index].bytecodePtr;
-
     u16 animation;
     
     cutsceneExecutors[index].bytecodePtr += 2;
     
-    animation = ptr->animation;
+    animation = CUTSCENE_READ_U16(cutsceneExecutors[index].bytecodePtr);
 
     cutsceneExecutors[index].bytecodePtr += 2;
     
@@ -2284,14 +2282,11 @@ void cutsceneHandlerSetCallbackBytecodePtr(u16 index) {
 //INCLUDE_ASM("asm/nonmatchings/system/cutscene", cutsceneHandlerPauseEntity);
 
 void cutsceneHandlerPauseEntity(u16 index) {
-
-    CutscenePauseEntityCmd* ptr = (CutscenePauseEntityCmd*)cutsceneExecutors[index].bytecodePtr;
-    
     u16 entityIndex;
 
     cutsceneExecutors[index].bytecodePtr += 2;
 
-    entityIndex = ptr->entityIndex;
+    entityIndex = CUTSCENE_READ_U16(cutsceneExecutors[index].bytecodePtr);
 
     cutsceneExecutors[index].bytecodePtr += 2;
 
@@ -2302,14 +2297,12 @@ void cutsceneHandlerPauseEntity(u16 index) {
 //INCLUDE_ASM("asm/nonmatchings/system/cutscene", cutsceneHandlerTogglePauseEntity);
 
 void cutsceneHandlerTogglePauseEntity(u16 index) {
-    
-    CutsceneTogglePauseEntityCmd* ptr = (CutsceneTogglePauseEntityCmd*)cutsceneExecutors[index].bytecodePtr;
-    
+
     u16 entityIndex;
 
     cutsceneExecutors[index].bytecodePtr += 2;
 
-    entityIndex = ptr->entityIndex;
+    entityIndex = CUTSCENE_READ_U16(cutsceneExecutors[index].bytecodePtr);
 
     cutsceneExecutors[index].bytecodePtr += 2;
     
@@ -2322,12 +2315,10 @@ void cutsceneHandlerTogglePauseEntity(u16 index) {
 void cutsceneHandlerFlipEntityDirection(u16 index) {
 
     u16 entityIndex;
-    
-    CutsceneFlipEntityDirectionCmd* ptr = (CutsceneFlipEntityDirectionCmd*)cutsceneExecutors[index].bytecodePtr; 
 
     cutsceneExecutors[index].bytecodePtr += 2;
 
-    entityIndex = ptr->entityIndex;
+    entityIndex = CUTSCENE_READ_U16(cutsceneExecutors[index].bytecodePtr);
     
     cutsceneExecutors[index].bytecodePtr += 2;
     
@@ -2384,23 +2375,22 @@ void cutsceneHandlerSetEntityNonCollidable(u16 index) {
 
 void cutsceneHandlerSetupEntity(u16 index) {
 
-    CutsceneSetupEntityCmd* ptr = (CutsceneSetupEntityCmd*)cutsceneExecutors[index].bytecodePtr;
-    
+    u8* bytecodePtr = cutsceneExecutors[index].bytecodePtr;
     u16 entityIndex;
     u16 entityAssetIndex;
     u16 flag;
 
     cutsceneExecutors[index].bytecodePtr += 2;
 
-    entityIndex = ptr->entityIndex;
+    entityIndex = CUTSCENE_READ_U16(bytecodePtr + 2);
 
     cutsceneExecutors[index].bytecodePtr += 2;
 
-    entityAssetIndex = ptr->entityAssetIndex;
+    entityAssetIndex = CUTSCENE_READ_U16(bytecodePtr + 4);
     
     cutsceneExecutors[index].bytecodePtr += 2;
 
-    flag = ptr->flag;
+    flag = CUTSCENE_READ_U16(bytecodePtr + 6);
     
     cutsceneExecutors[index].bytecodePtr += 2;
 
@@ -2418,14 +2408,11 @@ void cutsceneHandlerSetupEntity(u16 index) {
 
 // unused handler
 void cutsceneHandlerSetEntityMapSpaceIndependentFlag(u16 index) {
-
-    CutsceneSetEntityMapSpaceIndependentFlagCmd* ptr = (CutsceneSetEntityMapSpaceIndependentFlagCmd*)cutsceneExecutors[index].bytecodePtr;
-
     u16 flag;
 
     cutsceneExecutors[index].bytecodePtr +=  2;
 
-    flag = ptr->flag;
+    flag = CUTSCENE_READ_U16(cutsceneExecutors[index].bytecodePtr);
 
     cutsceneExecutors[index].bytecodePtr += 2;
 
@@ -2437,18 +2424,17 @@ void cutsceneHandlerSetEntityMapSpaceIndependentFlag(u16 index) {
 
 void cutsceneHandlerLoadMap(u16 index) {
 
-    CutsceneLoadMapCmd* ptr = (CutsceneLoadMapCmd*)cutsceneExecutors[index].bytecodePtr;
-    
+    u8* bytecodePtr = cutsceneExecutors[index].bytecodePtr;
     u16 mapDataIndex;
     u16 mapIndex;
 
     cutsceneExecutors[index].bytecodePtr += 2;
 
-    mapDataIndex = ptr->mapDataIndex;
+    mapDataIndex = CUTSCENE_READ_U16(bytecodePtr + 2);
 
     cutsceneExecutors[index].bytecodePtr += 2;
 
-    mapIndex = ptr->mainMapIndex;
+    mapIndex = CUTSCENE_READ_U16(bytecodePtr + 4);
 
     cutsceneExecutors[index].bytecodePtr += 4;
     
@@ -2664,13 +2650,12 @@ void cutsceneHandlerUpdateU32Value(u16 index) {
 // deactivate map auxillary objects (map objects and weather sprites)
 void cutsceneHandlerDeactivateMapObjects(u16 index) {
 
-    CutsceneDeactivateMapObjectsCmd* ptr = (CutsceneDeactivateMapObjectsCmd*)cutsceneExecutors[index].bytecodePtr;
-
+    u8* bytecodePtr = cutsceneExecutors[index].bytecodePtr;
     u16 mapIndex;
     
     cutsceneExecutors[index].bytecodePtr += 2;
 
-    mapIndex = ptr->mapIndex;
+    mapIndex = CUTSCENE_READ_U16(bytecodePtr + 2);
     
     cutsceneExecutors[index].bytecodePtr += 2;
 
@@ -2793,20 +2778,19 @@ void cutsceneHandlerCheckEntityCollision(u16 index) {
     u16 entityIndex;
     u16 collisionWidth;
     u16 collisionHeight;
-
-    CutsceneCheckEntityCollisionCmd *ptr = (CutsceneCheckEntityCollisionCmd*)cutsceneExecutors[index].bytecodePtr;
+    u8* bytecodePtr = cutsceneExecutors[index].bytecodePtr;
     
     cutsceneExecutors[index].bytecodePtr += 2;   
 
-    entityIndex = ptr->entityIndex;
+    entityIndex = CUTSCENE_READ_U16(bytecodePtr + 2);
     
     cutsceneExecutors[index].bytecodePtr += 2;
     
-    collisionWidth = ptr->collisionWidth;
+    collisionWidth = CUTSCENE_READ_U16(bytecodePtr + 4);
     
     cutsceneExecutors[index].bytecodePtr += 2;
     
-    collisionHeight = ptr->collisionHeight;
+    collisionHeight = CUTSCENE_READ_U16(bytecodePtr + 6);
     
     cutsceneExecutors[index].bytecodePtr += 2;
 
@@ -2822,23 +2806,22 @@ void cutsceneHandlerCheckEntityCollision(u16 index) {
 
 void cutsceneHandlerInitializeDialogueSession(u16 index) {
 
-    CutsceneInitDialogueSessionCmd* ptr = (CutsceneInitDialogueSessionCmd*)cutsceneExecutors[index].bytecodePtr;
-    
+    u8* bytecodePtr = cutsceneExecutors[index].bytecodePtr;
     u16 dialoguesIndex;
     u16 dialogueBytecodeAddressIndex;
     u16 dialogueIndex;
 
     cutsceneExecutors[index].bytecodePtr += 2;
 
-    dialoguesIndex = ptr->dialoguesIndex;
+    dialoguesIndex = CUTSCENE_READ_U16(bytecodePtr + 2);
 
     cutsceneExecutors[index].bytecodePtr += 2;
 
-    dialogueBytecodeAddressIndex = ptr->dialogueBytecodeAddressIndex;
+    dialogueBytecodeAddressIndex = CUTSCENE_READ_U16(bytecodePtr + 4);
 
     cutsceneExecutors[index].bytecodePtr += 2;
 
-    dialogueIndex = ptr->dialogueIndex;
+    dialogueIndex = CUTSCENE_READ_U16(bytecodePtr + 6);
 
     cutsceneExecutors[index].bytecodePtr += 2;
 
@@ -2850,13 +2833,12 @@ void cutsceneHandlerInitializeDialogueSession(u16 index) {
 
 void cutsceneHandlerWaitForDialogueInput(u16 index) {
 
-    CutsceneWaitForDialogueInputCmd* ptr = (CutsceneWaitForDialogueInputCmd*)cutsceneExecutors[index].bytecodePtr;
-
     u16 dialoguesIndex;
+    u8* bytecodePtr = cutsceneExecutors[index].bytecodePtr;
 
     cutsceneExecutors[index].bytecodePtr += 2;
 
-    dialoguesIndex = ptr->dialoguesIndex;
+    dialoguesIndex = CUTSCENE_READ_U16(bytecodePtr + 2);
 
     cutsceneExecutors[index].bytecodePtr += 2;
 
@@ -2872,18 +2854,17 @@ void cutsceneHandlerWaitForDialogueInput(u16 index) {
 // branch on dialogue (unk_17 value)
 void cutsceneHandlerBranchOnDialogue(u16 index) {
 
-    CutsceneBranchOnDialogueCmd* ptr = (CutsceneBranchOnDialogueCmd*)cutsceneExecutors[index].bytecodePtr;
-
+    u8* bytecodePtr = cutsceneExecutors[index].bytecodePtr;
     u16 dialoguesIndex;
     u16 unk;
 
     cutsceneExecutors[index].bytecodePtr += 2;
 
-    dialoguesIndex = ptr->dialoguesIndex;
+    dialoguesIndex = CUTSCENE_READ_U16(bytecodePtr + 2);
 
     cutsceneExecutors[index].bytecodePtr += 2;
     
-    unk = ptr->unk;
+    unk = CUTSCENE_READ_U16(bytecodePtr + 4);
 
     cutsceneExecutors[index].bytecodePtr += 4;
 
@@ -2932,8 +2913,7 @@ void cutsceneHandlerWaitEntityAnimation(u16 index) {
 
 void cutsceneHandlerSetMessageBoxAssetIndices(u16 index) {
 
-    CutsceneSetMessageBoxAssetsCmd* ptr = (CutsceneSetMessageBoxAssetsCmd*)cutsceneExecutors[index].bytecodePtr;
-    
+    u8* bytecodePtr = cutsceneExecutors[index].bytecodePtr;
     u16 spriteIndex;
     u8 dialogueWindowIndex;
     u8 overlayIconIndex;
@@ -2941,19 +2921,19 @@ void cutsceneHandlerSetMessageBoxAssetIndices(u16 index) {
 
     cutsceneExecutors[index].bytecodePtr += 2;    
 
-    spriteIndex = ptr->spriteIndex;
+    spriteIndex = CUTSCENE_READ_U16(bytecodePtr + 2);
 
     cutsceneExecutors[index].bytecodePtr += 2;
     
-    dialogueWindowIndex = ptr->dialogueWindowIndex;
+    dialogueWindowIndex = bytecodePtr[4];
 
     cutsceneExecutors[index].bytecodePtr++;
 
-    overlayIconIndex = *(u8*)cutsceneExecutors[index].bytecodePtr;
+    overlayIconIndex = bytecodePtr[5];
 
     cutsceneExecutors[index].bytecodePtr++;
 
-    characterAvatarIndex = *(u8*)cutsceneExecutors[index].bytecodePtr;
+    characterAvatarIndex = bytecodePtr[6];
     
     cutsceneExecutors[index].bytecodePtr++;
     cutsceneExecutors[index].bytecodePtr++;
@@ -2966,31 +2946,30 @@ void cutsceneHandlerSetMessageBoxAssetIndices(u16 index) {
 
 void cutsceneHandlerSetEntityTrackingTarget(u16 index) {
 
-    CutsceneSetEntityTrackingTargetCmd* ptr = (CutsceneSetEntityTrackingTargetCmd*)cutsceneExecutors[index].bytecodePtr;
-    
+    u8* bytecodePtr = cutsceneExecutors[index].bytecodePtr;
     u16 targetEntityIndex;
     s16 x, y, z;
     u16 trackingMode;
 
     cutsceneExecutors[index].bytecodePtr += 2;
     
-    targetEntityIndex = ptr->targetEntityIndex;
+    targetEntityIndex = CUTSCENE_READ_U16(bytecodePtr + 2);
 
     cutsceneExecutors[index].bytecodePtr += 2;
 
-    x = ptr->arg1;
+    x = CUTSCENE_READ_S16(bytecodePtr + 4);
 
     cutsceneExecutors[index].bytecodePtr += 2;
 
-    y = ptr->arg2;
+    y = CUTSCENE_READ_S16(bytecodePtr + 6);
 
     cutsceneExecutors[index].bytecodePtr += 2;
 
-    z = ptr->arg3;
+    z = CUTSCENE_READ_S16(bytecodePtr + 8);
 
     cutsceneExecutors[index].bytecodePtr += 2;
     
-    trackingMode = ptr->trackingMode;
+    trackingMode = bytecodePtr[10];
     
     cutsceneExecutors[index].bytecodePtr++;
 
@@ -3009,13 +2988,12 @@ void cutsceneHandlerSetEntityTrackingTarget(u16 index) {
 
 void cutsceneHandlerSetHoldingAnimationFlag(u16 index) {
 
-    CutsceneSetHoldingAnimationFlagCmd* ptr = (CutsceneSetHoldingAnimationFlagCmd*)cutsceneExecutors[index].bytecodePtr;
-
     u16 useCarryingAnimation;
+    u8* bytecodePtr = cutsceneExecutors[index].bytecodePtr;
 
     cutsceneExecutors[index].bytecodePtr += 2;
 
-    useCarryingAnimation = ptr->useCarryingAnimations;
+    useCarryingAnimation = CUTSCENE_READ_U16(bytecodePtr + 2);
 
     cutsceneExecutors[index].bytecodePtr += 2;
 
@@ -3031,14 +3009,17 @@ void cutsceneHandlerSetHoldingAnimationFlag(u16 index) {
 
 void cutsceneHandlerWaitMapLoad(u16 index) {
 
-    CutsceneMapControllerIndexCmd* ptr = (CutsceneMapControllerIndexCmd*)cutsceneExecutors[index].bytecodePtr; 
+    u8* bytecodePtr = cutsceneExecutors[index].bytecodePtr;
+    u16 mapIndex;
 
     cutsceneExecutors[index].bytecodePtr += 2;
 
-    if (!(mapControllers[ptr->index].flags & (MAP_CONTROLLER_ROTATING_COUNTERCLOCKWISE | MAP_CONTROLLER_ROTATING_CLOCKWISE))) {
+    mapIndex = CUTSCENE_READ_U16(bytecodePtr + 2);
+
+    if (!(mapControllers[mapIndex].flags & (MAP_CONTROLLER_ROTATING_COUNTERCLOCKWISE | MAP_CONTROLLER_ROTATING_CLOCKWISE))) {
         cutsceneExecutors[index].bytecodePtr += 2;
     } else {
-        cutsceneExecutors[index].bytecodePtr = ptr;
+        cutsceneExecutors[index].bytecodePtr = bytecodePtr;
         cutsceneExecutors[index].waitFrames = 1;
     }
 
@@ -3048,18 +3029,17 @@ void cutsceneHandlerWaitMapLoad(u16 index) {
 
 void cutsceneHandlerBranchOnEntityDirection(u16 index) {
 
-    CutsceneBranchOnEntityDirectionCmd* ptr = (CutsceneBranchOnEntityDirectionCmd*)cutsceneExecutors[index].bytecodePtr;
-
+    u8* bytecodePtr = cutsceneExecutors[index].bytecodePtr;
     u16 entityIndex;
     u8 targetDirecton;
 
     cutsceneExecutors[index].bytecodePtr += 2;
 
-    entityIndex = ptr->entityIndex;
+    entityIndex = CUTSCENE_READ_U16(bytecodePtr + 2);
 
     cutsceneExecutors[index].bytecodePtr += 2;
     
-    targetDirecton = ptr->targetDirecton;
+    targetDirecton = bytecodePtr[4];
     
     cutsceneExecutors[index].bytecodePtr++;
     cutsceneExecutors[index].bytecodePtr++;
@@ -3080,13 +3060,12 @@ void cutsceneHandlerBranchOnEntityDirection(u16 index) {
 
 void cutsceneHandlerSetEntityPhysicsFlags(u16 index) {
 
-    CutsceneSetEntityPhysicsFlagsCmd* ptr = (CutsceneSetEntityPhysicsFlagsCmd*)cutsceneExecutors[index].bytecodePtr;
-
     u16 temp;
+    u8* bytecodePtr = cutsceneExecutors[index].bytecodePtr;
 
     cutsceneExecutors[index].bytecodePtr += 2;
 
-    temp = ptr->unk_2;
+    temp = CUTSCENE_READ_U16(bytecodePtr + 2);
 
     cutsceneExecutors[index].bytecodePtr += 2;
 
@@ -3119,13 +3098,12 @@ void cutsceneHandlerSetEntityPhysicsFlags(u16 index) {
 
 void cutsceneHandlerSetEntityPalette(u16 index) {
 
-    CutsceneSetEntityPaletteCmd* ptr = (CutsceneSetEntityPaletteCmd*)cutsceneExecutors[index].bytecodePtr;
-    
     u16 paletteIndex;
+    u8* bytecodePtr = cutsceneExecutors[index].bytecodePtr;
 
     cutsceneExecutors[index].bytecodePtr += 2;
 
-    paletteIndex = ptr->paletteIndex;
+    paletteIndex = CUTSCENE_READ_U16(bytecodePtr + 2);
 
     cutsceneExecutors[index].bytecodePtr += 2;
     
@@ -3159,16 +3137,15 @@ void cutsceneHandlerSetShadowFlags(u16 index) {
 
     u16 entityAssetIndex;
     u16 flags;
-    
-    CutsceneSetShadowFlagsCmd* ptr = (CutsceneSetShadowFlagsCmd*)cutsceneExecutors[index].bytecodePtr;
+    u8* bytecodePtr = cutsceneExecutors[index].bytecodePtr;
 
     cutsceneExecutors[index].bytecodePtr += 2;
     
-    entityAssetIndex = ptr->entityAssetIndex;
+    entityAssetIndex = CUTSCENE_READ_U16(bytecodePtr + 2);
     
     cutsceneExecutors[index].bytecodePtr += 2;
     
-    flags = ptr->flags;
+    flags = CUTSCENE_READ_U16(bytecodePtr + 4);
     
     cutsceneExecutors[index].bytecodePtr += 4;
 
@@ -3204,13 +3181,12 @@ void cutsceneHandlerSetSpriteScale(u16 index) {
 
 void cutsceneHandlerSetSpriteRenderngLayer(u16 index) {
 
-    CutsceneSetSpriteRenderingLayerCmd* ptr = (CutsceneSetSpriteRenderingLayerCmd*)cutsceneExecutors[index].bytecodePtr;
-
     u16 renderingLayerFlags;
+    u8* bytecodePtr = cutsceneExecutors[index].bytecodePtr;
 
     cutsceneExecutors[index].bytecodePtr += 2;
 
-    renderingLayerFlags = ptr->renderingLayer;
+    renderingLayerFlags = CUTSCENE_READ_U16(bytecodePtr + 2);
 
     cutsceneExecutors[index].bytecodePtr += 2;
 
@@ -3224,23 +3200,22 @@ void cutsceneHandlerSetSpriteRenderngLayer(u16 index) {
 
 void cutsceneHandlerInitializeMessageBoxType2(u16 index) {
 
-    CutsceneInitMessageBoxType2Cmd* ptr = (CutsceneInitMessageBoxType2Cmd*)cutsceneExecutors[index].bytecodePtr;
-    
+    u8* bytecodePtr = cutsceneExecutors[index].bytecodePtr;
     u16 messageBoxIndex;
     u16 textAddressesIndex;
     u16 textIndex;
 
     cutsceneExecutors[index].bytecodePtr += 2;
 
-    messageBoxIndex = ptr->messageBoxIndex;
+    messageBoxIndex = CUTSCENE_READ_U16(bytecodePtr + 2);
 
     cutsceneExecutors[index].bytecodePtr += 2;
 
-    textAddressesIndex = ptr->textAddressesIndex;
+    textAddressesIndex = CUTSCENE_READ_U16(bytecodePtr + 4);
 
     cutsceneExecutors[index].bytecodePtr += 2;
 
-    textIndex = ptr->textIndex;
+    textIndex = CUTSCENE_READ_U16(bytecodePtr + 6);
 
     cutsceneExecutors[index].bytecodePtr += 2;
 
@@ -3254,16 +3229,15 @@ void cutsceneHandlerInitMapAddition(u16 index) {
 
     u16 mapAdditionIndex;
     u16 flag;
-    
-    CutsceneInitMapAdditionCmd* ptr = (CutsceneInitMapAdditionCmd*)cutsceneExecutors[index].bytecodePtr;
+    u8* bytecodePtr = cutsceneExecutors[index].bytecodePtr;
 
     cutsceneExecutors[index].bytecodePtr += 2;
     
-    mapAdditionIndex = ptr->mapAdditionIndex;
+    mapAdditionIndex = CUTSCENE_READ_U16(bytecodePtr + 2);
     
     cutsceneExecutors[index].bytecodePtr += 2;
     
-    flag = ptr->flag;
+    flag = CUTSCENE_READ_U16(bytecodePtr + 4);
     
     cutsceneExecutors[index].bytecodePtr += 4;
 
@@ -3277,19 +3251,18 @@ void cutsceneHandlerInitMapAddition(u16 index) {
 // branch on random value
 void cutsceneHandlerBranchOnRandom(u16 index) {
 
-    CutsceneBranchOnRandomCmd* ptr= (CutsceneBranchOnRandomCmd*)cutsceneExecutors[index].bytecodePtr;
-
     u16 unk_2;
     u16 unk_4;
     u16 temp;
+    u8* bytecodePtr = cutsceneExecutors[index].bytecodePtr;
 
     cutsceneExecutors[index].bytecodePtr += 2;
 
-    unk_2 = ptr->unk_2;
+    unk_2 = CUTSCENE_READ_U16(bytecodePtr + 2);
 
     cutsceneExecutors[index].bytecodePtr += 2;
 
-    unk_4 = ptr->unk_4;
+    unk_4 = CUTSCENE_READ_U16(bytecodePtr + 4);
     
     cutsceneExecutors[index].bytecodePtr += 2;
 
@@ -3310,23 +3283,22 @@ void cutsceneHandlerBranchOnRandom(u16 index) {
 
 void cutsceneHandlerBranchIfU16PtrInRange(u16 index) {
 
-    CutsceneBranchIfU16PtrInRangeCmd* ptr = (CutsceneBranchIfU16PtrInRangeCmd*)cutsceneExecutors[index].bytecodePtr;
-    
     u16* unk_4;
     u16* unk_8;
     u32 unk_C;
+    u8* bytecodePtr = cutsceneExecutors[index].bytecodePtr;
 
     cutsceneExecutors[index].bytecodePtr += 4;
 
-    unk_4 = ptr->unk_4;
+    unk_4 = (u16*)readVariablePtr(bytecodePtr + 4);
 
     cutsceneExecutors[index].bytecodePtr += 4;
 
-    unk_8 = ptr->unk_8;
+    unk_8 = (u16*)readVariablePtr(bytecodePtr + 8);
 
     cutsceneExecutors[index].bytecodePtr += 4;
 
-    unk_C = ptr->unk_C;
+    unk_C = CUTSCENE_READ_U32(bytecodePtr + 12);
 
     cutsceneExecutors[index].bytecodePtr += 4;
 
@@ -3345,12 +3317,11 @@ void cutsceneHandlerBranchIfU16PtrInRange(u16 index) {
 
 void cutsceneHandlerPauseExecutor(u16 index) {
 
-    CutscenePauseExecutorCmd* ptr = (CutscenePauseExecutorCmd*)cutsceneExecutors[index].bytecodePtr;
     u16 executorIndex;
     
     cutsceneExecutors[index].bytecodePtr += 2;
 
-    executorIndex = ptr->executorIndex;
+    executorIndex = CUTSCENE_READ_U16(cutsceneExecutors[index].bytecodePtr);
     
     cutsceneExecutors[index].bytecodePtr += 2;
 
@@ -3363,12 +3334,11 @@ void cutsceneHandlerPauseExecutor(u16 index) {
 
 void cutsceneHandlerTogglePauseExecutor(u16 index) {
 
-    CutsceneTogglePauseExecutorCmd* ptr = (CutsceneTogglePauseExecutorCmd*)cutsceneExecutors[index].bytecodePtr;
     u16 executorIndex;
     
     cutsceneExecutors[index].bytecodePtr += 2;
 
-    executorIndex = ptr->executorIndex;
+    executorIndex = CUTSCENE_READ_U16(cutsceneExecutors[index].bytecodePtr);
     
     cutsceneExecutors[index].bytecodePtr += 2;
 
@@ -3427,12 +3397,11 @@ void cutsceneHandlerTogglePauseAllChildExecutors(u16 index) {
 void cutsceneHandlerSetSpritePalette(u16 index) {
 
     u16 paletteIndex;
-    
-    CutsceneSetSpritePaletteCmd* ptr = (CutsceneSetSpritePaletteCmd*)cutsceneExecutors[index].bytecodePtr;
+    u8* bytecodePtr = cutsceneExecutors[index].bytecodePtr;
 
     cutsceneExecutors[index].bytecodePtr += 2;
     
-    paletteIndex = ptr->paletteIndex;
+    paletteIndex = CUTSCENE_READ_U16(bytecodePtr + 2);
     
     cutsceneExecutors[index].bytecodePtr += 2;
     
@@ -3444,30 +3413,29 @@ void cutsceneHandlerSetSpritePalette(u16 index) {
 
 void cutsceneHandlerBranchIfU8PtrInRange(u16 index) {
 
-    CutsceneBranchIfU8PtrInRangeCmd* ptr = (CutsceneBranchIfU8PtrInRangeCmd*)cutsceneExecutors[index].bytecodePtr;
-
     u8* temp1;
     u8* temp2;
     u32 temp3;
+    u8* bytecodePtr = cutsceneExecutors[index].bytecodePtr;
     
     cutsceneExecutors[index].bytecodePtr += 4;
 
-    temp1 = ptr->unk_4;
+    temp1 = (u8*)readVariablePtr(bytecodePtr + 4);
 
     cutsceneExecutors[index].bytecodePtr += 4;
 
-    temp2 = ptr->unk_8;
+    temp2 = (u8*)readVariablePtr(bytecodePtr + 8);
 
     cutsceneExecutors[index].bytecodePtr += 4;
 
-    temp3 = ptr->unk_C;
+    temp3 = CUTSCENE_READ_U32(bytecodePtr + 12);
 
     cutsceneExecutors[index].bytecodePtr += 4;
 
     if (*temp1 >= *temp2) {
 
         if (temp3 >= *temp1) {
-            cutsceneExecutors[index].returnPtr = (u16*)ptr + 10;
+            cutsceneExecutors[index].returnPtr = cutsceneExecutors[index].bytecodePtr + 4;
             cutsceneExecutors[index].bytecodePtr += CUTSCENE_READ_S16(cutsceneExecutors[index].bytecodePtr);
             return;
         }
@@ -3485,20 +3453,19 @@ void cutsceneHandlerSetAudioSequence(u16 index) {
     u16 sequenceIndex;
     u8 *sequenceStart;
     u8 *sequenceEnd;
-
-    CutsceneSetAudioSequenceCmd* ptr = (CutsceneSetAudioSequenceCmd*)cutsceneExecutors[index].bytecodePtr;
+    u8* bytecodePtr = cutsceneExecutors[index].bytecodePtr;
     
     cutsceneExecutors[index].bytecodePtr += 2;
 
-    sequenceIndex = ptr->sequenceIndex;
+    sequenceIndex = CUTSCENE_READ_U16(bytecodePtr + 2);
     
     cutsceneExecutors[index].bytecodePtr += 2;
     
-    sequenceStart = ptr->sequenceStart;
+    sequenceStart = (u8*)readN64Ptr(bytecodePtr + 4);
     
     cutsceneExecutors[index].bytecodePtr += 4;
     
-    sequenceEnd = ptr->sequenceEnd;
+    sequenceEnd = (u8*)readN64Ptr(bytecodePtr + 8);
     
     cutsceneExecutors[index].bytecodePtr += 4;    
 
@@ -3538,18 +3505,17 @@ void cutsceneHandlerSetAudioSequence(u16 index) {
 
 void cutsceneHandlerStopAudioSequenceWithFadeOut(u16 index) {
 
-    CutsceneStopSequenceWithFadeCmd* ptr = (CutsceneStopSequenceWithFadeCmd*)cutsceneExecutors[index].bytecodePtr;
-    
     u16 sequenceIndex;
     u32 speed;
+    u8* bytecodePtr = cutsceneExecutors[index].bytecodePtr;
 
     cutsceneExecutors[index].bytecodePtr += 2;
 
-    sequenceIndex = ptr->sequenceIndex;
+    sequenceIndex = CUTSCENE_READ_U16(bytecodePtr + 2);
     
     cutsceneExecutors[index].bytecodePtr += 2;
 
-    speed = ptr->speed;
+    speed = CUTSCENE_READ_U16(bytecodePtr + 4);
 
     cutsceneExecutors[index].bytecodePtr += 4;
 
@@ -3561,23 +3527,22 @@ void cutsceneHandlerStopAudioSequenceWithFadeOut(u16 index) {
 
 void cutsceneHandlerSetAudioSequenceVolume(u16 index) {
 
-    CutsceneSetAudioSequenceVolumeCmd* ptr = (CutsceneSetAudioSequenceVolumeCmd*)cutsceneExecutors[index].bytecodePtr;
-    
     u16 sequenceIndex;
     s32 targetVolume;
     s16 volume;
+    u8* bytecodePtr = cutsceneExecutors[index].bytecodePtr;
 
     cutsceneExecutors[index].bytecodePtr += 2;
 
-    sequenceIndex = ptr->sequenceIndex;
+    sequenceIndex = CUTSCENE_READ_U16(bytecodePtr + 2);
     
     cutsceneExecutors[index].bytecodePtr += 2;
     
-    targetVolume = ptr->targetVolume;
+    targetVolume = CUTSCENE_READ_U16(bytecodePtr + 4);
     
     cutsceneExecutors[index].bytecodePtr += 2;
     
-    volume = ptr->volume;
+    volume = CUTSCENE_READ_S16(bytecodePtr + 6);
     
     cutsceneExecutors[index].bytecodePtr += 2;    
 
@@ -3589,18 +3554,17 @@ void cutsceneHandlerSetAudioSequenceVolume(u16 index) {
 
 void cutsceneHandlerSetSfx(u16 index) {
 
-    CutsceneSetSfxCmd* ptr = (CutsceneSetSfxCmd*)cutsceneExecutors[index].bytecodePtr;
-    
     u32 sfxIndex;
     u16 volume;
+    u8* bytecodePtr = cutsceneExecutors[index].bytecodePtr;
 
     cutsceneExecutors[index].bytecodePtr += 2;
     
-    sfxIndex = ptr->sfxIndex;
+    sfxIndex = CUTSCENE_READ_U16(bytecodePtr + 2);
 
     cutsceneExecutors[index].bytecodePtr += 2;
 
-    volume = ptr->volume;
+    volume = CUTSCENE_READ_U16(bytecodePtr + 4);
 
     cutsceneExecutors[index].bytecodePtr += 4;
 
@@ -3615,18 +3579,17 @@ void cutsceneHandlerSetSfx(u16 index) {
 
 void cutsceneHandlerIdleWhileAudioSequencePlaying(u16 index) {
 
-    CutsceneIdleWhileSequencePlayingCmd* ptr = (CutsceneIdleWhileSequencePlayingCmd*)cutsceneExecutors[index].bytecodePtr;
-
     u16 sequenceIndex;
+    u8* bytecodePtr = cutsceneExecutors[index].bytecodePtr;
 
     cutsceneExecutors[index].bytecodePtr += 2;
     
-    sequenceIndex = ptr->sequenceIndex;
+    sequenceIndex = CUTSCENE_READ_U16(bytecodePtr + 2);
 
     if (!gAudioSequences[sequenceIndex].flags) {
         cutsceneExecutors[index].bytecodePtr += 2;
     } else {
-        cutsceneExecutors[index].bytecodePtr = ptr;
+        cutsceneExecutors[index].bytecodePtr = bytecodePtr;
         cutsceneExecutors[index].waitFrames = 1;
     }
 
@@ -3643,11 +3606,11 @@ void cutsceneHandlerUpdateMessageBoxRGBA(u16 index) {
     u8 a;
     s16 flags;
 
-    CutsceneUpdateMessageBoxRgbaCmd* ptr = (CutsceneUpdateMessageBoxRgbaCmd*)cutsceneExecutors[index].bytecodePtr;
+    u8* bytecodePtr = cutsceneExecutors[index].bytecodePtr;
 
     cutsceneExecutors[index].bytecodePtr += 2;
 
-    messageBoxIndex = ptr->messageBoxIndex;
+    messageBoxIndex = CUTSCENE_READ_U16(bytecodePtr + 2);
 
     cutsceneExecutors[index].bytecodePtr += 2;
 
@@ -3680,12 +3643,11 @@ void cutsceneHandlerUpdateMessageBoxRGBA(u16 index) {
 void cutsceneHandlerWaitMessageBoxReady(u16 index) {
 
     u16 messageBoxIndex;
-    
-    CutsceneWaitMessageBoxReadyCmd* ptr = (CutsceneWaitMessageBoxReadyCmd*)cutsceneExecutors[index].bytecodePtr;
+    u8* bytecodePtr = cutsceneExecutors[index].bytecodePtr;
 
     cutsceneExecutors[index].bytecodePtr += 2;
     
-    messageBoxIndex = ptr->messageBoxIndex;
+    messageBoxIndex = CUTSCENE_READ_U16(bytecodePtr + 2);
 
     cutsceneExecutors[index].bytecodePtr += 2;
 
@@ -3721,23 +3683,22 @@ void cutsceneHandlerSetSpriteBilinearFiltering(u16 index) {
 
 void cutsceneHandlerSetMapAddition(u16 index) {
 
-    CutsceneSetMapAdditionCmd* ptr = (CutsceneSetMapAdditionCmd*)cutsceneExecutors[index].bytecodePtr;
-    
     u16 mapAdditionIndex;
     u8 x;
     u8 z;
+    u8* bytecodePtr = cutsceneExecutors[index].bytecodePtr;
 
     cutsceneExecutors[index].bytecodePtr += 2;
 
-    mapAdditionIndex = ptr->mapAdditionIndex;
+    mapAdditionIndex = CUTSCENE_READ_U16(bytecodePtr + 2);
 
     cutsceneExecutors[index].bytecodePtr += 2;
 
-    x = ptr->x;
+    x = bytecodePtr[4];
 
     cutsceneExecutors[index].bytecodePtr++;
 
-    z = *(u8*)cutsceneExecutors[index].bytecodePtr;
+    z = bytecodePtr[5];
 
     cutsceneExecutors[index].bytecodePtr++;
 
@@ -3755,20 +3716,19 @@ void cutsceneHandlerSetMapGroundObject(u16 index) {
     u16 spriteIndex;
     u8 x;
     u8 z;
-
-    CutsceneSetMapGroundObjectCmd* ptr = (CutsceneSetMapGroundObjectCmd*)cutsceneExecutors[index].bytecodePtr;
+    u8* bytecodePtr = cutsceneExecutors[index].bytecodePtr;
 
     cutsceneExecutors[index].bytecodePtr += 2;
 
-    spriteIndex = ptr->spriteIndex;
+    spriteIndex = CUTSCENE_READ_U16(bytecodePtr + 2);
     
     cutsceneExecutors[index].bytecodePtr += 2;
     
-    x = ptr->x;
+    x = bytecodePtr[4];
 
     cutsceneExecutors[index].bytecodePtr++;
     
-    z = *(u8*)cutsceneExecutors[index].bytecodePtr;
+    z = bytecodePtr[5];
     
     cutsceneExecutors[index].bytecodePtr++;
     

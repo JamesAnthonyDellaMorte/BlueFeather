@@ -326,9 +326,13 @@ void setupBitmapVertices(Vtx vtxs[],
     u16 flags, 
     u8 r, u8 g, u8 b, u8 a) {
     
-    u8 coordinate1;
-    u8 coordinate2;
-    u8 coordinate3;
+    // Default to the standard XY billboard mapping. Some intro/logo bitmaps
+    // arrive with axis bits 0/1, and the original source left these selectors
+    // uninitialized, which makes Debug builds diverge badly from optimized
+    // builds.
+    u8 coordinate1 = 0;
+    u8 coordinate2 = 1;
+    u8 coordinate3 = 2;
     
     u16 centerOffsetY;
     u16 temp;
@@ -353,8 +357,6 @@ void setupBitmapVertices(Vtx vtxs[],
             coordinate3 = 1;
             break;
 
-        case 0:
-        case 1:
         default:
             break;
 
@@ -420,6 +422,9 @@ void setupBitmapVertices(Vtx vtxs[],
             break;
 
         default:
+            vtxs[0].v.ob[coordinate2] = (centerOffsetY - textureOffset) - anchorY;
+            vtxs[1].v.ob[coordinate2] = (centerOffsetY - textureOffset) - anchorY;
+            vtxs[3].v.ob[coordinate2] = vtxs[2].v.ob[coordinate2] = temp = vtxs[0].v.ob[coordinate2] - textureSize;
             break;
 
     }

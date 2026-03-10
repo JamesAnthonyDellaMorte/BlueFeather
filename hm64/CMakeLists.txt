@@ -7,7 +7,6 @@ set(MOONWRIGHT_PROJECT_ROOT ${HM64_ROOT}/..)
 
 set(HM64_PORT_SOURCES
     ${MOONWRIGHT_ROOT}/src/main.cpp
-    ${MOONWRIGHT_ROOT}/src/sprite_stubs.c
     ${MOONWRIGHT_ROOT}/src/game_stubs.c
     ${MOONWRIGHT_ROOT}/src/hm64_game.cpp
     ${MOONWRIGHT_ROOT}/src/hm64_gu_compat.c

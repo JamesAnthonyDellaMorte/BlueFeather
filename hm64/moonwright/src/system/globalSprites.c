@@ -14,7 +14,10 @@
 bool setupSpriteAnimation(u16 spriteIndex, u8 animationModeOrFrameIndex, u16* animationDataPtr);
 void setTotalAnimationFrames(AnimationFrameMetadata*, const void*);
 u8* getAnimationFrameMetadataPtr(u16 arg0, void* arg1);
-inline AnimationFrameMetadata* getAnimationFrameMetadataPtrFromFrame(u16, u16*);   
+static void setAnimationFrameMetadata(AnimationFrameMetadata* animationFrameMetadata, const void* animationFrameMetadataPtr);
+static void setBitmapMetadata(BitmapMetadata* ptr, const void* data);
+static AnimationFrameMetadata* getAnimationFrameMetadataPtrFromFrame(u16 currentFrame, u16* animationFrameMetadataPtr);
+static u16* advanceBitmapMetadataPtr(u16 numFrames, u16* bitmapMetadataPtr);
 
 // bss
 SpriteObject globalSprites[MAX_SPRITES];
@@ -1062,7 +1065,7 @@ void setTotalAnimationFrames(AnimationFrameMetadata* animationFrameMetadata, con
 
 //INCLUDE_ASM("asm/nonmatchings/system/globalSprites", setAnimationFrameMetadata);
 
-inline void setAnimationFrameMetadata(AnimationFrameMetadata* animationFrameMetadata, const void* animationFrameMetadataPtr) {
+static void setAnimationFrameMetadata(AnimationFrameMetadata* animationFrameMetadata, const void* animationFrameMetadataPtr) {
     const u8* bytes = (const u8*)animationFrameMetadataPtr;
 
     animationFrameMetadata->objectCount = hm64ReadRawLEU16(bytes);
@@ -1091,7 +1094,7 @@ inline void setAnimationFrameMetadata(AnimationFrameMetadata* animationFrameMeta
 
 //INCLUDE_ASM("asm/nonmatchings/system/globalSprites", setBitmapMetadata);
 
-inline void setBitmapMetadata(BitmapMetadata* ptr, const void* data) {
+static void setBitmapMetadata(BitmapMetadata* ptr, const void* data) {
     const u8* bytes = (const u8*)data;
 
     ptr->spritesheetIndex = hm64ReadRawLEU16(bytes);
@@ -1133,7 +1136,7 @@ u8* getAnimationFrameMetadataPtr(u16 arg0, void* arg1) {
 //INCLUDE_ASM("asm/nonmatchings/system/globalSprites", getAnimationFrameMetadataPtrFromFrame);
 
 // update pointer by iterateing through animation data (contains header, animation metadata, and sprite metadata)
-inline AnimationFrameMetadata* getAnimationFrameMetadataPtrFromFrame(u16 currentFrame, u16* animationFrameMetadataPtr) {
+static AnimationFrameMetadata* getAnimationFrameMetadataPtrFromFrame(u16 currentFrame, u16* animationFrameMetadataPtr) {
     u16 i = 0;
     u8* cursor = (u8*)animationFrameMetadataPtr;
     AnimationFrameMetadata animationFrameMetadata;
@@ -1152,7 +1155,7 @@ inline AnimationFrameMetadata* getAnimationFrameMetadataPtrFromFrame(u16 current
 
 //INCLUDE_ASM("asm/nonmatchings/system/globalSprites", advanceBitmapMetadataPtr);
 
-inline u16* advanceBitmapMetadataPtr(u16 numFrames, u16* bitmapMetadataPtr) {
+static u16* advanceBitmapMetadataPtr(u16 numFrames, u16* bitmapMetadataPtr) {
     return (u16*)((u8*)bitmapMetadataPtr + ((u32)numFrames * 8));
 }
 
