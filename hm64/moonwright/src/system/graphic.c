@@ -11,6 +11,9 @@
 
 #include "mainproc.h"
 
+extern u16 font1PaletteBuffer[0x200];
+extern u16 font2PaletteBuffer[0x200];
+
 // forward declarations
 void setBitmapFormatAndSize(BitmapObject* sprite, u16* palette);
 Gfx *setupCameraMatrices(Gfx*, Camera*, SceneMatrices*);
@@ -295,17 +298,21 @@ Gfx* loadBitmapTexture(Gfx* dl, BitmapObject* sprite, u32 offset, u16 height) {
     
     switch (sprite->pixelSize) {
         case G_IM_SIZ_4b:
-            gDPLoadTextureTile_4b(dl++, sprite->timg + offset, sprite->fmt, sprite->width, sprite->height, 0, 0, sprite->width - 1, height - 1, 0, G_TX_NOMIRROR | G_TX_WRAP, G_TX_NOMIRROR | G_TX_WRAP, G_TX_NOMASK, G_TX_NOMASK, G_TX_NOLOD, G_TX_NOLOD);        
+            gDPSetTextureLUT(dl++, G_TT_RGBA16);
             gDPLoadTLUT_pal16(dl++, 0, sprite->pal);
+            gDPLoadTextureTile_4b(dl++, sprite->timg + offset, sprite->fmt, sprite->width, sprite->height, 0, 0, sprite->width - 1, height - 1, 0, G_TX_NOMIRROR | G_TX_WRAP, G_TX_NOMIRROR | G_TX_WRAP, G_TX_NOMASK, G_TX_NOMASK, G_TX_NOLOD, G_TX_NOLOD);        
             break; 
         case G_IM_SIZ_8b:
-            gDPLoadTextureTile(dl++, sprite->timg + offset, sprite->fmt, G_IM_SIZ_8b, sprite->width, sprite->height, 0, 0, sprite->width - 1, height - 1, sprite->pal, G_TX_NOMIRROR | G_TX_WRAP, G_TX_NOMIRROR | G_TX_WRAP, G_TX_NOMASK, G_TX_NOMASK, G_TX_NOLOD, G_TX_NOLOD);
+            gDPSetTextureLUT(dl++, G_TT_RGBA16);
             gDPLoadTLUT_pal256(dl++, sprite->pal);
+            gDPLoadTextureTile(dl++, sprite->timg + offset, sprite->fmt, G_IM_SIZ_8b, sprite->width, sprite->height, 0, 0, sprite->width - 1, height - 1, sprite->pal, G_TX_NOMIRROR | G_TX_WRAP, G_TX_NOMIRROR | G_TX_WRAP, G_TX_NOMASK, G_TX_NOMASK, G_TX_NOLOD, G_TX_NOLOD);
             break;
         case G_IM_SIZ_16b:
+            gDPSetTextureLUT(dl++, G_TT_NONE);
             gDPLoadTextureBlock(dl++, sprite->timg + offset, sprite->fmt, G_IM_SIZ_16b, sprite->width, height, sprite->pal, G_TX_NOMIRROR | G_TX_WRAP, G_TX_NOMIRROR | G_TX_WRAP, G_TX_NOMASK, G_TX_NOMASK, G_TX_NOLOD, G_TX_NOLOD);
             break;
         case G_IM_SIZ_32b:
+            gDPSetTextureLUT(dl++, G_TT_NONE);
             gDPLoadTextureBlock(dl++, sprite->timg + offset, sprite->fmt, G_IM_SIZ_32b, sprite->width, height, sprite->pal, G_TX_NOMIRROR | G_TX_WRAP, G_TX_NOMIRROR | G_TX_WRAP, G_TX_NOMASK, G_TX_NOMASK, G_TX_NOLOD, G_TX_NOLOD);
             break;
         default:

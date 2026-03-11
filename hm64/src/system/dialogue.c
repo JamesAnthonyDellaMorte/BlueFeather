@@ -501,7 +501,7 @@ u32 getDialogueBytecodeAddress(u16 index, u16 dialogueOffset) {
 
 //INCLUDE_ASM("asm/nonmatchings/system/dialogue", setDialogueVariableValue);
 
-inline void setDialogueVariableValue(u16 index, u16 value) {
+static inline void setDialogueVariableValue(u16 index, u16 value) {
 
     switch (dialogueVariables[index].type) {
         case UNSIGNED_CHAR:
@@ -519,7 +519,7 @@ inline void setDialogueVariableValue(u16 index, u16 value) {
  
 //INCLUDE_ASM("asm/nonmatchings/system/dialogue", getDialogueVariableValue);
 
-inline u32 getDialogueVariableValue(u16 index) {
+static inline u32 getDialogueVariableValue(u16 index) {
 
     u32 value;
     
@@ -541,7 +541,7 @@ inline u32 getDialogueVariableValue(u16 index) {
 
 //INCLUDE_ASM("asm/nonmatchings/system/dialogue", setSpecialDialogueBitFromPointer);
 
-inline void setSpecialDialogueBitFromPointer(u16 bitIndex) {
+static inline void setSpecialDialogueBitFromPointer(u16 bitIndex) {
 
     u32 temp = bitIndex;
     specialDialogueBitsPointer[temp >> 5] |= 1 << (temp & 0x1F);
@@ -550,7 +550,7 @@ inline void setSpecialDialogueBitFromPointer(u16 bitIndex) {
 
 //INCLUDE_ASM("asm/nonmatchings/system/dialogue", toggleSpecialDialogueBitFromPointer);
 
-inline void toggleSpecialDialogueBitFromPointer(u16 bitIndex) {
+static inline void toggleSpecialDialogueBitFromPointer(u16 bitIndex) {
 
     u32 temp = bitIndex;
     specialDialogueBitsPointer[temp >> 5] &= ~(1 << (temp & 0x1F));
@@ -559,7 +559,7 @@ inline void toggleSpecialDialogueBitFromPointer(u16 bitIndex) {
 
 //INCLUDE_ASM("asm/nonmatchings/system/dialogue", checkSpecialDialogueBitFromPointer);
 
-inline u32 checkSpecialDialogueBitFromPointer(u16 bitIndex) {
+static inline u32 checkSpecialDialogueBitFromPointer(u16 bitIndex) {
     
     u32 temp = bitIndex;
     

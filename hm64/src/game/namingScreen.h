@@ -54,7 +54,7 @@ typedef struct {
 extern u8 gNamingScreenIndex;
 extern NamingScreenContext namingScreenContext;
 
-inline void initializeNamingScreen(u8*, u8);
+extern void initializeNamingScreen(u8*, u8);
 
 extern void loadNamingScreenCallback(void);
 extern void namingScreenCallback(void);

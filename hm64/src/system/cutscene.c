@@ -4,12 +4,15 @@
 
 // PC port: Include address translation
 #include "ld_symbols.h"
+#include "hm64_ram.h"
 
 // PC port: Define endianness macros for C
 #define BE16SWAP(x) __builtin_bswap16(x)
 #define BE32SWAP(x) __builtin_bswap32(x)
 
 #ifdef HM64_PC_PORT
+// Moonwright [Port] Cutscene bytecode is N64-authored big-endian data. Host builds must
+// read it explicitly instead of relying on raw struct field access.
 #define CUTSCENE_READ_U16(ptr) hm64ReadRawU16(ptr)
 #define CUTSCENE_READ_S16(ptr) hm64ReadRawS16(ptr)
 #define CUTSCENE_READ_U32(ptr) hm64ReadRawU32(ptr)
@@ -31,9 +34,8 @@ typedef enum {
 
 extern void* HM64_GetVariablePointer(CutsceneVariableIndex index);
 
-// PC port: Helper to read variable pointer from bytecode
-// IMPORTANT: Bytecode stores 32-bit pointers, but PC pointers are 64-bit.
-// We must read exactly 4 bytes from bytecode, not use struct member access.
+// Moonwright [Port] Bytecode stores 32-bit values while the host is 64-bit. Read the
+// encoded value explicitly and then resolve it to either a variable slot or translated address.
 static inline void* readVariablePtr(void* bytecodePtr) {
     // Read 32-bit value from bytecode (big-endian, as in N64)
 #ifdef HM64_PC_PORT
@@ -2175,7 +2177,11 @@ void cutsceneHandlerResetMessageBoxAvatar(u16 index) {
 
     messageBoxes[messageBoxIndex].flags &= ~MESSAGE_BOX_MODE_UNKNOWN;
 
-    resetMessageBoxAnimation(messageBoxIndex);
+    if ((messageBoxIndex < MAX_MESSAGE_BOXES) &&
+        (messageBoxes[messageBoxIndex].flags & MESSAGE_BOX_ACTIVE) &&
+        (messageBoxes[messageBoxIndex].flags & MESSAGE_BOX_HAS_CHARACTER_AVATAR)) {
+        resetAnimationState(characterAvatars[messageBoxes[messageBoxIndex].characterAvatarIndex].spriteIndex);
+    }
     
 }
 

@@ -76,7 +76,7 @@ void mainGameLoopCallback(void) {
 //INCLUDE_ASM("asm/nonmatchings/game/transition", launchIntroCutscene);
 
 // used by game.c
-inline void launchIntroCutscene(u16 cutsceneIndex, u16 spawnPoint, u8 arg2) {
+void launchIntroCutscene(u16 cutsceneIndex, u16 spawnPoint, u8 arg2) {
     
     deactivateSprites();
     deactivateGlobalSprites();

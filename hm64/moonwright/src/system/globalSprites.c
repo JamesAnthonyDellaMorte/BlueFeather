@@ -11,7 +11,7 @@
 #include "mainproc.h"
 
 #include "ld_symbols.h"
-#include "moonwright_blobs.h"
+#include "hm64_ram.h"
 
 // forward declarations
 bool setupSpriteAnimation(u16 spriteIndex, u8 animationModeOrFrameIndex, u16* animationDataPtr);
@@ -21,53 +21,19 @@ static void setAnimationFrameMetadata(AnimationFrameMetadata* animationFrameMeta
 static void setBitmapMetadata(BitmapMetadata* ptr, const void* data);
 static AnimationFrameMetadata* getAnimationFrameMetadataPtrFromFrame(u16 currentFrame, u16* animationFrameMetadataPtr);
 static u16* advanceBitmapMetadataPtr(u16 numFrames, u16* bitmapMetadataPtr);
+extern void* HM64_TranslateAddress(u32 n64Addr);
 
 // bss
 SpriteObject globalSprites[MAX_SPRITES];
 
-typedef struct {
-    uintptr_t start;
-    const char* path;
-} StartupBlobPath;
+static void* resolveSpritePointer(const void* ptr) {
+    uintptr_t addr = (uintptr_t)ptr;
 
-static const StartupBlobPath kStartupTextureBlobs[] = {
-    { (uintptr_t)_titleSpritesTextureSegmentRomStart, "runtime/rom/title/titleSpritesTexture.bin" },
-    { (uintptr_t)_dialogueButtonIconsTextureSegmentRomStart, "runtime/rom/title/dialogueButtonIconsTexture.bin" },
-    { (uintptr_t)_dogTextureSegmentRomStart, "runtime/rom/title/dogTexture.bin" },
-    { 0x00DD4800u, "runtime/rom/title/logosTexture.bin" },
-    { 0x00CAD610u, "runtime/rom/title/funeralIntroTexture.bin" },
-};
-
-static const StartupBlobPath kStartupAssetsIndexBlobs[] = {
-    { (uintptr_t)_titleSpritesAssetsIndexSegmentRomStart, "runtime/rom/title/titleSpritesAssetsIndex.bin" },
-    { (uintptr_t)_dialogueButtonIconsAssetsIndexSegmentRomStart, "runtime/rom/title/dialogueButtonIconsAssetsIndex.bin" },
-    { (uintptr_t)_dogAssetsIndexSegmentRomStart, "runtime/rom/title/dogAssetsIndex.bin" },
-    { 0x00DD7750u, "runtime/rom/title/logosAssetsIndex.bin" },
-    { 0x00CB4D10u, "runtime/rom/title/funeralIntroAssetsIndex.bin" },
-};
-
-static const StartupBlobPath kStartupSpritesheetIndexBlobs[] = {
-    { (uintptr_t)_dogSpritesheetIndexSegmentRomStart, "runtime/rom/title/dogSpritesheetIndex.bin" },
-};
-
-static const char* getStartupBlobPath(const StartupBlobPath* table, size_t tableCount, uintptr_t segmentStart) {
-    size_t i;
-
-    for (i = 0; i < tableCount; i++) {
-        if (table[i].start == segmentStart) {
-            return table[i].path;
-        }
+    if (addr >= HM64_RAM_BASE && addr < (HM64_RAM_BASE + HM64_RAM_SIZE)) {
+        return HM64_TranslateAddress((u32)addr);
     }
 
-    return NULL;
-}
-
-static bool copyStartupBlobRange(const char* path, uintptr_t segmentStart, uintptr_t addr, void* dst, size_t size) {
-    if (path == NULL || addr < segmentStart) {
-        return FALSE;
-    }
-
-    return MW_CopyArchiveBlobRange(path, addr - segmentStart, dst, size);
+    return (void*)ptr;
 }
 
 
@@ -198,29 +164,10 @@ bool dmaSprite(u16 index,
     u32 offset3;
     u32 offset4;
     u32 offset5;
-    const char* textureBlobPath;
-    const char* assetsIndexBlobPath;
-    const char* spritesheetIndexBlobPath;
-
     if (index < MAX_SPRITES) {
         
         if (!(globalSprites[index].stateFlags & SPRITE_ACTIVE)) { 
-
-            textureBlobPath = getStartupBlobPath(kStartupTextureBlobs,
-                                                 sizeof(kStartupTextureBlobs) / sizeof(kStartupTextureBlobs[0]),
-                                                 (uintptr_t)romTextureStart);
-            assetsIndexBlobPath = getStartupBlobPath(kStartupAssetsIndexBlobs,
-                                                     sizeof(kStartupAssetsIndexBlobs) / sizeof(kStartupAssetsIndexBlobs[0]),
-                                                     (uintptr_t)romAssetsIndexStart);
-            spritesheetIndexBlobPath = getStartupBlobPath(
-                kStartupSpritesheetIndexBlobs,
-                sizeof(kStartupSpritesheetIndexBlobs) / sizeof(kStartupSpritesheetIndexBlobs[0]),
-                (uintptr_t)romSpritesheetIndexStart);
-            
-            if (!copyStartupBlobRange(assetsIndexBlobPath, (uintptr_t)romAssetsIndexStart, (uintptr_t)romAssetsIndexStart,
-                                      assetIndex, (uintptr_t)romAssetsIndexEnd - (uintptr_t)romAssetsIndexStart)) {
-                nuPiReadRom(romAssetsIndexStart, assetIndex, romAssetsIndexEnd - romAssetsIndexStart);
-            }
+            nuPiReadRom(romAssetsIndexStart, assetIndex, romAssetsIndexEnd - romAssetsIndexStart);
 
             // spritesheet
             offset1 = hm64ReadIndexedU32(assetIndex, 0);
@@ -235,47 +182,20 @@ bool dmaSprite(u16 index,
         
             // has separate spritesheet index
             if (assetType & 1) {
-
-                if (!copyStartupBlobRange(textureBlobPath, (uintptr_t)romTextureStart, (uintptr_t)romTextureStart + offset2,
-                                          paletteVaddr, offset3 - offset2)) {
-                    nuPiReadRom(romTextureStart + offset2, paletteVaddr, offset3 - offset2);
-                }
-                if (!copyStartupBlobRange(textureBlobPath, (uintptr_t)romTextureStart, (uintptr_t)romTextureStart + offset3,
-                                          animationVaddr, offset4 - offset3)) {
-                    nuPiReadRom(romTextureStart + offset3, animationVaddr, offset4 - offset3);
-                }
-                if (!copyStartupBlobRange(textureBlobPath, (uintptr_t)romTextureStart, (uintptr_t)romTextureStart + offset4,
-                                          spriteToPaletteVaddr, offset5 - offset4)) {
-                    nuPiReadRom(romTextureStart + offset4, spriteToPaletteVaddr, offset5 - offset4);
-                }
-                if (!copyStartupBlobRange(spritesheetIndexBlobPath, (uintptr_t)romSpritesheetIndexStart,
-                                          (uintptr_t)romSpritesheetIndexStart, spritesheetIndexVaddr,
-                                          (uintptr_t)romSpritesheetIndexEnd - (uintptr_t)romSpritesheetIndexStart)) {
-                    nuPiReadRom(romSpritesheetIndexStart, spritesheetIndexVaddr,
-                                romSpritesheetIndexEnd - romSpritesheetIndexStart);
-                }
+                nuPiReadRom(romTextureStart + offset2, paletteVaddr, offset3 - offset2);
+                nuPiReadRom(romTextureStart + offset3, animationVaddr, offset4 - offset3);
+                nuPiReadRom(romTextureStart + offset4, spriteToPaletteVaddr, offset5 - offset4);
+                nuPiReadRom(romSpritesheetIndexStart, spritesheetIndexVaddr,
+                            romSpritesheetIndexEnd - romSpritesheetIndexStart);
 
                 setSpriteType1(index, animationVaddr, spritesheetIndexVaddr, paletteVaddr, spriteToPaletteVaddr, romTextureStart, texture1Vaddr, texture2Vaddr);
 
             // spritesheet index in spritesheet
             } else {
-
-                if (!copyStartupBlobRange(textureBlobPath, (uintptr_t)romTextureStart, (uintptr_t)romTextureStart + offset1,
-                                          texture1Vaddr, offset2 - offset1)) {
-                    nuPiReadRom(romTextureStart + offset1, texture1Vaddr, offset2 - offset1);
-                }
-                if (!copyStartupBlobRange(textureBlobPath, (uintptr_t)romTextureStart, (uintptr_t)romTextureStart + offset2,
-                                          paletteVaddr, offset3 - offset2)) {
-                    nuPiReadRom(romTextureStart + offset2, paletteVaddr, offset3 - offset2);
-                }
-                if (!copyStartupBlobRange(textureBlobPath, (uintptr_t)romTextureStart, (uintptr_t)romTextureStart + offset3,
-                                          animationVaddr, offset4 - offset3)) {
-                    nuPiReadRom(romTextureStart + offset3, animationVaddr, offset4 - offset3);
-                }
-                if (!copyStartupBlobRange(textureBlobPath, (uintptr_t)romTextureStart, (uintptr_t)romTextureStart + offset4,
-                                          spriteToPaletteVaddr, offset5 - offset4)) {
-                    nuPiReadRom(romTextureStart + offset4, spriteToPaletteVaddr, offset5 - offset4);
-                }
+                nuPiReadRom(romTextureStart + offset1, texture1Vaddr, offset2 - offset1);
+                nuPiReadRom(romTextureStart + offset2, paletteVaddr, offset3 - offset2);
+                nuPiReadRom(romTextureStart + offset3, animationVaddr, offset4 - offset3);
+                nuPiReadRom(romTextureStart + offset4, spriteToPaletteVaddr, offset5 - offset4);
                 
                 setSpriteType2(index, animationVaddr, texture1Vaddr, paletteVaddr, spriteToPaletteVaddr);
 
@@ -307,10 +227,10 @@ bool setSpriteType2(u16 index, u32* animationIndexPtr, u32* spritesheetIndexPtr,
 
         if (!(globalSprites[index].stateFlags & SPRITE_ACTIVE)) {
 
-            globalSprites[index].animationIndexPtr = animationIndexPtr;
-            globalSprites[index].spritesheetIndexPtr = spritesheetIndexPtr;
-            globalSprites[index].paletteIndexPtr = paletteIndexPtr;
-            globalSprites[index].spriteToPaletteMappingPtr = spriteToPaletteMappingPtr;
+            globalSprites[index].animationIndexPtr = resolveSpritePointer(animationIndexPtr);
+            globalSprites[index].spritesheetIndexPtr = resolveSpritePointer(spritesheetIndexPtr);
+            globalSprites[index].paletteIndexPtr = resolveSpritePointer(paletteIndexPtr);
+            globalSprites[index].spriteToPaletteMappingPtr = resolveSpritePointer(spriteToPaletteMappingPtr);
             globalSprites[index].texturePtr[0] = NULL;
             globalSprites[index].texturePtr[1] = NULL;
             globalSprites[index].romTexturePtr = NULL;
@@ -348,12 +268,12 @@ bool setSpriteType1(u16 spriteIndex, u32* animationIndexPtr, u32* spritesheetInd
 
         if (!(globalSprites[spriteIndex].stateFlags & SPRITE_ACTIVE)) {
 
-            globalSprites[spriteIndex].animationIndexPtr = animationIndexPtr;
-            globalSprites[spriteIndex].spritesheetIndexPtr = spritesheetIndexPtr;
-            globalSprites[spriteIndex].paletteIndexPtr = paletteIndexPtr;
-            globalSprites[spriteIndex].spriteToPaletteMappingPtr = spriteToPaletteMappingPtr;
-            globalSprites[spriteIndex].texturePtr[0] = texturePtr;
-            globalSprites[spriteIndex].texturePtr[1] = texture2Ptr;
+            globalSprites[spriteIndex].animationIndexPtr = resolveSpritePointer(animationIndexPtr);
+            globalSprites[spriteIndex].spritesheetIndexPtr = resolveSpritePointer(spritesheetIndexPtr);
+            globalSprites[spriteIndex].paletteIndexPtr = resolveSpritePointer(paletteIndexPtr);
+            globalSprites[spriteIndex].spriteToPaletteMappingPtr = resolveSpritePointer(spriteToPaletteMappingPtr);
+            globalSprites[spriteIndex].texturePtr[0] = resolveSpritePointer(texturePtr);
+            globalSprites[spriteIndex].texturePtr[1] = resolveSpritePointer(texture2Ptr);
             globalSprites[spriteIndex].romTexturePtr = romTexturePtr;
 
             globalSprites[spriteIndex].stateFlags = (SPRITE_ACTIVE | 4);

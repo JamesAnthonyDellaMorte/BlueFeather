@@ -42,29 +42,6 @@
 #include "assetIndices/maps.h"
 #include "assetIndices/sprites.h"
 
-#include "moonwright_blobs.h"
-
-static const char* getCutsceneArchivePath(u16 segmentIndex) {
-    switch (segmentIndex) {
-        case 0:
-        case 1:
-        case 2:
-        case 3:
-        case 4:
-        case 5:
-        case 6:
-        case 33:
-        case 34:
-            return "runtime/rom/cutscenes/farmBusiness.bin";
-        case 30:
-            return "runtime/rom/cutscenes/funeralIntro.bin";
-        case 32:
-            return "runtime/rom/cutscenes/demos.bin";
-        default:
-            return NULL;
-    }
-}
-
 // forward declarations
 u16 setBeachCutscenes(void);                          
 u16 setCaveCutscenes(void);                          
@@ -351,7 +328,6 @@ static inline void transitionCutscenes(u16 cutsceneIndex, u16 spawnPoint) {
 //INCLUDE_ASM("asm/nonmatchings/game/cutscenes", initializeCutscene);
 
 void initializeCutscene(u16 segmentIndex) {
-    const char* archivePath;
     const size_t cutsceneSize = cutsceneBytecodeAddresses[segmentIndex].romAddrEnd -
                                 cutsceneBytecodeAddresses[segmentIndex].romAddrStart;
 
@@ -361,16 +337,8 @@ void initializeCutscene(u16 segmentIndex) {
            (void*)cutsceneBytecodeAddresses[segmentIndex].romAddrEnd,
            cutsceneBankLoadAddresses[segmentIndex]);
 
-    archivePath = getCutsceneArchivePath(segmentIndex);
-
-    if (archivePath != NULL) {
-        if (!MW_CopyArchiveBlob(archivePath, cutsceneBankLoadAddresses[segmentIndex], cutsceneSize)) {
-            printf("[Moonwright] Failed to load cutscene archive blob: %s\n", archivePath);
-        }
-    } else {
-        nuPiReadRom(cutsceneBytecodeAddresses[segmentIndex].romAddrStart, cutsceneBankLoadAddresses[segmentIndex],
-                    cutsceneSize);
-    }
+    nuPiReadRom(cutsceneBytecodeAddresses[segmentIndex].romAddrStart, cutsceneBankLoadAddresses[segmentIndex],
+                cutsceneSize);
 
     gCutsceneCompletionFlags = 0;
 

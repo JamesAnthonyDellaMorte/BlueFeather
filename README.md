@@ -1,73 +1,96 @@
 # Moonwright
 
-Moonwright is a standalone Harvest Moon 64 port project built on top of [libultraship](https://github.com/Kenix3/libultraship).
-The repository layout is intentionally modeled after Shipwright: the port owns a local HM64 game subtree instead of reaching back
-into a separate decomp repository at build time.
+Moonwright is a standalone Harvest Moon 64 PC port project.
 
-## Status
+This repository is the port, not the original decomp repository. The target model is the same philosophy used by Shipwright and SpaghettiKart: keep the real game startup, callback flow, and main loop in charge, and build the port around that instead of replacing it with a fake frontend or preview runtime.
 
-🎮 **FUNCTIONAL** - Moonwright compiles and runs with a working window, render loop, and active HM64 runtime integration.
+## Goals
 
-### What's Working
-- ✅ Libultraship builds successfully
-- ✅ Moonwright executable compiles (macOS ARM64)
-- ✅ Asset extraction from original ROM
-- ✅ CMake build system configured
-- ✅ Window/Graphics initialization
-- ✅ Render loop with GUI pipeline
-- ✅ Input/controller initialization
+- Boot through the real HM64 startup path.
+- Keep `mainproc() -> setupGameStart() -> mainLoop()` as the runtime owner path.
+- Use packaged archive assets through `OTRExporter` and `libultraship`.
+- Keep port-specific code in `hm64/moonwright` and imported game code in `hm64/src` and `hm64/include`.
+- Follow Shipwright and SpaghettiKart as the reference model for structure and runtime philosophy.
 
-### What's Not Working (Yet)
-- ❌ Full HM64 game-flow integration
-- ❌ Complete N64 display list compatibility
-- ❌ Audio
-- ❌ Save/load
+## Current Status
 
-## Prerequisites
+Current verified state:
 
-### macOS
-- macOS 14.0+ (tested on macOS 26.1)
-- Xcode Command Line Tools
-- Homebrew packages:
-```bash
-brew install cmake ninja sdl2 glew libzip tinyxml2 nlohmann-json
+- `Release`, `RelWithDebInfo`, and `Debug` build through CMake presets.
+- The real intro and logo sequence runs through the real game logic path.
+- The funeral outdoor scene now loads.
+- Dialogue portrait, window, and text render on screen.
+- The runtime is using the real HM64 startup path instead of any preview or test runtime.
+
+The port is still in active development. Reaching the title screen and stable gameplay end-to-end remains ongoing work.
+
+## Repository Layout
+
+```text
+Moonwright/
+|- CMakeLists.txt
+|- CMakePresets.json
+|- README.md
+|- .gitmodules
+|- hm64.json
+|- CMake/
+|- hm64/
+|  |- CMakeLists.txt
+|  |- assets/
+|  |- include/
+|  |- src/
+|  |- tools/
+|  `- moonwright/
+|     |- include/
+|     `- src/
+|- libultraship/
+`- OTRExporter/
 ```
 
-### Linux (Ubuntu/Debian)
-```bash
-sudo apt-get install cmake ninja-build libsdl2-dev libglew-dev libzip-dev \
-    libtinyxml2-dev nlohmann-json3-dev
-```
+Important ownership split:
 
-### Windows
-- Visual Studio 2022
-- vcpkg for dependencies
+- `hm64/src` and `hm64/include`
+  Imported HM64 game source and headers.
+- `hm64/moonwright/src` and `hm64/moonwright/include`
+  Port-owned runtime, platform, renderer, and host integration code.
+- `libultraship`
+  Rendering, windowing, archive/resource, and platform support.
+- `OTRExporter`
+  Build-time archive/export pipeline.
 
-## Setup
+## Submodules
 
-### 1. Clone Moonwright with submodules
+Moonwright uses Git submodules for external dependencies:
 
-Moonwright carries `libultraship` as a Git submodule:
+- `libultraship`
+- `OTRExporter`
+
+Clone with submodules:
 
 ```bash
 git clone --recurse-submodules git@github.com:JamesAnthonyDellaMorte/Moonwright.git
 cd Moonwright
 ```
 
-If you already cloned without submodules:
+If you already cloned:
 
 ```bash
 git submodule update --init --recursive
 ```
 
+## Prerequisites
+
+macOS dependencies:
+
+```bash
+brew install cmake ninja sdl2 glew libzip tinyxml2 nlohmann-json
+```
+
+Moonwright does not ship a ROM. You are expected to provide your own legal game data and build inputs outside the repository.
+
 ## Building
 
-### CMake Builds
-
-Moonwright uses direct CMake builds, following the same repo-owned workflow
-Shipwright uses.
-
-From the repo root:
+Moonwright uses CMake presets directly.
 
 ```bash
 cmake --preset release
@@ -83,9 +106,9 @@ cmake --build --preset debug
 Build directories:
 
 ```text
-build             # Release
-build-relwithdeb  # RelWithDebInfo
-build-debug       # Debug
+build             Release
+build-relwithdeb  RelWithDebInfo
+build-debug       Debug
 ```
 
 Executable paths:
@@ -98,202 +121,63 @@ build-debug/bin/Moonwright-debug.app/Contents/MacOS/Moonwright-debug
 
 ## Running
 
-### Run Directly
+Run the normal binary:
 
 ```bash
-cd /Users/jamesdellamorte/Moonwright/build/bin
-./Moonwright.app/Contents/MacOS/Moonwright
+./build/bin/Moonwright.app/Contents/MacOS/Moonwright
 ```
 
-### Expected Output
-
-```
-[INFO] Moonwright starting...
-[INFO] Added asset source: "/Users/jamesdellamorte/Moonwright/build/bin/Moonwright.app/Contents/Resources/Moonwright.o2r"
-[DEBUG] Creating libultraship bootstrap context...
-[DEBUG] Creating window and control deck...
-[DEBUG] Initializing libultraship context...
-[INFO] Libultraship context created successfully
-[DEBUG] About to create HM64Game...
-[DEBUG] About to call game.Init()...
-[INFO] Initializing HM64 Game...
-[INFO] HM64 Game initialization complete
-[DEBUG] About to call game.Run()...
-[INFO] Starting game main loop
-```
-
-A window should open and boot the current Moonwright runtime path.
-
-## Project Structure
-
-```
-Moonwright/
-├── CMakeLists.txt          # Top-level project orchestrator
-├── CMakePresets.json       # Configure/build entrypoints
-├── README.md
-├── hm64.json               # Runtime configuration
-├── hm64/                   # Game subtree, analogous to Shipwright's soh/
-│   ├── CMakeLists.txt      # Game target wiring
-│   ├── assets/             # Imported HM64 assets snapshot used to build Moonwright.o2r
-│   ├── include/            # Imported HM64 headers snapshot
-│   ├── src/                # Imported HM64 source snapshot
-│   ├── tools/              # Imported HM64 tools snapshot
-│   └── moonwright/         # Port-specific code and overrides
-│       ├── include/
-│       └── src/
-├── CMake/
-│   ├── HideSystemSpdlog.cmake
-│   └── Info.plist.in
-└── libultraship/
-```
-
-`hm64/` is the owned local game subtree. `hm64/src` and `hm64/include` are the
-imported HM64 source snapshots. `hm64/moonwright` is the port-specific layer,
-filling the same role that Shipwright's `soh/soh` layer fills over `soh/src`.
-
-## Configuration (hm64.json)
-
-```json
-{
-    "Window": {
-        "Width": 640,
-        "Height": 480,
-        "Fullscreen": false,
-        "Resizable": true,
-        "Title": "Moonwright"
-    },
-    "Graphics": {
-        "Renderer": "OpenGL",
-        "VSync": true,
-        "MSAA": 0,
-        "InternalResolution": 1.0
-    },
-    "Audio": {
-        "Enabled": true,
-        "Volume": 1.0
-    },
-    "Input": {
-        "ControllerEnabled": true,
-        "KeyboardEnabled": true
-    },
-    "Game": {
-        "Region": "US",
-        "Language": "English"
-    }
-}
-```
-
-## Build Model
-
-### Libultraship Architecture
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│                        Moonwright                           │
-│  ┌─────────────┐  ┌─────────────┐  ┌─────────────────────┐  │
-│  │   main.cpp  │→ │  HM64Game   │→ │  Ship::Context      │  │
-│  │             │  │             │  │  (libultraship)     │  │
-│  └─────────────┘  └─────────────┘  └─────────────────────┘  │
-│                                              │              │
-│                    ┌─────────────────────────┼──────────┐   │
-│                    ↓                         ↓          ↓   │
-│              ┌──────────┐              ┌──────────┐ ┌──────┐│
-│              │  Window  │              │  Audio   │ │Input ││
-│              │ (SDL2)   │              │          │ │      ││
-│              └──────────┘              └──────────┘ └──────┘│
-│                    │                                         │
-│              ┌──────────┐                                    │
-│              │ Fast3D   │  ← N64 Display List Interpreter   │
-│              │ Renderer │                                    │
-│              └──────────┘                                    │
-└─────────────────────────────────────────────────────────────┘
-```
-
-Moonwright builds from the local `hm64/` snapshot rather than reaching into a
-separate decomp checkout. That is the important Shipwright-style design choice:
-the port repo owns the exact game sources it builds.
-
-## Troubleshooting
-
-### spdlog/fmt Version Mismatch
-
-If you see errors like:
-```
-Undefined symbols for architecture arm64:
-  "spdlog::details::log_msg::log_msg(spdlog::source_loc, fmt::v12::basic_string_view<char>..."
-```
-
-This means the system spdlog was found instead of the fetched one. Make sure to use the toolchain file:
-```bash
--DCMAKE_TOOLCHAIN_FILE=/tmp/hide_spdlog.cmake
-```
-
-### macOS SDK Not Found
+Run the debug binary:
 
 ```bash
-export CMAKE_OSX_SYSROOT=$(xcrun --show-sdk-path)
+./build-debug/bin/Moonwright-debug.app/Contents/MacOS/Moonwright-debug
 ```
 
-### Missing Dependencies
+Launch LLDB MCP for the debug binary:
 
-macOS:
 ```bash
-brew install cmake sdl2 glew libzip spdlog fmt tinyxml2 nlohmann-json
+./launch-lldb-debug.sh
 ```
 
-## Next Steps for Development
+## Asset Flow
 
-### 1. Asset Archive
+Moonwright uses a Shipwright-style packaged asset path:
 
-Moonwright now follows the Shipwright-style packaged-archive path:
+- build-time export through `OTRExporter`
+- packaged archive generation into `Moonwright.o2r`
+- runtime archive mounting through `libultraship`
 
-- build `Moonwright.o2r` from `hm64/assets`
-- copy `Moonwright.o2r` beside the executable / into the app bundle
-- mount the archive at runtime instead of loose asset directories
+The current port still bridges some imported HM64 runtime systems through host-side compatibility code where necessary, but the direction is to keep moving toward archive-owned runtime asset flow instead of one-off Moonwright-only workarounds.
 
-### 2. Integrate Game Code
+## Runtime Philosophy
 
-Modify `hm64_game.cpp` to actually call HM64 functions:
+These rules are intentional and non-optional:
 
-```cpp
-void HM64Game::Run() {
-    // Instead of placeholder loop:
-    // Call original mainproc or mainLoop
-    
-    // Need to bridge:
-    // - nuGfx* functions → libultraship graphics
-    // - os* functions → libultraship OS abstractions
-    // - Audio calls → libultraship audio
-}
-```
+- no fake asset viewer
+- no preview launcher
+- no alternate runtime owner path
+- no replacing the real game startup with a test harness
 
-### 3. Graphics Bridge
+The active executable must stay on the real HM64 startup and loop path. If a system is incomplete, trim leaf behavior only. Do not replace the real owner path.
 
-HM64 uses N64 display lists. libultraship has Fast3D which can interpret them. Need to:
-- Set up display list buffer
-- Hook up `gSPSegment`, `gSPVertex`, etc.
-- Connect to Fast3D renderer
+## Golden References
 
-### 4. Controller Input
+Moonwright uses these projects as the decision model:
 
-Set up controller mappings in config or code:
-```cpp
-auto controlDeck = m_context->GetControlDeck();
-// Configure N64 button mappings
-```
+- Shipwright
+- SpaghettiKart
 
-## Resources
+If there is doubt about structure, build ownership, runtime flow, or asset policy, match those projects rather than inventing a Moonwright-only detour.
 
-- [libultraship GitHub](https://github.com/Kenix3/libultraship)
-- [Ship of Harkinian](https://github.com/HarbourMasters/Shipwright) - Reference implementation
-- [Fast3D Documentation](https://github.com/Kenix3/libultraship/tree/main/src/graphic/Fast3D)
-- [HM64 Decomp Project](https://github.com/harvestwhisperer/hm64-decomp)
+## Notes
+
+- `build.sh` is not the primary build system. Use the CMake presets.
+- `rom_symbols.c` stays deleted.
+- giant fake symbol bridges are not the intended direction.
+- `libultraship` should only be changed for real generic library bugs, not HM64-specific integration mistakes.
 
 ## License
 
-This PC port follows the same license as the original HM64 decomp project.
-Libultraship is licensed under MIT.
+Moonwright follows the licensing model of the HM64 decomp project it is derived from.
 
----
-
-**Note**: This is a work in progress. The build succeeds but the game won't run yet without further integration work.
+`libultraship` is a separate dependency with its own license terms.

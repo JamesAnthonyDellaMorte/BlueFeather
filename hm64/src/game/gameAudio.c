@@ -5,56 +5,67 @@
 #include "game/gameAudio.h"
 
 #include "assetIndices/sequences.h"
-
 #include "ld_symbols.h"
 
+#ifdef HM64_PC_PORT
+#define MW_ROM_U32(symbol) MW_ROM_VALUE_##symbol
+#else
+#define MW_ROM_U32(symbol) ((u32)(uintptr_t)&(symbol))
+#endif
+
+typedef struct {
+    u32 pbk_addr;
+    u32 pbk_end;
+    u32 wbk_addr;
+} WaveTableRomInfo;
+
 // data
-WaveTableInfo waveTableAddresses[1] = {
-    { (u8*)&_waveTablePointerSegmentRomStart, (u8*)&_waveTablePointerSegmentRomEnd, (u8*)&_waveTableDataSegmentRomStart },
+static const WaveTableRomInfo waveTableAddresses[1] = {
+    { MW_ROM_U32(_waveTablePointerSegmentRomStart), MW_ROM_U32(_waveTablePointerSegmentRomEnd), MW_ROM_U32(_waveTableDataSegmentRomStart) },
 };
 
 Addresses sequenceRomAddresses[] = {
-    { &_openingSegmentRomStart, &_openingSegmentRomEnd },
-    { &_titleSegmentRomStart, &_titleSegmentRomEnd },
-    { &_sportsFestival1SegmentRomStart, &_sportsFestival1SegmentRomEnd },
-    { &_goodbyeSegmentRomStart, &_goodbyeSegmentRomEnd },
-    { &_springSegmentRomStart, &_springSegmentRomEnd },
-    { &_summerSegmentRomStart, &_summerSegmentRomEnd },
-    { &_autumnSegmentRomStart, &_autumnSegmentRomEnd },
-    { &_winterSegmentRomStart, &_winterSegmentRomEnd },
-    { &_namingScreenSegmentRomStart, &_namingScreenSegmentRomEnd },
-    { &_festivalThemeSegmentRomStart, &_festivalThemeSegmentRomEnd },
-    { &_sportsFestival2SegmentRomStart, &_sportsFestival2SegmentRomEnd },
-    { &_spiritFestivalThemeSegmentRomStart, &_spiritFestivalThemeSegmentRomEnd },
-    { &_dogRaceThemeSegmentRomStart, &_dogRaceThemeSegmentRomEnd },
-    { &_racingFestivalSegmentRomStart, &_racingFestivalSegmentRomEnd },
-    { &_festivalDanceSegmentRomStart, &_festivalDanceSegmentRomEnd },
-    { &_mountainSegmentRomStart, &_mountainSegmentRomEnd },
-    { &_villageSegmentRomStart, &_villageSegmentRomEnd },
-    { &_pondSegmentRomStart, &_pondSegmentRomEnd },
-    { &_churchSegmentRomStart, &_churchSegmentRomEnd },
-    { &_tavernSegmentRomStart, &_tavernSegmentRomEnd },
-    { &_weddingSegmentRomStart, &_weddingSegmentRomEnd },
-    { &_newYearSunriseSegmentRomStart, &_newYearSunriseSegmentRomEnd },
-    { &_creditsSegmentRomStart, &_creditsSegmentRomEnd },
-    { &_brokenMusicBoxSegmentRomStart, &_brokenMusicBoxSegmentRomEnd },
-    { &_musicBoxSegmentRomStart, &_musicBoxSegmentRomEnd },
-    { &_flutePerformanceSegmentRomStart, &_flutePerformanceSegmentRomEnd },
-    { &_organPerformanceSegmentRomStart, &_organPerformanceSegmentRomEnd },
-    { &_ocarinaPerformanceSegmentRomStart, &_ocarinaPerformanceSegmentRomEnd },
-    { &_sleighBellsSegmentRomStart, &_sleighBellsSegmentRomEnd },
-    { &_badEndingSegmentRomStart, &_badEndingSegmentRomEnd },
-    { &_vocalPerformanceSegmentRomStart, &_vocalPerformanceSegmentRomEnd },
-    { &_ensemblePerformanceSegmentRomStart, &_ensemblePerformanceSegmentRomEnd },
-    { &_drumPerformanceSegmentRomStart, &_drumPerformanceSegmentRomEnd },
-    { &_typhoonAmbience1SegmentRomStart, &_typhoonAmbience1SegmentRomEnd },
-    { &_typhoonAmbience2SegmentRomStart, &_typhoonAmbience2SegmentRomEnd },
-    { &_nightAmbienceSpringSegmentRomStart, &_nightAmbienceSpringSegmentRomEnd },
-    { &_nightAmbienceSummerSegmentRomStart, &_nightAmbienceSummerSegmentRomEnd },
-    { &_nightAmbienceAutumnSegmentRomStart, &_nightAmbienceAutumnSegmentRomEnd },
-    { &_starryNightFestivalSegmentRomStart, &_starryNightFestivalSegmentRomEnd },
-    { &_beachAmbience1SegmentRomStart, &_beachAmbience1SegmentRomEnd },
-    { &_beachAmbience2SegmentRomStart, &_beachAmbience2SegmentRomEnd },
+    { MW_ROM_U32(_openingSegmentRomStart), MW_ROM_U32(_openingSegmentRomEnd) },
+    { MW_ROM_U32(_titleSegmentRomStart), MW_ROM_U32(_titleSegmentRomEnd) },
+    { MW_ROM_U32(_sportsFestival1SegmentRomStart), MW_ROM_U32(_sportsFestival1SegmentRomEnd) },
+    { MW_ROM_U32(_goodbyeSegmentRomStart), MW_ROM_U32(_goodbyeSegmentRomEnd) },
+    { MW_ROM_U32(_springSegmentRomStart), MW_ROM_U32(_springSegmentRomEnd) },
+    { MW_ROM_U32(_summerSegmentRomStart), MW_ROM_U32(_summerSegmentRomEnd) },
+    { MW_ROM_U32(_autumnSegmentRomStart), MW_ROM_U32(_autumnSegmentRomEnd) },
+    { MW_ROM_U32(_winterSegmentRomStart), MW_ROM_U32(_winterSegmentRomEnd) },
+    { MW_ROM_U32(_namingScreenSegmentRomStart), MW_ROM_U32(_namingScreenSegmentRomEnd) },
+    { MW_ROM_U32(_festivalThemeSegmentRomStart), MW_ROM_U32(_festivalThemeSegmentRomEnd) },
+    { MW_ROM_U32(_sportsFestival2SegmentRomStart), MW_ROM_U32(_sportsFestival2SegmentRomEnd) },
+    { MW_ROM_U32(_spiritFestivalThemeSegmentRomStart), MW_ROM_U32(_spiritFestivalThemeSegmentRomEnd) },
+    { MW_ROM_U32(_dogRaceThemeSegmentRomStart), MW_ROM_U32(_dogRaceThemeSegmentRomEnd) },
+    { MW_ROM_U32(_racingFestivalSegmentRomStart), MW_ROM_U32(_racingFestivalSegmentRomEnd) },
+    { MW_ROM_U32(_festivalDanceSegmentRomStart), MW_ROM_U32(_festivalDanceSegmentRomEnd) },
+    { MW_ROM_U32(_mountainSegmentRomStart), MW_ROM_U32(_mountainSegmentRomEnd) },
+    { MW_ROM_U32(_villageSegmentRomStart), MW_ROM_U32(_villageSegmentRomEnd) },
+    { MW_ROM_U32(_pondSegmentRomStart), MW_ROM_U32(_pondSegmentRomEnd) },
+    { MW_ROM_U32(_churchSegmentRomStart), MW_ROM_U32(_churchSegmentRomEnd) },
+    { MW_ROM_U32(_tavernSegmentRomStart), MW_ROM_U32(_tavernSegmentRomEnd) },
+    { MW_ROM_U32(_weddingSegmentRomStart), MW_ROM_U32(_weddingSegmentRomEnd) },
+    { MW_ROM_U32(_newYearSunriseSegmentRomStart), MW_ROM_U32(_newYearSunriseSegmentRomEnd) },
+    { MW_ROM_U32(_creditsSegmentRomStart), MW_ROM_U32(_creditsSegmentRomEnd) },
+    { MW_ROM_U32(_brokenMusicBoxSegmentRomStart), MW_ROM_U32(_brokenMusicBoxSegmentRomEnd) },
+    { MW_ROM_U32(_musicBoxSegmentRomStart), MW_ROM_U32(_musicBoxSegmentRomEnd) },
+    { MW_ROM_U32(_flutePerformanceSegmentRomStart), MW_ROM_U32(_flutePerformanceSegmentRomEnd) },
+    { MW_ROM_U32(_organPerformanceSegmentRomStart), MW_ROM_U32(_organPerformanceSegmentRomEnd) },
+    { MW_ROM_U32(_ocarinaPerformanceSegmentRomStart), MW_ROM_U32(_ocarinaPerformanceSegmentRomEnd) },
+    { MW_ROM_U32(_sleighBellsSegmentRomStart), MW_ROM_U32(_sleighBellsSegmentRomEnd) },
+    { MW_ROM_U32(_badEndingSegmentRomStart), MW_ROM_U32(_badEndingSegmentRomEnd) },
+    { MW_ROM_U32(_vocalPerformanceSegmentRomStart), MW_ROM_U32(_vocalPerformanceSegmentRomEnd) },
+    { MW_ROM_U32(_ensemblePerformanceSegmentRomStart), MW_ROM_U32(_ensemblePerformanceSegmentRomEnd) },
+    { MW_ROM_U32(_drumPerformanceSegmentRomStart), MW_ROM_U32(_drumPerformanceSegmentRomEnd) },
+    { MW_ROM_U32(_typhoonAmbience1SegmentRomStart), MW_ROM_U32(_typhoonAmbience1SegmentRomEnd) },
+    { MW_ROM_U32(_typhoonAmbience2SegmentRomStart), MW_ROM_U32(_typhoonAmbience2SegmentRomEnd) },
+    { MW_ROM_U32(_nightAmbienceSpringSegmentRomStart), MW_ROM_U32(_nightAmbienceSpringSegmentRomEnd) },
+    { MW_ROM_U32(_nightAmbienceSummerSegmentRomStart), MW_ROM_U32(_nightAmbienceSummerSegmentRomEnd) },
+    { MW_ROM_U32(_nightAmbienceAutumnSegmentRomStart), MW_ROM_U32(_nightAmbienceAutumnSegmentRomEnd) },
+    { MW_ROM_U32(_starryNightFestivalSegmentRomStart), MW_ROM_U32(_starryNightFestivalSegmentRomEnd) },
+    { MW_ROM_U32(_beachAmbience1SegmentRomStart), MW_ROM_U32(_beachAmbience1SegmentRomEnd) },
+    { MW_ROM_U32(_beachAmbience2SegmentRomStart), MW_ROM_U32(_beachAmbience2SegmentRomEnd) },
     { 0, 0 },
     { 0, 0 },
     { 0, 0 },
@@ -90,44 +101,44 @@ Addresses sfxRomAddresses[] = {
     { 0, 0 },
     { 0, 0 },
     { 0, 0 },
-    { &_horseGallop2SegmentRomStart, &_horseGallop2SegmentRomEnd },
+    { MW_ROM_U32(_horseGallop2SegmentRomStart), MW_ROM_U32(_horseGallop2SegmentRomEnd) },
     { 0, 0 },
     { 0, 0 },
     { 0, 0 },
-    { &_sickleSegmentRomStart, &_sickleSegmentRomEnd },
+    { MW_ROM_U32(_sickleSegmentRomStart), MW_ROM_U32(_sickleSegmentRomEnd) },
     { 0, 0 },
     { 0, 0 },
-    { &_hoeSegmentRomStart, &_hoeSegmentRomEnd },
+    { MW_ROM_U32(_hoeSegmentRomStart), MW_ROM_U32(_hoeSegmentRomEnd) },
     { 0, 0 },
     { 0, 0 },
-    { &_seq59SegmentRomStart, &_seq59SegmentRomEnd },
-    { 0, 0 },
-    { 0, 0 },
-    { 0, 0 },
-    { &_horseGallop3SegmentRomStart, &_horseGallop3SegmentRomEnd },
-    { &_water1SegmentRomStart, &_water1SegmentRomEnd },
-    { &_water2SegmentRomStart, &_water2SegmentRomEnd },
+    { MW_ROM_U32(_seq59SegmentRomStart), MW_ROM_U32(_seq59SegmentRomEnd) },
     { 0, 0 },
     { 0, 0 },
     { 0, 0 },
-    { &_seedsSegmentRomStart, &_seedsSegmentRomEnd },
-    { 0, 0 },
-    { 0, 0 },
-    { &_cowBellSegmentRomStart, &_cowBellSegmentRomEnd },
-    { 0, 0 },
-    { 0, 0 },
-    { &_shimmerSegmentRomStart, &_shimmerSegmentRomEnd },
+    { MW_ROM_U32(_horseGallop3SegmentRomStart), MW_ROM_U32(_horseGallop3SegmentRomEnd) },
+    { MW_ROM_U32(_water1SegmentRomStart), MW_ROM_U32(_water1SegmentRomEnd) },
+    { MW_ROM_U32(_water2SegmentRomStart), MW_ROM_U32(_water2SegmentRomEnd) },
     { 0, 0 },
     { 0, 0 },
     { 0, 0 },
+    { MW_ROM_U32(_seedsSegmentRomStart), MW_ROM_U32(_seedsSegmentRomEnd) },
     { 0, 0 },
+    { 0, 0 },
+    { MW_ROM_U32(_cowBellSegmentRomStart), MW_ROM_U32(_cowBellSegmentRomEnd) },
+    { 0, 0 },
+    { 0, 0 },
+    { MW_ROM_U32(_shimmerSegmentRomStart), MW_ROM_U32(_shimmerSegmentRomEnd) },
     { 0, 0 },
     { 0, 0 },
     { 0, 0 },
     { 0, 0 },
     { 0, 0 },
     { 0, 0 },
-    { &_seq60SegmentRomStart, &_seq60SegmentRomEnd },
+    { 0, 0 },
+    { 0, 0 },
+    { 0, 0 },
+    { 0, 0 },
+    { MW_ROM_U32(_seq60SegmentRomStart), MW_ROM_U32(_seq60SegmentRomEnd) },
     { 0, 0 },
     { 0, 0 },
     { 0, 0 },
@@ -281,7 +292,8 @@ void initializeWaveTable(u16 waveTableIndex) {
 void setCurrentAudioSequence(u16 sequenceIndex) {
 
     if (sequenceIndex < TOTAL_SEQUENCES) {
-        setAudioSequence(0, (u8*)sequenceRomAddresses[sequenceIndex].romAddrStart, (u8*)sequenceRomAddresses[sequenceIndex].romAddrEnd);
+        setAudioSequence(0, (u8*)(uintptr_t)sequenceRomAddresses[sequenceIndex].romAddrStart,
+                         (u8*)(uintptr_t)sequenceRomAddresses[sequenceIndex].romAddrEnd);
     }
     
     setAudioSequenceVolumes(0, 0, 0);
@@ -353,7 +365,8 @@ void playSfx(u16 index) {
 
     } else {
 
-        setAudioSequence(audioTypeTable[index], (u8*)sfxRomAddresses[index].romAddrStart, (u8*)sfxRomAddresses[index].romAddrEnd);
+        setAudioSequence(audioTypeTable[index], (u8*)(uintptr_t)sfxRomAddresses[index].romAddrStart,
+                         (u8*)(uintptr_t)sfxRomAddresses[index].romAddrEnd);
         setAudioSequenceVolumes(audioTypeTable[index], volumesTable[index], volumesTable[index]);
     
     }

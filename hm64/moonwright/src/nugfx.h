@@ -30,5 +30,6 @@ u16* nuGfxGetCfb(void);
 
 // Callback execution
 void nuGfxCallFunc(int frame);
+bool nuGfxProcessPendingMainThread(void);
 
 #endif // _NUGFX_H_

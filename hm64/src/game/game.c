@@ -45,7 +45,7 @@
 #include "ld_symbols.h"
 
 // forward declaration
-u8 checkEarthquakeShouldHappen();
+bool checkEarthquakeShouldHappen(void);
 void recruitSpiritFestivalAssistants(void);
 
 Vec4f globalLightingRGBA;
@@ -1029,7 +1029,7 @@ void resetDailyBits(void) {
 //INCLUDE_ASM("asm/nonmatchings/game/game", adjustValue);
 
 // same as func_80046D50
-inline int adjustValue(int initial, int value, int max) {
+int adjustValue(int initial, int value, int max) {
 
     int temp;
     int adjusted;
@@ -1361,7 +1361,7 @@ void setLevelLighting(s16 rate, u16 callbackFunctionIndex) {
 //INCLUDE_ASM("asm/nonmatchings/game/game", handleExitLevel);
 
 // arg0 = unused
-inline void handleExitLevel(u16 arg0, u16 callbackIndex) {
+void handleExitLevel(u16 arg0, u16 callbackIndex) {
     
     // fade out map and entities
     setMapControllerRGBAWithTransition(MAIN_MAP_INDEX, 0, 0, 0, 0, 8);
@@ -1564,7 +1564,9 @@ void endCutsceneCallback(void) {
 //INCLUDE_ASM("asm/nonmatchings/game/game", loadNamingScreenCallback);
 
 void loadNamingScreenCallback(void) {
-    
+#ifdef HM64_PC_PORT
+    setMainLoopCallbackFunctionIndex(MAIN_GAME);
+#else
     u8* namePtr;
 
     openOverlayScreen_2();
@@ -1599,6 +1601,7 @@ void loadNamingScreenCallback(void) {
     }
     
     initializeNamingScreen(namePtr, gNamingScreenIndex);
+#endif
 
 }
 
@@ -3454,7 +3457,7 @@ u8 getBacholeretteWithHighestAffection(u8 affectionLevel) {
 
 //INCLUDE_ASM("asm/nonmatchings/game/game", setSpritiFestivalRecruits);
 
-inline void setSpritiFestivalRecruits(u8 numberOfSpiritFestivalAssistants, u8 npcIndex) {
+static inline void setSpritiFestivalRecruits(u8 numberOfSpiritFestivalAssistants, u8 npcIndex) {
     switch (numberOfSpiritFestivalAssistants) {                   
         case 1:
             spiritFestivalAssistant1 = npcIndex;

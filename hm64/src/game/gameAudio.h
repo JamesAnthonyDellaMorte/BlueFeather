@@ -9,7 +9,7 @@ extern void initializeWaveTable(u16 waveTableIndex);
 extern void setCurrentAudioSequence(u16 sequenceIndex);
 extern void stopCurrentAudioSequence(u16 sequenceIndex);
 extern void stopAudioSequenceWithDefaultFadeOut(u16 sequenceIndex);
-extern u8 checkDefaultSequenceChannelOpen(u16 sequenceIndex);
+extern bool checkDefaultSequenceChannelOpen(u16 sequenceIndex);
 extern void setAudioSequenceVolume(u16 sequenceIndex, u32 arg1);
 extern void func_800ACC1C(u16 sequenceIndex);
 extern void playSfx(u16 index);

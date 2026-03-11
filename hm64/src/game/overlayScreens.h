@@ -118,7 +118,7 @@ extern void fadeInLoadGameScreen(void);
 extern void setLoadGameScreenFullAlpha(void);
 extern void fadeOutLoadGameScreen(void);
 extern void setDiaryCursorPosition(u8 arg0, u8 arg1, u8 arg2);
-extern void updateDiaryHighlighted(u8 arg0, u8 arg1, u8 arg2);
+extern void updateDiaryHighlighted(u8 arg0, u8 arg1, bool arg2);
 extern void animateDiarySelected(u8 arg0, u8 arg1);
 extern void loadFarmRankingsListScreen(void);
 extern void loadIndividualRankingScreen(u8);
@@ -133,8 +133,8 @@ extern void updateDogRaceContext(void);
 extern void initializeRaceContext(void); 
 extern void addRecipe(u16 bitIndex);
 extern u32 checkRecipe(u16 bitIndex);
-extern bool func_800CE714(bool);
-extern bool func_800CE828(bool); 
+extern bool func_800CE714(u8 arg0);
+extern bool func_800CE828(u8 arg0); 
 
 // main loop callback functions
 extern void loadEstimateScreenCallback();

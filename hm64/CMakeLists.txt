@@ -10,44 +10,78 @@ find_package(Python3 COMPONENTS Interpreter REQUIRED)
 
 set(HM64_PORT_SOURCES
     ${MOONWRIGHT_ROOT}/src/main.cpp
-    ${MOONWRIGHT_ROOT}/src/game_stubs.c
+    ${MOONWRIGHT_ROOT}/src/stubs.c
     ${MOONWRIGHT_ROOT}/src/hm64_game.cpp
     ${MOONWRIGHT_ROOT}/src/hm64_gu_compat.c
-    ${MOONWRIGHT_ROOT}/src/hm64_host_shims.c
     ${MOONWRIGHT_ROOT}/src/hm64_ram.cpp
     ${MOONWRIGHT_ROOT}/src/hm64_title_globals.c
-    ${MOONWRIGHT_ROOT}/src/hm64_title_runtime.cpp
-    ${MOONWRIGHT_ROOT}/src/moonwright_blobs.cpp
+    ${MOONWRIGHT_ROOT}/src/nualstl_n.c
     ${MOONWRIGHT_ROOT}/src/nugfx.cpp
     ${MOONWRIGHT_ROOT}/src/ultra64_compat.cpp
     ${MOONWRIGHT_ROOT}/src/ld_symbols.c
-    ${MOONWRIGHT_ROOT}/src/rom_symbols.c
 )
 
 set(HM64_RUNTIME_SOURCES
+    ${HM64_ROOT}/src/mainproc.c
+    ${MOONWRIGHT_ROOT}/src/mainLoop.c
+    ${HM64_ROOT}/src/buffers/characterAvatarsSpriteBuffer.c
+    ${HM64_ROOT}/src/buffers/cutsceneBytecodeBuffer.c
+    ${HM64_ROOT}/src/buffers/dialogueBytecodeBuffer.c
+    ${HM64_ROOT}/src/buffers/dialogueIconSpriteBuffer.c
+    ${HM64_ROOT}/src/buffers/sramBuffer.c
+    ${HM64_ROOT}/src/buffers/farmRankingsBuffer.c
+    ${HM64_ROOT}/src/buffers/textBuffer.c
+    ${HM64_ROOT}/src/buffers/fontBuffer.c
+    ${HM64_ROOT}/src/buffers/frameBuffer.c
+    ${HM64_ROOT}/src/buffers/mapDataBuffer.c
+    ${HM64_ROOT}/src/buffers/mapObjectBuffer.c
+    ${HM64_ROOT}/src/buffers/messageBoxBuffer.c
+    ${HM64_ROOT}/src/buffers/messageBoxesBuffer.c
+    ${HM64_ROOT}/src/buffers/namingScreenBuffer.c
+    ${HM64_ROOT}/src/buffers/playerSpriteBuffer.c
+    ${HM64_ROOT}/src/buffers/shadowSpriteBuffer.c
+    ${HM64_ROOT}/src/buffers/spriteBuffer.c
+    ${HM64_ROOT}/src/buffers/unknownBuffer.c
+    ${HM64_ROOT}/src/data/audio/sfx.c
+    ${HM64_ROOT}/src/data/fieldTileMaps/fieldTiles.c
+    ${HM64_ROOT}/src/game/gameAudio.c
+    ${HM64_ROOT}/src/game/game.c
+    ${HM64_ROOT}/src/game/initialize.c
+    ${HM64_ROOT}/src/game/gameStart.c
+    ${HM64_ROOT}/src/game/level.c
+    ${HM64_ROOT}/src/game/npc.c
+    ${HM64_ROOT}/src/game/player.c
+    ${HM64_ROOT}/src/game/transition.c
     ${HM64_ROOT}/src/game/title.c
     ${HM64_ROOT}/src/game/cutscenes.c
+    ${HM64_ROOT}/src/game/animals.c
+    ${HM64_ROOT}/src/game/evaluation.c
+    ${HM64_ROOT}/src/game/fieldObjects.c
+    ${HM64_ROOT}/src/game/gameStatus.c
+    ${HM64_ROOT}/src/game/items.c
+    ${HM64_ROOT}/src/game/levelInteractions.c
+    ${HM64_ROOT}/src/game/load.c
+    ${HM64_ROOT}/src/game/time.c
+    ${HM64_ROOT}/src/system/audio.c
     ${HM64_ROOT}/src/system/controller.c
     ${HM64_ROOT}/src/system/cutscene.c
+    ${HM64_ROOT}/src/system/dialogue.c
+    ${HM64_ROOT}/src/system/entity.c
     ${HM64_ROOT}/src/system/flags.c
     ${MOONWRIGHT_ROOT}/src/system/globalSprites.c
     ${MOONWRIGHT_ROOT}/src/system/graphic.c
+    ${HM64_ROOT}/src/system/interpolation.c
+    ${HM64_ROOT}/src/system/map.c
+    ${HM64_ROOT}/src/system/mapController.c
     ${HM64_ROOT}/src/system/math.c
+    ${HM64_ROOT}/src/system/memory.c
+    ${HM64_ROOT}/src/system/message.c
+    ${HM64_ROOT}/src/system/numberSprites.c
     ${HM64_ROOT}/src/system/sceneGraph.c
     ${MOONWRIGHT_ROOT}/src/system/sprite.c
     ${HM64_ROOT}/src/system/spriteDMAManager.c
     ${HM64_ROOT}/src/system/staticGfx.c
     ${HM64_ROOT}/src/data/animationScripts/animationScripts.c
-)
-
-set(HM64_HOST_CORE_SOURCES
-    ${HM64_ROOT}/src/mainproc.c
-    ${MOONWRIGHT_ROOT}/src/mainLoop.c
-    ${HM64_ROOT}/src/system/controller.c
-    ${MOONWRIGHT_ROOT}/src/system/graphic.c
-    ${HM64_ROOT}/src/system/staticGfx.c
-    ${HM64_ROOT}/src/system/spriteDMAManager.c
-    ${HM64_ROOT}/src/system/mapController.c
 )
 
 set(HM64_COMMON_INCLUDE_DIRS
@@ -58,20 +92,6 @@ set(HM64_COMMON_INCLUDE_DIRS
     ${LIBULTRASHIP_DIR}/include
     ${LIBULTRASHIP_DIR}/include/libultraship
 )
-
-add_library(hm64_decomp_host_core STATIC ${HM64_HOST_CORE_SOURCES})
-target_include_directories(hm64_decomp_host_core PRIVATE ${HM64_COMMON_INCLUDE_DIRS})
-target_compile_definitions(hm64_decomp_host_core PRIVATE HM64_PC_PORT)
-if(CMAKE_C_COMPILER_ID MATCHES "GNU|Clang|AppleClang")
-    target_compile_options(hm64_decomp_host_core
-        PRIVATE
-            -Wall
-            -Wextra
-            -Wno-unused-parameter
-            -Wno-unused-variable
-            -Wno-incompatible-function-pointer-types
-    )
-endif()
 
 add_executable(${GAME_SHORT_NAME} ${HM64_PORT_SOURCES} ${HM64_RUNTIME_SOURCES})
 

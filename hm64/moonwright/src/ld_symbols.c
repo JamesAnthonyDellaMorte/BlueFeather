@@ -1,22 +1,20 @@
 #include "common.h"
+#include "buffers/buffers.h"
 #include "ld_symbols.h"
 #include "hm64_ram.h"
-
-// ============================================================================
-// PC port: Variable index system (Shipwright-style)
-// Instead of embedding N64 addresses in bytecode, use indices
-// ============================================================================
+#include "system/globalSprites.h"
 
 typedef enum {
     VAR_NONE = 0,
-    VAR_CUTSCENE_COMPLETION_FLAGS,  // 0x801891D4
-    VAR_CUTSCENE_INDEX,             // 0x801C3B66
-    VAR_CUTSCENE_FLAGS,             // 0x8016FE00
-    VAR_HOUR,                       // 0x801FB5CA
+    VAR_CUTSCENE_COMPLETION_FLAGS,
+    VAR_CUTSCENE_INDEX,
+    VAR_CUTSCENE_FLAGS,
+    VAR_HOUR,
     VAR_COUNT
 } CutsceneVariableIndex;
 
-// Map variable indices to PC pointers
+// Moonwright [Port]: cutscene bytecode stores small variable ids instead of
+// embedding host pointers directly.
 void* HM64_GetVariablePointer(CutsceneVariableIndex index) {
     switch (index) {
         case VAR_CUTSCENE_COMPLETION_FLAGS: {
@@ -40,165 +38,248 @@ void* HM64_GetVariablePointer(CutsceneVariableIndex index) {
     }
 }
 
-// ============================================================================
-// PC RAM buffer storage - actual allocated memory
-// Maps N64 RAM addresses to PC pointers
-// ============================================================================
+extern u8 messageBoxTextureBuffer[0x2900];
+extern u16 messageBoxPaletteBuffer[0x80];
+extern AnimationFrameMetadata messageBoxAnimationFrameMetadataBuffer[0x40];
+extern u32 messageBoxAnimationTextureToPaletteLookupBuffer[0x40];
 
-// Cutscene bytecode lives inside the host RAM shadow so the N64 virtual layout
-// remains contiguous across both 64 KB banks.
-#define HM64_CUTSCENE_BYTECODE_BUFFER_1 (&gHM64Ram[0x002F4000])
-#define HM64_CUTSCENE_BYTECODE_BUFFER_2 (&gHM64Ram[0x002F5000])
+extern u8 dialogueIconTextureBuffer[0x1800];
+extern u16 dialogueIconPaletteBuffer[0x100];
+extern u32 dialogueIconAnimationFrameMetadataBuffer[0x40];
+extern u32 dialogueIconTextureToPaletteLookupBuffer[0x100];
 
-// Shadow buffers (0x8023B400 - 0x8023BC00)
-static u8 gShadowTextureBuffer[0x2000];
-static u16 gShadowPaletteBuffer[256];
+extern u8 characterAvatarsTexture1Buffer[0x800];
+extern u8 characterAvatarsTexture2Buffer[0x800];
+extern u16 characterAvatarsPaletteBuffer[0x600];
+extern AnimationFrameMetadata characterAvatarsAnimationMetadataBuffer[0x400];
+extern u32 characterAvatarsSpritesheetIndexBuffer[0x200];
+extern u32 characterAvatarsTextureToPaletteLookupBuffer[0x40];
 
-// Player buffers (0x8023C000 - 0x80244200)
-static u8 gPlayerTexture1[0x4000];
-static u8 gPlayerTexture2[0x4000];
-static u16 gPlayerPalette[256];
+extern u8 shadowSpriteTextureBuffer[0x500];
+extern u16 shadowSpritePaletteBuffer[0x100];
+extern u32 shadowSpriteSpriteToPaletteBuffer[0x100];
+extern u32 shadowSpriteSpritesheetIndexBuffer[0x100];
 
-// Chicken/entity slot 2-7 buffers
-static u8 gEntityRegionChickenBase[0x4000];
-static u8 gEntityRegionChickBase[0x1000];
+extern u8 playerTexture1Buffer[0x3000];
+extern u8 playerTexture2Buffer[0x3000];
+extern u16 playerPaletteBuffer[0x2000];
+extern u32 playerAnimationMetadataBuffer[0x1E00];
+extern u32 playerSpritesheetIndexBuffer[0x200];
+extern u32 playerTextureToPaletteLookupBuffer[0x400];
 
-// Ground objects
-static u8 gGroundObjectsTexture[0x10000];
+extern u8 namingScreenBuffer[0x1500];
+extern u8 mapDataBuffer[0x1A000];
+extern u8 spriteBuffer[0x73CC0];
+extern u8 mapObjectsBuffer[0x10000];
+extern u8 cutsceneBytecodeBuffer[0xB000];
+extern u8 fontTextureBuffer[0xB000];
+extern u16 font1PaletteBuffer[0x200];
+extern u16 font2PaletteBuffer[0x200];
+extern u8 textAddressesIndexBuffer[0x800];
+extern u8 messageBox1TextBuffer[0x400];
+extern u8 messageBox2TextBuffer[0x400];
+extern u8 messageBox3TextBuffer[0x400];
+extern u8 messageBox4TextBuffer[0x400];
+extern u8 messageBox5TextBuffer[0x400];
+extern u8 messageBox6TextBuffer[0x400];
+extern u8 dialogueBytecodeBuffer[0x800];
+extern SramBuffer sramBuffer;
+extern FarmRankingsBuffer farmRankingsBuffer;
+extern u8 frameBuffer[0x70800];
 
-// Font buffers (0x802FF000 - 0x8030A800)
-static u8 gFontTexture[0xB000];
-static u16 gFontPalette1[256];
-static u16 gFontPalette2[256];
+#define HM64_OFFSET_PTR(buffer, base, addr) ((u8*)(buffer) + ((addr) - (base)))
 
-// ============================================================================
-// PC port runtime buffer pointer exports
-// ============================================================================
+void* g_PC_CutsceneBytecodeBuffer1 = cutsceneBytecodeBuffer;
+void* g_PC_CutsceneBytecodeBuffer2 = &cutsceneBytecodeBuffer[0x1000];
 
-void* g_PC_CutsceneBytecodeBuffer1 = HM64_CUTSCENE_BYTECODE_BUFFER_1;
-void* g_PC_CutsceneBytecodeBuffer2 = HM64_CUTSCENE_BYTECODE_BUFFER_2;
+void* CUTSCENE_BYTECODE_BUFFER_1_PTR = cutsceneBytecodeBuffer;
+void* CUTSCENE_BYTECODE_BUFFER_2_PTR = &cutsceneBytecodeBuffer[0x1000];
+void* ENTITY_REGION_CHICKEN_BASE_PTR = HM64_OFFSET_PTR(spriteBuffer, ENTITY_VRAM_START, ENTITY_REGION_CHICKEN_BASE);
+void* ENTITY_REGION_CHICK_BASE_PTR = HM64_OFFSET_PTR(spriteBuffer, ENTITY_VRAM_START, ENTITY_REGION_CHICK_BASE);
+void* SHADOW_TEXTURE_BUFFER_PTR = shadowSpriteTextureBuffer;
+void* SHADOW_PALETTE_BUFFER_PTR = shadowSpritePaletteBuffer;
+void* SHADOW_ANIMATION_FRAME_METADATA_BUFFER_PTR = shadowSpriteSpriteToPaletteBuffer;
+void* SHADOW_TEXTURE_TO_PALETTE_LOOKUP_BUFFER_PTR = shadowSpriteSpritesheetIndexBuffer;
+void* PLAYER_TEXTURE_1_BUFFER_PTR = playerTexture1Buffer;
+void* PLAYER_TEXTURE_2_BUFFER_PTR = playerTexture2Buffer;
+void* PLAYER_PALETTE_BUFFER_PTR = playerPaletteBuffer;
+void* PLAYER_ANIMATION_FRAME_METADATA_BUFFER_PTR = playerAnimationMetadataBuffer;
+void* PLAYER_SPRITESHEET_INDEX_BUFFER_PTR = playerSpritesheetIndexBuffer;
+void* PLAYER_TEXTURE_TO_PALETTE_LOOKUP_BUFFER_PTR = playerTextureToPaletteLookupBuffer;
+void* ENTITY_SLOTS_1_20_PALETTE_PTR = HM64_OFFSET_PTR(spriteBuffer, ENTITY_VRAM_START, ENTITY_SLOTS_1_20_PALETTE);
+void* ENTITY_SLOTS_1_20_ANIM_METADATA_PTR = HM64_OFFSET_PTR(spriteBuffer, ENTITY_VRAM_START, ENTITY_SLOTS_1_20_ANIM_METADATA);
+void* ENTITY_SLOTS_1_20_SPRITESHEET_INDEX_PTR = HM64_OFFSET_PTR(spriteBuffer, ENTITY_VRAM_START, ENTITY_SLOTS_1_20_SPRITESHEET_INDEX);
+void* ENTITY_SLOTS_1_20_TEXTURE_TO_PALETTE_LOOKUP_PTR = HM64_OFFSET_PTR(spriteBuffer, ENTITY_VRAM_START, ENTITY_SLOTS_1_20_TEXTURE_TO_PALETTE_LOOKUP);
+void* ENTITY_SLOTS_2_7_PALETTE_PTR = HM64_OFFSET_PTR(spriteBuffer, ENTITY_VRAM_START, ENTITY_SLOTS_2_7_PALETTE);
+void* ENTITY_SLOTS_2_7_ANIM_METADATA_PTR = HM64_OFFSET_PTR(spriteBuffer, ENTITY_VRAM_START, ENTITY_SLOTS_2_7_ANIM_METADATA);
+void* ENTITY_SLOTS_2_7_SPRITESHEET_INDEX_PTR = HM64_OFFSET_PTR(spriteBuffer, ENTITY_VRAM_START, ENTITY_SLOTS_2_7_SPRITESHEET_INDEX);
+void* ENTITY_SLOTS_2_7_TEXTURE_TO_PALETTE_LOOKUP_PTR = HM64_OFFSET_PTR(spriteBuffer, ENTITY_VRAM_START, ENTITY_SLOTS_2_7_TEXTURE_TO_PALETTE_LOOKUP);
+void* GROUND_OBJECTS_TEXTURE_BUFFER_PTR = HM64_OFFSET_PTR(mapObjectsBuffer, MAP_OBJECT_SLOT_1_TEXTURE_1, GROUND_OBJECTS_TEXTURE_BUFFER);
+void* GROUND_OBJECTS_PALETTE_BUFFER_PTR = HM64_OFFSET_PTR(mapObjectsBuffer, MAP_OBJECT_SLOT_1_TEXTURE_1, GROUND_OBJECTS_PALETTE_BUFFER);
+void* GROUND_OBJECTS_SPRITE_TO_PALETTE_LOOKUP_BUFFER_PTR = HM64_OFFSET_PTR(mapObjectsBuffer, MAP_OBJECT_SLOT_1_TEXTURE_1, GROUND_OBJECTS_SPRITE_TO_PALETTE_LOOKUP_BUFFER);
+void* g_PC_ShadowTextureBuffer = shadowSpriteTextureBuffer;
+void* g_PC_ShadowPaletteBuffer = shadowSpritePaletteBuffer;
+void* g_PC_PlayerTexture1Buffer = playerTexture1Buffer;
+void* g_PC_PlayerTexture2Buffer = playerTexture2Buffer;
+void* g_PC_PlayerPaletteBuffer = playerPaletteBuffer;
+void* g_PC_EntityChickenBase = HM64_OFFSET_PTR(spriteBuffer, ENTITY_VRAM_START, ENTITY_REGION_CHICKEN_BASE);
+void* g_PC_EntityChickBase = HM64_OFFSET_PTR(spriteBuffer, ENTITY_VRAM_START, ENTITY_REGION_CHICK_BASE);
+void* g_PC_GroundObjectsTextureBuffer = HM64_OFFSET_PTR(mapObjectsBuffer, MAP_OBJECT_SLOT_1_TEXTURE_1, GROUND_OBJECTS_TEXTURE_BUFFER);
+void* g_PC_FontTextureBuffer = fontTextureBuffer;
+void* g_PC_FontPalette1Buffer = font1PaletteBuffer;
+void* g_PC_FontPalette2Buffer = font2PaletteBuffer;
 
-// Pointer aliases for pc_buffers.h
-void* CUTSCENE_BYTECODE_BUFFER_1_PTR = HM64_CUTSCENE_BYTECODE_BUFFER_1;
-void* CUTSCENE_BYTECODE_BUFFER_2_PTR = HM64_CUTSCENE_BYTECODE_BUFFER_2;
-void* ENTITY_REGION_CHICKEN_BASE_PTR = gEntityRegionChickenBase;
-void* ENTITY_REGION_CHICK_BASE_PTR = gEntityRegionChickBase;
-void* SHADOW_TEXTURE_BUFFER_PTR = gShadowTextureBuffer;
-void* SHADOW_PALETTE_BUFFER_PTR = gShadowPaletteBuffer;
-void* SHADOW_ANIMATION_FRAME_METADATA_BUFFER_PTR = NULL;  // TODO: allocate
-void* SHADOW_TEXTURE_TO_PALETTE_LOOKUP_BUFFER_PTR = NULL;  // TODO: allocate
-void* PLAYER_TEXTURE_1_BUFFER_PTR = gPlayerTexture1;
-void* PLAYER_TEXTURE_2_BUFFER_PTR = gPlayerTexture2;
-void* PLAYER_PALETTE_BUFFER_PTR = gPlayerPalette;
-void* PLAYER_ANIMATION_FRAME_METADATA_BUFFER_PTR = NULL;  // TODO: allocate
-void* PLAYER_SPRITESHEET_INDEX_BUFFER_PTR = NULL;  // TODO: allocate
-void* PLAYER_TEXTURE_TO_PALETTE_LOOKUP_BUFFER_PTR = NULL;  // TODO: allocate
-void* ENTITY_SLOTS_1_20_PALETTE_PTR = NULL;  // TODO: allocate
-void* ENTITY_SLOTS_1_20_ANIM_METADATA_PTR = NULL;  // TODO: allocate
-void* ENTITY_SLOTS_1_20_SPRITESHEET_INDEX_PTR = NULL;  // TODO: allocate
-void* ENTITY_SLOTS_1_20_TEXTURE_TO_PALETTE_LOOKUP_PTR = NULL;  // TODO: allocate
-void* ENTITY_SLOTS_2_7_PALETTE_PTR = NULL;  // TODO: allocate
-void* ENTITY_SLOTS_2_7_ANIM_METADATA_PTR = NULL;  // TODO: allocate
-void* ENTITY_SLOTS_2_7_SPRITESHEET_INDEX_PTR = NULL;  // TODO: allocate
-void* ENTITY_SLOTS_2_7_TEXTURE_TO_PALETTE_LOOKUP_PTR = NULL;  // TODO: allocate
-void* GROUND_OBJECTS_TEXTURE_BUFFER_PTR = gGroundObjectsTexture;
-void* GROUND_OBJECTS_PALETTE_BUFFER_PTR = NULL;  // TODO: allocate
-void* GROUND_OBJECTS_SPRITE_TO_PALETTE_LOOKUP_BUFFER_PTR = NULL;  // TODO: allocate
-void* g_PC_ShadowTextureBuffer = gShadowTextureBuffer;
-void* g_PC_ShadowPaletteBuffer = gShadowPaletteBuffer;
-void* g_PC_PlayerTexture1Buffer = gPlayerTexture1;
-void* g_PC_PlayerTexture2Buffer = gPlayerTexture2;
-void* g_PC_PlayerPaletteBuffer = gPlayerPalette;
-void* g_PC_EntityChickenBase = gEntityRegionChickenBase;
-void* g_PC_EntityChickBase = gEntityRegionChickBase;
-void* g_PC_GroundObjectsTextureBuffer = gGroundObjectsTexture;
-void* g_PC_FontTextureBuffer = gFontTexture;
-void* g_PC_FontPalette1Buffer = gFontPalette1;
-void* g_PC_FontPalette2Buffer = gFontPalette2;
-
-// ============================================================================
-// Address translation function
-// Maps N64 RAM addresses to PC pointers
-// ============================================================================
-
-// Prevent compiler from breaking this with bad optimizations
 #pragma clang optimize off
 void* HM64_TranslateAddress(u32 n64Addr) {
-    // Keep cutscene bytecode in the mirrored N64 RAM image so banks 1 and 2
-    // are contiguous and preserve the original virtual-address layout.
-    if (n64Addr >= 0x802F4000 && n64Addr < 0x80300000) {
-        return &gHM64Ram[(uintptr_t)n64Addr - (uintptr_t)HM64_RAM_BASE];
+    if (n64Addr >= MESSAGE_BOX_TEXTURE_BUFFER && n64Addr < MESSAGE_BOX_PALETTE_BUFFER) {
+        return HM64_OFFSET_PTR(messageBoxTextureBuffer, MESSAGE_BOX_TEXTURE_BUFFER, n64Addr);
     }
-    
-    // Shadow buffers (0x8023B400 - 0x8023BC00)
-    if (n64Addr >= 0x8023B400 && n64Addr < 0x8023B600) {
-        return (u8*)gShadowTextureBuffer + (n64Addr - 0x8023B400);
+    if (n64Addr >= MESSAGE_BOX_PALETTE_BUFFER && n64Addr < MESSAGE_BOX_ANIMATION_FRAME_METADATA_BUFFER) {
+        return HM64_OFFSET_PTR(messageBoxPaletteBuffer, MESSAGE_BOX_PALETTE_BUFFER, n64Addr);
     }
-    if (n64Addr >= 0x8023B600 && n64Addr < 0x8023B800) {
-        return (u8*)gShadowPaletteBuffer + (n64Addr - 0x8023B600);
+    if (n64Addr >= MESSAGE_BOX_ANIMATION_FRAME_METADATA_BUFFER && n64Addr < MESSAGE_BOX_TEXTURE_TO_PALETTE_LOOKUP_BUFFER) {
+        return HM64_OFFSET_PTR(messageBoxAnimationFrameMetadataBuffer, MESSAGE_BOX_ANIMATION_FRAME_METADATA_BUFFER, n64Addr);
     }
-    
-    // Player buffers (0x8023C000 - 0x80244200)
-    if (n64Addr >= 0x8023C000 && n64Addr < 0x80240000) {
-        return (u8*)gPlayerTexture1 + (n64Addr - 0x8023C000);
+    if (n64Addr >= MESSAGE_BOX_TEXTURE_TO_PALETTE_LOOKUP_BUFFER && n64Addr < DIALOGUE_ICON_TEXTURE_BUFFER) {
+        return HM64_OFFSET_PTR(messageBoxAnimationTextureToPaletteLookupBuffer, MESSAGE_BOX_TEXTURE_TO_PALETTE_LOOKUP_BUFFER, n64Addr);
     }
-    if (n64Addr >= 0x80240000 && n64Addr < 0x80244000) {
-        return (u8*)gPlayerTexture2 + (n64Addr - 0x80240000);
+
+    if (n64Addr >= DIALOGUE_ICON_TEXTURE_BUFFER && n64Addr < DIALOGUE_ICON_PALETTE_BUFFER) {
+        return HM64_OFFSET_PTR(dialogueIconTextureBuffer, DIALOGUE_ICON_TEXTURE_BUFFER, n64Addr);
     }
-    if (n64Addr >= 0x80244000 && n64Addr < 0x80244200) {
-        return (u8*)gPlayerPalette + (n64Addr - 0x80244000);
+    if (n64Addr >= DIALOGUE_ICON_PALETTE_BUFFER && n64Addr < DIALOGUE_ICON_ANIMATION_FRAME_METADATA_BUFFER) {
+        return HM64_OFFSET_PTR(dialogueIconPaletteBuffer, DIALOGUE_ICON_PALETTE_BUFFER, n64Addr);
     }
-    
-    // Entity chicken base (0x80272800 - 0x80276800)
-    if (n64Addr >= 0x80272800 && n64Addr < 0x80276800) {
-        return (u8*)gEntityRegionChickenBase + (n64Addr - 0x80272800);
+    if (n64Addr >= DIALOGUE_ICON_ANIMATION_FRAME_METADATA_BUFFER && n64Addr < DIALOGUE_ICON_TEXTURE_TO_PALETTE_LOOKUP_BUFFER) {
+        return HM64_OFFSET_PTR(dialogueIconAnimationFrameMetadataBuffer, DIALOGUE_ICON_ANIMATION_FRAME_METADATA_BUFFER, n64Addr);
     }
-    
-    // Entity chick base (0x80277300 - 0x80278300)
-    if (n64Addr >= 0x80277300 && n64Addr < 0x80278300) {
-        return (u8*)gEntityRegionChickBase + (n64Addr - 0x80277300);
+    if (n64Addr >= DIALOGUE_ICON_TEXTURE_TO_PALETTE_LOOKUP_BUFFER && n64Addr < CHARACTER_AVATAR_TEXTURE_1_BUFFER) {
+        return HM64_OFFSET_PTR(dialogueIconTextureToPaletteLookupBuffer, DIALOGUE_ICON_TEXTURE_TO_PALETTE_LOOKUP_BUFFER, n64Addr);
     }
-    
-    // Ground objects (0x80255600 - 0x80265600)
-    if (n64Addr >= 0x80255600 && n64Addr < 0x80265600) {
-        return (u8*)gGroundObjectsTexture + (n64Addr - 0x80255600);
+
+    if (n64Addr >= CHARACTER_AVATAR_TEXTURE_1_BUFFER && n64Addr < CHARACTER_AVATAR_TEXTURE_2_BUFFER) {
+        return HM64_OFFSET_PTR(characterAvatarsTexture1Buffer, CHARACTER_AVATAR_TEXTURE_1_BUFFER, n64Addr);
     }
-    
-    // Font texture (0x802FF000 - 0x8030A000)
-    if (n64Addr >= 0x802FF000 && n64Addr < 0x8030A000) {
-        return (u8*)gFontTexture + (n64Addr - 0x802FF000);
+    if (n64Addr >= CHARACTER_AVATAR_TEXTURE_2_BUFFER && n64Addr < CHARACTER_AVATAR_PALETTE_BUFFER) {
+        return HM64_OFFSET_PTR(characterAvatarsTexture2Buffer, CHARACTER_AVATAR_TEXTURE_2_BUFFER, n64Addr);
     }
-    
-    // Font palette 1 (0x8030A000 - 0x8030A400)
-    if (n64Addr >= 0x8030A000 && n64Addr < 0x8030A400) {
-        return (u8*)gFontPalette1 + (n64Addr - 0x8030A000);
+    if (n64Addr >= CHARACTER_AVATAR_PALETTE_BUFFER && n64Addr < CHARACTER_AVATAR_ANIMATION_FRAME_METADATA_BUFFER) {
+        return HM64_OFFSET_PTR(characterAvatarsPaletteBuffer, CHARACTER_AVATAR_PALETTE_BUFFER, n64Addr);
     }
-    
-    // Font palette 2 (0x8030A400 - 0x8030A800)
-    if (n64Addr >= 0x8030A400 && n64Addr < 0x8030A800) {
-        return (u8*)gFontPalette2 + (n64Addr - 0x8030A400);
+    if (n64Addr >= CHARACTER_AVATAR_ANIMATION_FRAME_METADATA_BUFFER && n64Addr < CHARACTER_AVATAR_SPRITESHEET_INDEX_BUFFER) {
+        return HM64_OFFSET_PTR(characterAvatarsAnimationMetadataBuffer, CHARACTER_AVATAR_ANIMATION_FRAME_METADATA_BUFFER, n64Addr);
     }
-    
-    // gCutsceneCompletionFlags (0x801891D4 - 0x801891D8)
+    if (n64Addr >= CHARACTER_AVATAR_SPRITESHEET_INDEX_BUFFER && n64Addr < CHARACTER_AVATAR_TEXTURE_TO_PALETTE_LOOKUP_BUFFER) {
+        return HM64_OFFSET_PTR(characterAvatarsSpritesheetIndexBuffer, CHARACTER_AVATAR_SPRITESHEET_INDEX_BUFFER, n64Addr);
+    }
+    if (n64Addr >= CHARACTER_AVATAR_TEXTURE_TO_PALETTE_LOOKUP_BUFFER && n64Addr < SHADOW_TEXTURE_BUFFER) {
+        return HM64_OFFSET_PTR(characterAvatarsTextureToPaletteLookupBuffer, CHARACTER_AVATAR_TEXTURE_TO_PALETTE_LOOKUP_BUFFER, n64Addr);
+    }
+
+    if (n64Addr >= SHADOW_TEXTURE_BUFFER && n64Addr < SHADOW_PALETTE_BUFFER) {
+        return HM64_OFFSET_PTR(shadowSpriteTextureBuffer, SHADOW_TEXTURE_BUFFER, n64Addr);
+    }
+    if (n64Addr >= SHADOW_PALETTE_BUFFER && n64Addr < SHADOW_ANIMATION_FRAME_METADATA_BUFFER) {
+        return HM64_OFFSET_PTR(shadowSpritePaletteBuffer, SHADOW_PALETTE_BUFFER, n64Addr);
+    }
+    if (n64Addr >= SHADOW_ANIMATION_FRAME_METADATA_BUFFER && n64Addr < SHADOW_TEXTURE_TO_PALETTE_LOOKUP_BUFFER) {
+        return HM64_OFFSET_PTR(shadowSpriteSpriteToPaletteBuffer, SHADOW_ANIMATION_FRAME_METADATA_BUFFER, n64Addr);
+    }
+    if (n64Addr >= SHADOW_TEXTURE_TO_PALETTE_LOOKUP_BUFFER && n64Addr < PLAYER_TEXTURE_1_BUFFER) {
+        return HM64_OFFSET_PTR(shadowSpriteSpritesheetIndexBuffer, SHADOW_TEXTURE_TO_PALETTE_LOOKUP_BUFFER, n64Addr);
+    }
+
+    if (n64Addr >= PLAYER_TEXTURE_1_BUFFER && n64Addr < PLAYER_TEXTURE_2_BUFFER) {
+        return HM64_OFFSET_PTR(playerTexture1Buffer, PLAYER_TEXTURE_1_BUFFER, n64Addr);
+    }
+    if (n64Addr >= PLAYER_TEXTURE_2_BUFFER && n64Addr < PLAYER_PALETTE_BUFFER) {
+        return HM64_OFFSET_PTR(playerTexture2Buffer, PLAYER_TEXTURE_2_BUFFER, n64Addr);
+    }
+    if (n64Addr >= PLAYER_PALETTE_BUFFER && n64Addr < PLAYER_ANIMATION_FRAME_METADATA_BUFFER) {
+        return HM64_OFFSET_PTR(playerPaletteBuffer, PLAYER_PALETTE_BUFFER, n64Addr);
+    }
+    if (n64Addr >= PLAYER_ANIMATION_FRAME_METADATA_BUFFER && n64Addr < PLAYER_SPRITESHEET_INDEX_BUFFER) {
+        return HM64_OFFSET_PTR(playerAnimationMetadataBuffer, PLAYER_ANIMATION_FRAME_METADATA_BUFFER, n64Addr);
+    }
+    if (n64Addr >= PLAYER_SPRITESHEET_INDEX_BUFFER && n64Addr < PLAYER_TEXTURE_TO_PALETTE_LOOKUP_BUFFER) {
+        return HM64_OFFSET_PTR(playerSpritesheetIndexBuffer, PLAYER_SPRITESHEET_INDEX_BUFFER, n64Addr);
+    }
+    if (n64Addr >= PLAYER_TEXTURE_TO_PALETTE_LOOKUP_BUFFER && n64Addr < NAMING_SCREEN_TEXTURE_BUFFER) {
+        return HM64_OFFSET_PTR(playerTextureToPaletteLookupBuffer, PLAYER_TEXTURE_TO_PALETTE_LOOKUP_BUFFER, n64Addr);
+    }
+
+    if (n64Addr >= NAMING_SCREEN_TEXTURE_BUFFER && n64Addr < MAP_DATA_BUFFER) {
+        return HM64_OFFSET_PTR(namingScreenBuffer, NAMING_SCREEN_TEXTURE_BUFFER, n64Addr);
+    }
+    if (n64Addr >= MAP_DATA_BUFFER && n64Addr < ENTITY_VRAM_START) {
+        return HM64_OFFSET_PTR(mapDataBuffer, MAP_DATA_BUFFER, n64Addr);
+    }
+    if (n64Addr >= ENTITY_VRAM_START && n64Addr < 0x802E2CC0) {
+        return HM64_OFFSET_PTR(spriteBuffer, ENTITY_VRAM_START, n64Addr);
+    }
+    if (n64Addr >= MAP_OBJECT_SLOT_1_TEXTURE_1 && n64Addr < CUTSCENE_BYTECODE_BUFFER_1) {
+        return HM64_OFFSET_PTR(mapObjectsBuffer, MAP_OBJECT_SLOT_1_TEXTURE_1, n64Addr);
+    }
+    if (n64Addr >= CUTSCENE_BYTECODE_BUFFER_1 && n64Addr < FONT_TEXTURE_BUFFER) {
+        return HM64_OFFSET_PTR(cutsceneBytecodeBuffer, CUTSCENE_BYTECODE_BUFFER_1, n64Addr);
+    }
+
+    if (n64Addr >= FONT_TEXTURE_BUFFER && n64Addr < FONT_PALETTE_1_BUFFER) {
+        return HM64_OFFSET_PTR(fontTextureBuffer, FONT_TEXTURE_BUFFER, n64Addr);
+    }
+    if (n64Addr >= FONT_PALETTE_1_BUFFER && n64Addr < FONT_PALETTE_2_BUFFER) {
+        return HM64_OFFSET_PTR(font1PaletteBuffer, FONT_PALETTE_1_BUFFER, n64Addr);
+    }
+    if (n64Addr >= FONT_PALETTE_2_BUFFER && n64Addr < TEXT_ADDRESSES_INDEX_BUFFER) {
+        return HM64_OFFSET_PTR(font2PaletteBuffer, FONT_PALETTE_2_BUFFER, n64Addr);
+    }
+    if (n64Addr >= TEXT_ADDRESSES_INDEX_BUFFER && n64Addr < MESSAGE_BOX_1_TEXT_BUFFER) {
+        return HM64_OFFSET_PTR(textAddressesIndexBuffer, TEXT_ADDRESSES_INDEX_BUFFER, n64Addr);
+    }
+    if (n64Addr >= MESSAGE_BOX_1_TEXT_BUFFER && n64Addr < MESSAGE_BOX_2_TEXT_BUFFER) {
+        return HM64_OFFSET_PTR(messageBox1TextBuffer, MESSAGE_BOX_1_TEXT_BUFFER, n64Addr);
+    }
+    if (n64Addr >= MESSAGE_BOX_2_TEXT_BUFFER && n64Addr < MESSAGE_BOX_3_TEXT_BUFFER) {
+        return HM64_OFFSET_PTR(messageBox2TextBuffer, MESSAGE_BOX_2_TEXT_BUFFER, n64Addr);
+    }
+    if (n64Addr >= MESSAGE_BOX_3_TEXT_BUFFER && n64Addr < MESSAGE_BOX_4_TEXT_BUFFER) {
+        return HM64_OFFSET_PTR(messageBox3TextBuffer, MESSAGE_BOX_3_TEXT_BUFFER, n64Addr);
+    }
+    if (n64Addr >= MESSAGE_BOX_4_TEXT_BUFFER && n64Addr < MESSAGE_BOX_5_TEXT_BUFFER) {
+        return HM64_OFFSET_PTR(messageBox4TextBuffer, MESSAGE_BOX_4_TEXT_BUFFER, n64Addr);
+    }
+    if (n64Addr >= MESSAGE_BOX_5_TEXT_BUFFER && n64Addr < MESSAGE_BOX_6_TEXT_BUFFER) {
+        return HM64_OFFSET_PTR(messageBox5TextBuffer, MESSAGE_BOX_5_TEXT_BUFFER, n64Addr);
+    }
+    if (n64Addr >= MESSAGE_BOX_6_TEXT_BUFFER && n64Addr < DIALOGUE_BYTECODE_INDEX_BUFFER) {
+        return HM64_OFFSET_PTR(messageBox6TextBuffer, MESSAGE_BOX_6_TEXT_BUFFER, n64Addr);
+    }
+    if (n64Addr >= DIALOGUE_BYTECODE_INDEX_BUFFER && n64Addr < SRAM_BUFFER) {
+        return HM64_OFFSET_PTR(dialogueBytecodeBuffer, DIALOGUE_BYTECODE_INDEX_BUFFER, n64Addr);
+    }
+    if (n64Addr >= SRAM_BUFFER && n64Addr < FARM_RANKINGS_BUFFER) {
+        return HM64_OFFSET_PTR(&sramBuffer, SRAM_BUFFER, n64Addr);
+    }
+    if (n64Addr >= FARM_RANKINGS_BUFFER && n64Addr < 0x8030F800) {
+        return HM64_OFFSET_PTR(&farmRankingsBuffer, FARM_RANKINGS_BUFFER, n64Addr);
+    }
+    if (n64Addr >= FRAME_BUFFER && n64Addr < (FRAME_BUFFER + sizeof(frameBuffer))) {
+        return HM64_OFFSET_PTR(frameBuffer, FRAME_BUFFER, n64Addr);
+    }
+
     if (n64Addr >= 0x801891D4 && n64Addr < 0x801891D8) {
         extern s32 gCutsceneCompletionFlags;
-        return (u8*)&gCutsceneCompletionFlags + (n64Addr - 0x801891D4);
+        return HM64_OFFSET_PTR(&gCutsceneCompletionFlags, 0x801891D4, n64Addr);
     }
-
-    // gCutsceneIndex (0x801C3B66 - 0x801C3B68)
     if (n64Addr >= 0x801C3B66 && n64Addr < 0x801C3B68) {
         extern u16 gCutsceneIndex;
-        return (u8*)&gCutsceneIndex + (n64Addr - 0x801C3B66);
+        return HM64_OFFSET_PTR(&gCutsceneIndex, 0x801C3B66, n64Addr);
     }
 
-    // Generic fallback for any remaining N64 RAM address.
-    // This keeps host-side sprite/cutscene buffers working even when they
-    // haven't been broken out into dedicated native allocations yet.
     if (n64Addr >= HM64_RAM_BASE && n64Addr < (HM64_RAM_BASE + HM64_RAM_SIZE)) {
         return HM64_RAM_PTR(n64Addr);
     }
 
-    // If no translation found, return NULL
     return NULL;
 }
 #pragma clang optimize on

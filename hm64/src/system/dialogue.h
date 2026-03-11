@@ -115,7 +115,7 @@ extern bool setDialogueButtonIcon1(u16 index, u16 spriteIndex, u32 romTextureSta
 extern bool setDialogueButtonIcon2(u16 index, u16 spriteIndex, u32 romTextureStart, u32 romTextureEnd, u32 romIndexStart, u32 romIndexEnd, u8* vaddrTexture, u8* vaddrTextureEnd, AnimationFrameMetadata* vaddrAnimationFrameMetadata, u8* vaddrTextureToPaletteLookup, u32 argA, u16 spriteOffset, u8 flag, f32 x, f32 y, f32 z);
 extern bool setDialogueButtonIcon3(u16 index, u16 spriteIndex, u32 romTextureStart, u32 romTextureEnd, u32 romIndexStart, u32 romIndexEnd, u8* vaddrTexture, u8* vaddrTextureEnd, AnimationFrameMetadata* vaddrAnimationFrameMetadata, u8* vaddrTextureToPaletteLookup, u32 argA, u16 spriteOffset, u8 flag, f32 x, f32 y, f32 z);
 extern bool initializeDialogueSession(u16 dialogueIndex, u16, u16, u16);
-extern u8 checkAllDialoguesCompleted();  
+extern bool checkAllDialoguesCompleted(void);
 extern bool closeDialogueSession(u16);
 extern u8 getSelectedMenuRow(u16);
 

@@ -6269,7 +6269,7 @@ u8 findPowerNutCellIndex(u8 cellIndex, u8 arg1) {
 
 //INCLUDE_ASM("asm/nonmatchings/game/overlayScreens", fadeInKitchenPictureSprites);
 
-inline void fadeInKitchenPictureSprites(void) {
+void fadeInKitchenPictureSprites(void) {
     
     fadeInClock();
 

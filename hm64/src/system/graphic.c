@@ -800,7 +800,7 @@ f32 getSpriteYValueFromDirection(u8 direction) {
 
 // get ptr to ci texture from index
 u8* getTexturePtr(u16 spriteIndex, u32* textureIndex) {
-    return (u8*)textureIndex + textureIndex[spriteIndex];
+    return (u8*)textureIndex + hm64ReadIndexedU32(textureIndex, spriteIndex);
 }
 
 // alternate
@@ -816,7 +816,7 @@ void *getTexturePtr(u16 arg0, u32 *arg1) {
 // get ptr to palette
 // FIXME: should return u16*?
 u8 *getPalettePtrType1(u16 index, u32 *paletteIndex) {
-  return (u8*)paletteIndex + paletteIndex[index];
+  return (u8*)paletteIndex + hm64ReadIndexedU32(paletteIndex, index);
 }
 
 //INCLUDE_ASM("asm/nonmatchings/system/graphic", getPalettePtrType2);
@@ -828,7 +828,7 @@ u8* getPalettePtrType2(u16 spriteIndex, u32* paletteIndex, u8* spriteToPaletteIn
     u8* arr = spriteToPaletteIndex + 4;
     u16 i = arr[spriteIndex];
     
-    return (u8*)paletteIndex + paletteIndex[i]; 
+    return (u8*)paletteIndex + hm64ReadIndexedU32(paletteIndex, i); 
 
 }
 

@@ -254,7 +254,7 @@ extern u8 getGroundObjectMapAdditionIndex(u8);
 extern u8 getHeldItemIndexFromGroundObject(u8);                 
 extern u8 getGroundObjectToolInteractionFlags(u8);
 extern u8 getGroundObjectPlayerInteractionsFlags(u8 index);     
-extern u8 setFieldTile(u8, u8, u8, u8); 
+extern bool setFieldTile(u8, u8, u8, u8); 
 extern void addGroundObjectToMap(u8, u8, u8, u8);
 extern void addGroundObjectToMapFromPlayerPosition(u8, f32, u8);    
 extern u8 getGroundObjectIndexFromPlayerPosition(f32, u8);  

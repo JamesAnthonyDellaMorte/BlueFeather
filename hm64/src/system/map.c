@@ -14,7 +14,7 @@
 Vec3f getTerrainHeight(TerrainQuad *quad, f32 x, f32 z, u8 fallbackHeight);
 void updateCameraViewBounds(MapCameraView*);
 bool checkTileVisible(MainMap *map, u8 arg1, u8 arg2);       
-bool updateGridsWithMapAdditions(u16, u16, u8, u8, u16);       
+u8 updateGridsWithMapAdditions(u16, u16, u8, u8, u16);
 Vec3f getMapGroundObjectCoordinates(u16, f32, f32);                  
 inline u16 getTileIndexFromGrid(u16 mapIndex, u8 x, u8 z);
 Gfx* prepareTileTextures(Gfx* dl, MainMap* map, u8 arg2);
@@ -184,16 +184,13 @@ static const Gfx D_8011EDD8;
 static const char D_8011EDB0[];
 static const char D_8011EDB4[];
 
-static inline u16 swap16TileIndex(Swap16 halfword) {
+static inline u16 swap16TileIndex(u16 halfwordValue) {
 
-    Swap16 swap; 
-    
-    swap.byte[1] = halfword.byte[0];
-    swap.byte[0] = halfword.byte[1];
-
-    swap.halfword -= 1;
-    
-    return swap.halfword; 
+#ifdef HM64_PC_PORT
+    return halfwordValue - 1;
+#else
+    return (u16)(BE16SWAP(halfwordValue) - 1);
+#endif
 
 }
 
@@ -1724,22 +1721,27 @@ inline u16 getTileIndexFromGrid(u16 mapIndex, u8 x, u8 z) {
 
 void setMapGrid(MapGrid* mapGrid, u8* data) {
 
-    Swap16 swap;
-    
     mapGrid->tileSizeX = data[4];
     mapGrid->tileSizeZ = data[5];
     mapGrid->mapWidth = data[6];
     mapGrid->mapHeight = data[7];
 
+#ifdef HM64_PC_PORT
+    // Moonwright [Port] Map grid headers are serialized little-endian in this asset path.
+    // Decode them bytewise on host builds instead of depending on the original N64 union trick.
+    mapGrid->unused = hm64ReadRawLEU16(data + 8);
+    mapGrid->tileCount = hm64ReadRawLEU16(data + 10);
+#else
+    Swap16 swap;
+
     swap.byte[1] = data[8];
     swap.byte[0] = data[9];
-    
     mapGrid->unused = swap.halfword;
 
     swap.byte[1] = data[10];
     swap.byte[0] = data[11];
-        
     mapGrid->tileCount = swap.halfword;
+#endif
 
     // set ptr
     mapGrid->gridToTileIndex = data + 12;
@@ -1768,24 +1770,27 @@ u8* func_80037350(TileRenderingInfo* tileRenderingInfo, u8* data) {
 
 // unused or inline
 u8* func_80037388(TileRenderingInfo* tileRenderingInfo, u8* data, u8 arg2) {
-    
-    Swap16 swap;
 
     tileRenderingInfo->data1[0] = *data++;
     tileRenderingInfo->data2[0] = *data++;
     tileRenderingInfo->data3[0] = *data++;
 
-    swap.byte[1] = *data++;
-    swap.byte[0] = *data++;
-    
-    tileRenderingInfo->triangle1Bitfield = swap.halfword;
+    tileRenderingInfo->triangle1Bitfield =
+#ifdef HM64_PC_PORT
+        hm64ReadRawLEU16(data);
+#else
+        ((Swap16){ .byte = { data[1], data[0] } }).halfword;
+#endif
+    data += 2;
 
     if (arg2) {
-
-        swap.byte[1] = *data++;
-        swap.byte[0] = *data++;
-        
-        tileRenderingInfo->triangle2Bitfield = swap.halfword;
+        tileRenderingInfo->triangle2Bitfield =
+#ifdef HM64_PC_PORT
+            hm64ReadRawLEU16(data);
+#else
+            ((Swap16){ .byte = { data[1], data[0] } }).halfword;
+#endif
+        data += 2;
         
     }
     
@@ -1795,9 +1800,7 @@ u8* func_80037388(TileRenderingInfo* tileRenderingInfo, u8* data, u8 arg2) {
 
 //INCLUDE_ASM("asm/nonmatchings/system/map", func_80037400);
 
-inline u8* func_80037400(TileRenderingInfo* tileRenderingInfo, u8* data, bool flag) {
-    
-    Swap16 swap;
+static inline u8* func_80037400(TileRenderingInfo* tileRenderingInfo, u8* data, bool flag) {
     u8 i;
         
     for (i = 0; i < 3; i++) {
@@ -1812,17 +1815,22 @@ inline u8* func_80037400(TileRenderingInfo* tileRenderingInfo, u8* data, bool fl
         tileRenderingInfo->data3[3] = *data++;
     }
     
-    swap.byte[1] = *data++;
-    swap.byte[0] = *data++;
-
-    tileRenderingInfo->triangle1Bitfield = swap.halfword;
+    tileRenderingInfo->triangle1Bitfield =
+#ifdef HM64_PC_PORT
+        hm64ReadRawLEU16(data);
+#else
+        ((Swap16){ .byte = { data[1], data[0] } }).halfword;
+#endif
+    data += 2;
 
     if (flag) {
-
-        swap.byte[1] = *data++;
-        swap.byte[0] = *data++;
-
-        tileRenderingInfo->triangle2Bitfield = swap.halfword;
+        tileRenderingInfo->triangle2Bitfield =
+#ifdef HM64_PC_PORT
+            hm64ReadRawLEU16(data);
+#else
+            ((Swap16){ .byte = { data[1], data[0] } }).halfword;
+#endif
+        data += 2;
         
     }
     
@@ -1856,8 +1864,6 @@ static inline u8* getTriangle2Bitfield(TileRenderingInfo* tileRenderingInfo, u8*
 //INCLUDE_ASM("asm/nonmatchings/system/map", func_800374C0);
 
 u8* func_800374C0(TileRenderingInfo* tileRenderingInfo, u8* data) {
-
-    Swap16 swap;
     u32 padding[2];
     
     u8 i;
@@ -1882,10 +1888,12 @@ u8* func_800374C0(TileRenderingInfo* tileRenderingInfo, u8* data) {
         tileRenderingInfo->data2[0] = data[1];
         tileRenderingInfo->data3[0] = data[2];
 
-        swap.byte[1] = data[3];
-        swap.byte[0] = data[4];
-
-        tileRenderingInfo->triangle1Bitfield = swap.halfword;
+        tileRenderingInfo->triangle1Bitfield =
+#ifdef HM64_PC_PORT
+            hm64ReadRawLEU16(data + 3);
+#else
+            ((Swap16){ .byte = { data[4], data[3] } }).halfword;
+#endif
         
         data = getTriangle2Bitfield(tileRenderingInfo, data + 5, flags & 0x40);
                 
@@ -1920,8 +1928,12 @@ u8* setTileVertexData(Tile* tile, u8* data) {
 
 u16* getTileVtxPtrFromCount(u16 count, void* vtxDataPtr) {
 
+#ifdef HM64_PC_PORT
+    u32 offset = hm64ReadRawU32((const u8*)vtxDataPtr + (count * sizeof(u32)));
+#else
     u32* ptr = (u32*)vtxDataPtr;
     u32 offset = ptr[count];
+#endif
     
     return (u16*)(vtxDataPtr + offset);
 
@@ -1951,8 +1963,8 @@ u32 setTileVertices(MainMap* mainMap, u16 tileIndex, f32 x, f32 y, f32 z) {
 
     vtx = mainMap->tiles[tileIndex].coordinates;
 
-    vtxNumber = mainMap->mapState.startingVertex + mainMap->mapState.renderedVertexCount; 
-    
+    vtxNumber = mainMap->mapState.startingVertex + mainMap->mapState.renderedVertexCount;
+
     if (mainMap->tiles[tileIndex].verticesPerTile) {
         
         do {
@@ -2000,12 +2012,9 @@ Gfx* prepareTileTextures(Gfx* dl, MainMap* mainMap, u8 textureIndex) {
 //INCLUDE_ASM("asm/nonmatchings/system/map", renderTiles);
 
 Gfx* renderTiles(Gfx* dl, MainMap* mainMap, u16 gridIndex, u8 textureIndex) {
-
-    Swap16 swap;
-    
     u16 temp;
     u16 tileIndex;
-    
+
     do {
 
         if (checkTileVisible(mainMap, gridPositionToX[gridIndex], gridPositionToZ[gridIndex])) {
@@ -2019,12 +2028,7 @@ Gfx* renderTiles(Gfx* dl, MainMap* mainMap, u16 gridIndex, u8 textureIndex) {
             }
 
             // FIXME: should be inline swap16TileIndex?
-            swap.byte[1] = mainMap->mapGrid.gridToTileIndex[gridIndex] >> 8;
-            swap.byte[0] = mainMap->mapGrid.gridToTileIndex[gridIndex];
-        
-            temp = swap.halfword;
-
-            tileIndex = temp - 1;
+            tileIndex = swap16TileIndex(mainMap->mapGrid.gridToTileIndex[gridIndex]);
             
             dl = appendTileToDL(dl, 
                     mainMap,
@@ -2050,7 +2054,7 @@ Gfx* renderTiles(Gfx* dl, MainMap* mainMap, u16 gridIndex, u8 textureIndex) {
 
 //INCLUDE_ASM("asm/nonmatchings/system/map", buildMapDisplayList);
 
-inline Gfx* buildMapDisplayList(Gfx* dl, MainMap* mainMap, u16 startingVertex) {
+static inline Gfx* buildMapDisplayList(Gfx* dl, MainMap* mainMap, u16 startingVertex) {
 
     u8 i;
     u16 gridIndex;
@@ -2238,7 +2242,7 @@ Gfx* appendTileToDL(Gfx* dl, MainMap* mainMap, u16 tileIndex, f32 x, f32 y, f32 
     u32 count;
     
     Gfx* tempDl;
-    Gfx tempDl2;
+    Gfx tempDl2[2];
 
     // FIXME: shouldn't be necessary
     f32 temp;
@@ -2251,10 +2255,8 @@ Gfx* appendTileToDL(Gfx* dl, MainMap* mainMap, u16 tileIndex, f32 x, f32 y, f32 
     count = setTileVertices(mainMap, tileIndex, x, *(f32*)&y, z);
 
     // FIXME: might be a wrapper around gSPVertex
-    gSPVertex(&tempDl2 + 1, &tileVertices[gGraphicsBufferIndex][mainMap->mapState.startingVertex + mainMap->mapState.renderedVertexCount], mainMap->tiles[tileIndex].verticesPerTile, 0);
-
-    tempDl2 = *(&tempDl2 + 1);
-    *dl++ = tempDl2;
+    gSPVertex(&tempDl2[1], &tileVertices[gGraphicsBufferIndex][mainMap->mapState.startingVertex + mainMap->mapState.renderedVertexCount], mainMap->tiles[tileIndex].verticesPerTile, 0);
+    *dl++ = tempDl2[1];
     
     mainMap->mapState.renderedVertexCount += count;
 
@@ -2642,11 +2644,11 @@ bool setMapAdditionIndexFromCoordinates(u16 mapIndex, u16 mapAdditionIndex, u8 x
 }
 
 static inline u8* getTexturePtrInline(u8 spriteIndex, u32* textureIndex) {
-    return (u8*)textureIndex + textureIndex[spriteIndex];
+    return (u8*)textureIndex + hm64ReadIndexedU32(textureIndex, spriteIndex);
 }
 
 static inline u8 *getPalettePtrTypeInline(u8 index, u32 *paletteIndex) {
-    return (u8*)paletteIndex + paletteIndex[index];
+    return (u8*)paletteIndex + hm64ReadIndexedU32(paletteIndex, index);
 }
 
 //INCLUDE_ASM("asm/nonmatchings/system/map", setupCoreMapObjectSprites);
@@ -3325,7 +3327,7 @@ void updateMapGraphics(void) {
 
 //INCLUDE_ASM("asm/nonmatchings/system/map", prepareGroundObjectBitmap);
 
-inline Gfx* prepareGroundObjectBitmap(Gfx* dl, GroundObjectBitmap* sprite) {
+static inline Gfx* prepareGroundObjectBitmap(Gfx* dl, GroundObjectBitmap* sprite) {
     
     // gsDPSetCombineMode(G_CC_MODULATEIDECALA, G_CC_MODULATEIDECALA)
     *dl++ = D_8011ED90;
@@ -3404,7 +3406,7 @@ Vec3f getGroundObjectWorldPosition(u16 mapIndex, u8 x, u8 z) {
 
 //INCLUDE_ASM("asm/nonmatchings/system/map", addGroundObjectToSceneGraph);
 
-inline void addGroundObjectToSceneGraph(MainMap* map, f32 arg1, f32 arg2, f32 arg3, f32 arg4, f32 arg5, Gfx* dl) {
+static inline void addGroundObjectToSceneGraph(MainMap* map, f32 arg1, f32 arg2, f32 arg3, f32 arg4, f32 arg5, Gfx* dl) {
 
     Vec3f vec;
     

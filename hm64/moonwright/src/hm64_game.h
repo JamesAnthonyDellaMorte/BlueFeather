@@ -6,8 +6,7 @@
 #include <ship/Context.h>
 #include <memory>
 #include <atomic>
-
-class HM64TitleRuntime;
+#include <thread>
 
 class HM64Game {
 public:
@@ -24,16 +23,15 @@ private:
     std::shared_ptr<Ship::Context> m_context;
     std::atomic<bool> m_running;
     bool m_initialized;
-    std::unique_ptr<HM64TitleRuntime> m_titleRuntime;
-    bool m_titleRuntimeActive;
+    bool m_gameThreadStarted;
+    uint32_t m_hostFrameCounter;
+    std::thread m_gameThread;
 
     bool InitWindow();
     bool InitGraphics();
     bool InitAudio();
     bool InitInput();
-
-    void Update();
-    void Render();
+    void StartGameThread();
 };
 
 #endif // HM64_GAME_H

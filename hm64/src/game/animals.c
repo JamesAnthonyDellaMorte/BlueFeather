@@ -403,7 +403,7 @@ void adjustFarmAnimalAffection(u8 animalIndex, s8 amount) {
 
 //INCLUDE_ASM("asm/nonmatchings/game/animals", getMilkHeldItemIndex);
 
-inline u16 getMilkHeldItemIndex(u8 animalIndex, u8 arg1) {
+static inline u16 getMilkHeldItemIndex(u8 animalIndex, u8 arg1) {
 
     u16 res;
     
@@ -433,7 +433,7 @@ inline u16 getMilkHeldItemIndex(u8 animalIndex, u8 arg1) {
 
 //INCLUDE_ASM("asm/nonmatchings/game/animals", getWoolHeldItemIndex);
 
-inline u16 getWoolHeldItemIndex(u8 animalIndex, u8 arg1) {
+static inline u16 getWoolHeldItemIndex(u8 animalIndex, u8 arg1) {
 
     u16 res;
 

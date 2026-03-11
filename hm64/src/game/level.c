@@ -3,6 +3,7 @@
 #include "game/level.h"
 
 #include "ld_symbols.h"
+#include "../../include/ld_symbols.h"
 
 #include "system/entity.h"
 #include "system/globalSprites.h"
@@ -24,6 +25,7 @@
 #include "game/weather.h"      
 
 #include "buffers/buffers.h"
+#include "buffers/mapObjectBuffer.h"
 
 #include "assetIndices/cutscenes.h"
 #include "assetIndices/maps.h"
@@ -524,9 +526,15 @@ void setupLevelMap(u16 mapIndex) {
 
     setMapGroundObjects(gBaseMapIndex);
     
+#ifdef HM64_PC_PORT
+    if (FALSE) {
+        setWeatherSprites();
+    }
+#else
     if (getLevelFlags(mapIndex) & LEVEL_OUTDOORS) {
         setWeatherSprites();
     }
+#endif
     
     setGridToTileTextureMappings(MAIN_MAP_INDEX);
     setGroundObjects(MAIN_MAP_INDEX);
@@ -770,6 +778,11 @@ void loadLevelGroundObjects(u16 mapIndex) {
 //INCLUDE_ASM("asm/nonmatchings/game/level", loadLevelMapObjects);
 
 void loadLevelMapObjects(u16 levelIndex) {
+
+#ifdef HM64_PC_PORT
+    (void)levelIndex;
+    return;
+#else
 
     u8 i;
     u8 j;
@@ -1842,6 +1855,7 @@ void setAdditionalMapAdditionsForLevel(u16 mapIndex) {
         default:
             break;
     }
+#endif
 }
 
 //INCLUDE_ASM("asm/nonmatchings/game/level", getMapForSpawnPoint);

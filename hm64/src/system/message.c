@@ -16,6 +16,19 @@
 #include "mainproc.h"
 
 #include "ld_symbols.h"
+#include "hm64_ram.h"
+
+extern void* HM64_TranslateAddress(u32 n64Addr);
+
+static void* resolveMessagePointer(const void* ptr) {
+    uintptr_t addr = (uintptr_t)ptr;
+
+    if (addr >= HM64_RAM_BASE && addr < (HM64_RAM_BASE + HM64_RAM_SIZE)) {
+        return HM64_TranslateAddress((u32)addr);
+    }
+
+    return (void*)ptr;
+}
 
 // bss
 MessageBox messageBoxes[MAX_MESSAGE_BOXES];
@@ -161,7 +174,7 @@ bool initializeEmptyMessageBox(u16 messageBoxIndex, u8* textBufferAddr) {
             messageBoxes[messageBoxIndex].unk_74 = 0xFF;
             messageBoxes[messageBoxIndex].messageCloseSfx = 0xFF;
 
-            messageBoxes[messageBoxIndex].textBufferBase = textBufferAddr;
+            messageBoxes[messageBoxIndex].textBufferBase = resolveMessagePointer(textBufferAddr);
             
             messageBoxes[messageBoxIndex].flags = MESSAGE_BOX_ACTIVE;
 
@@ -668,8 +681,8 @@ bool setMessageBoxFont(u16 index, u8 arg1, u8 arg2, u8* compressedCI2FontData, u
             
             messageBoxes[index].fontContext.characterCellWidth = arg1;
             messageBoxes[index].fontContext.characterCellHeight = arg2;
-            messageBoxes[index].fontContext.compressedCI2FontData = compressedCI2FontData;
-            messageBoxes[index].fontContext.fontPalettePtr = fontPalettePtr;
+            messageBoxes[index].fontContext.compressedCI2FontData = resolveMessagePointer(compressedCI2FontData);
+            messageBoxes[index].fontContext.fontPalettePtr = resolveMessagePointer(fontPalettePtr);
              
             result = TRUE;
             
@@ -999,7 +1012,7 @@ bool setGameVariableString(u16 index, u8* ptr, s8 length) {
 
 // set number string for game variables based on their current quantity
 // FIXME: fake matches, but need do {} while (0) to get registers right
-bool convertNumberToGameVariableString(u16 index, u32 number, u8 terminatorType) {
+u8 convertNumberToGameVariableString(u16 index, u32 number, u8 terminatorType) {
     
     u32 digitDivisorsBuffer[8];
     u8 digitCharacterCodesBuffer[16];
@@ -1919,7 +1932,6 @@ void updateMessageBoxText(u16 index) {
 
 u16 readCompressedCharacter(u16 index) {
     
-    u8 buffer[2];
     u32 padding[4];
 
     u16 character;
@@ -1927,8 +1939,6 @@ u16 readCompressedCharacter(u16 index) {
     u8 lower;
     u32 higher;
     
-    memcpy(buffer, controlByteBitMasks, 8);
-
     // every 8 characters, store control byte (which determines how to read 8 character stream)
     if ((messageBoxes[index].compressionBitIndex % 8) == 0) {
         messageBoxes[index].currentCompressionControlByte = *messageBoxes[index].currentCharPtr;        
@@ -1936,7 +1946,7 @@ u16 readCompressedCharacter(u16 index) {
     }
     
     // get two-byte value if needed
-    if (messageBoxes[index].currentCompressionControlByte & buffer[messageBoxes[index].compressionBitIndex % 8]) {
+    if (messageBoxes[index].currentCompressionControlByte & controlByteBitMasks[messageBoxes[index].compressionBitIndex % 8]) {
         
         lower = *messageBoxes[index].currentCharPtr;
         messageBoxes[index].currentCharPtr++;
@@ -1989,8 +1999,9 @@ u8 readGameVariableChar(u16 index) {
 u32 getTextAddress(u16 index, u16 textIndex) {
 
     u32 result = textAddresses[messageBoxes[index].textAddressesIndex].romTextStart;
+    u32* indexVaddr = resolveMessagePointer(textAddresses[messageBoxes[index].textAddressesIndex].indexVaddr);
 
-    result += textAddresses[messageBoxes[index].textAddressesIndex].indexVaddr[textIndex];
+    result += hm64ReadIndexedU32(indexVaddr, textIndex);
 
     return result;
     
@@ -2167,7 +2178,6 @@ Gfx* renderMessageBoxLine(Gfx* dl, MessageBox* messageBox, u8 lineNumber, s32 ar
             sprite.timg = fontTexturesBuffer[gGraphicsBufferIndex][messageBox->totalCharactersProcessed + charOffset].timg;
 
             setBitmapFormatAndSize((BitmapObject*)&sprite, messageBox->fontContext.fontPalettePtr);
-
             sprite.width = messageBox->fontContext.characterCellWidth;
             sprite.height = messageBox->fontContext.characterCellHeight;
             sprite.fmt = 2; // CI2
@@ -2225,7 +2235,9 @@ void addMessageCharSceneNode(MessageBox* messageBox, u8 line, Gfx* dl) {
         f2 = getInterpolatorValue((Interpolator*)&messageBox->scrollInterpolator);
     }
     
-    sceneNodeIndex = addSceneNode(dl, (0x8 | SCENE_NODE_TRANSFORM_EXEMPT));
+    // Moonwright [Port]: Keep textbox glyph nodes on the same front-layer path
+    // as bitmap sprites so the dialogue window art does not occlude the text.
+    sceneNodeIndex = addSceneNode(dl, (0x8 | SCENE_NODE_TRANSFORM_EXEMPT | SCENE_NODE_Z_OFFSET));
     
     vec.x = messageBox->viewSpacePosition.x 
         - ((messageBox->textBoxLineCharWidth * messageBox->fontContext.characterCellWidth) / 2) 

@@ -4,6 +4,8 @@
 
 #include "stdlib.h"
 
+#include <libultraship/bridge/windowbridge.h>
+
 #include "system/audio.h"
 #include "system/controller.h"
 #include "system/cutscene.h"
@@ -53,13 +55,17 @@ void mainLoop(void) {
     D_80182BA0 = 1;
     D_8020564C = 0;
 
-    while (TRUE) {
+    while (WindowIsRunning()) {
       
         nuGfxDisplayOn();
           
-        while (engineStateFlags & 1) {
+        while ((engineStateFlags & 1) && WindowIsRunning()) {
             
-            while (stepMainLoop == FALSE);
+            while ((stepMainLoop == FALSE) && WindowIsRunning());
+
+            if (!WindowIsRunning()) {
+                break;
+            }
             
             if (!D_8020564C) { 
               
@@ -180,7 +186,7 @@ void* noOpCallback(void) {
 
 //INCLUDE_ASM("asm/nonmatchings/mainLoop", func_80026248);
 
-inline void func_80026248(u16 count) {
+static inline void func_80026248(u16 count) {
 
   u16 counter = 1;
   u16 currentCount;
@@ -191,7 +197,11 @@ inline void func_80026248(u16 count) {
       
       stepMainLoop = FALSE;
       
-      while (stepMainLoop == FALSE);
+      while ((stepMainLoop == FALSE) && WindowIsRunning());
+
+      if (!WindowIsRunning()) {
+          return;
+      }
 
       currentCount = counter;
       counter++;
@@ -210,7 +220,7 @@ void func_80026284(void) {
     goto loop_end;
     
     // first 60 frames
-    while (!(engineStateFlags & 2)) {
+    while (!(engineStateFlags & 2) && WindowIsRunning()) {
 
         func_80026248(1);
 

@@ -1390,7 +1390,7 @@ u8 getLevelInteractionIndexFromEntityPosition(u16 entityIndex, f32 x, f32 z) {
 //INCLUDE_ASM("asm/nonmatchings/system/entity", getEntityAnimationOffset);
 
 // returns param 2 of startSpriteAnimation
-inline u16 getEntityAnimationOffset(u16 entityIndex, u16 offset) {
+static inline u16 getEntityAnimationOffset(u16 entityIndex, u16 offset) {
 
     u16 animationIndex = 0xFFFF;
 
@@ -1414,7 +1414,7 @@ u16 getAnimationOffsetFromScript(u16* vaddr, u16 offset) {
 
 //INCLUDE_ASM("asm/nonmatchings/system/entity", getEntityAnimationType);
 
-inline u16 getEntityAnimationType(u16 entityIndex, u16 offset) {
+static inline u16 getEntityAnimationType(u16 entityIndex, u16 offset) {
 
     u16 flags = 0xFFFF;
 
@@ -1430,7 +1430,7 @@ inline u16 getEntityAnimationType(u16 entityIndex, u16 offset) {
 
 //INCLUDE_ASM("asm/nonmatchings/system/entity", getEntityAnimationHorizontalFlip);
 
-inline u16 getEntityAnimationHorizontalFlip(u16 entityIndex, u16 offset) {
+static inline u16 getEntityAnimationHorizontalFlip(u16 entityIndex, u16 offset) {
 
     u16 flipHorizontal = 0xFFFF;
 

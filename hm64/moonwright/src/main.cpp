@@ -12,7 +12,6 @@
 #include <unordered_set>
 
 #include "hm64_game.h"
-#include "moonwright_blobs.h"
 
 int main(int argc, char* argv[]) {
     std::cout << "[INFO] Moonwright starting..." << std::endl;
@@ -21,7 +20,8 @@ int main(int argc, char* argv[]) {
     // Just pass the filename and let libultraship handle the path resolution
     std::string configFileName = "hm64.json";
     
-    // Shipwright-style asset loading: mount packaged archives, not loose extracted assets.
+    // Moonwright [Port] Mirror Shipwright-style startup ownership by mounting the packaged
+    // archive first and keeping the active executable off loose extracted assets.
     std::vector<std::string> archivePaths;
     std::unordered_set<std::string> seenArchivePaths;
 
@@ -108,11 +108,6 @@ int main(int argc, char* argv[]) {
                 window,
                 controlDeck)) {
             std::cerr << "[ERROR] Failed to initialize libultraship context!" << std::endl;
-            return 1;
-        }
-
-        if (!MW_RegisterArchiveBlobFactory()) {
-            std::cerr << "[ERROR] Failed to register archive blob factory!" << std::endl;
             return 1;
         }
 

@@ -9,6 +9,7 @@ extern "C" {
 
 extern unsigned char gHM64Ram[0x00800000];
 void HM64Host_ClearRam(void);
+void* HM64_TranslateAddress(uint32_t n64Addr);
 
 #ifdef __cplusplus
 }

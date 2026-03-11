@@ -3,6 +3,7 @@
 #include "game/initialize.h"
 
 #include "ld_symbols.h"
+#include "../../include/ld_symbols.h"
 
 #include "data/animationScripts/animationScripts.h"
 #include "data/audio/sfx.h"
@@ -650,7 +651,11 @@ void registerMainLoopCallbacks(void) {
     registerMainLoopCallback(SET_AUDIO_AND_LIGHTING, setMapAudioAndLighting);
     registerMainLoopCallback(LEVEL_LOAD, levelLoadCallback);
     registerMainLoopCallback(EXIT_LEVEL, exitLevelCallback);
+#ifdef HM64_PC_PORT
+    registerMainLoopCallback(OVERLAY_SCREEN_LOAD, noOpCallback);
+#else
     registerMainLoopCallback(OVERLAY_SCREEN_LOAD, setOverlayScreenCallbackWithDelay);
+#endif
     registerMainLoopCallback(ROTATING, handleRotationCallback);
     registerMainLoopCallback(DIALOGUE, handleDialogueCallback);
     registerMainLoopCallback(MESSAGE_BOX, messageBoxCallback);
@@ -663,12 +668,52 @@ void registerMainLoopCallbacks(void) {
     registerMainLoopCallback(WAIT_AUDIO_FINISH, waitForAudioFinishCallback);
 
     // tv
+#ifdef HM64_PC_PORT
+    registerMainLoopCallback(TV, noOpCallback);
+#else
     registerMainLoopCallback(TV, tvMainLoopCallback);
+#endif
     
     // shop
+#ifdef HM64_PC_PORT
+    registerMainLoopCallback(SHOP_DIALOGUE, noOpCallback);
+#else
     registerMainLoopCallback(SHOP_DIALOGUE, shopDialogueCallback); 
+#endif
 
     // overlay screens
+#ifdef HM64_PC_PORT
+    registerMainLoopCallback(PAUSE_SCREEN_LOAD, noOpCallback);
+    registerMainLoopCallback(TOOLBOX_LOAD, noOpCallback);
+    registerMainLoopCallback(FREEZER_LOAD, noOpCallback);
+    registerMainLoopCallback(CABINET_LOAD, noOpCallback);
+    registerMainLoopCallback(HOME_EXTENSIONS_SELECT_LOAD, noOpCallback);
+    registerMainLoopCallback(ESTIMATE_LOAD, noOpCallback);
+    registerMainLoopCallback(KITCHEN_PICTURE_LOAD, noOpCallback);
+    registerMainLoopCallback(CALENDAR_LOAD, noOpCallback);
+    registerMainLoopCallback(RECIPE_BOOK_LOAD, noOpCallback);
+    registerMainLoopCallback(ALBUM_LOAD, noOpCallback);
+    registerMainLoopCallback(PAUSE_SCREEN_MAP_LOAD, noOpCallback);
+    registerMainLoopCallback(RACE_BETTING_LOAD, noOpCallback);
+    registerMainLoopCallback(RACE_RESULTS_LOAD, noOpCallback);
+    registerMainLoopCallback(RACE_GIFTS_LOAD, noOpCallback);
+    registerMainLoopCallback(LOTTERY_LOAD, noOpCallback);
+    registerMainLoopCallback(PAUSE_SCREEN, noOpCallback);
+    registerMainLoopCallback(TOOLBOX, noOpCallback);
+    registerMainLoopCallback(FREEZER, noOpCallback);
+    registerMainLoopCallback(CABINET, noOpCallback);
+    registerMainLoopCallback(HOME_EXTENSIONS_SELECT, noOpCallback);
+    registerMainLoopCallback(ESTIMATE, noOpCallback);
+    registerMainLoopCallback(KITCHEN_PICTURE, noOpCallback);
+    registerMainLoopCallback(CALENDAR, noOpCallback);
+    registerMainLoopCallback(RECIPE_BOOK, noOpCallback);
+    registerMainLoopCallback(ALBUM, noOpCallback);
+    registerMainLoopCallback(PAUSE_SCREEN_MAP, noOpCallback);
+    registerMainLoopCallback(HORSE_RACE_BETTING, noOpCallback);
+    registerMainLoopCallback(HORSE_RACE_RESULTS, noOpCallback);
+    registerMainLoopCallback(HORSE_RACE_GIFTS, noOpCallback);
+    registerMainLoopCallback(LOTTERY, noOpCallback);
+#else
     registerMainLoopCallback(PAUSE_SCREEN_LOAD, loadPauseScreenCallback);
     registerMainLoopCallback(TOOLBOX_LOAD, loadToolboxScreenCallback);
     registerMainLoopCallback(FREEZER_LOAD, loadFreezerScreenCallback);
@@ -699,17 +744,28 @@ void registerMainLoopCallbacks(void) {
     registerMainLoopCallback(HORSE_RACE_RESULTS, raceResultsScreenCallback);
     registerMainLoopCallback(HORSE_RACE_GIFTS, raceGiftsScreenCallback);
     registerMainLoopCallback(LOTTERY, lotteryScreenCallback);
+#endif
 
     // title
     registerMainLoopCallback(TITLE_SCREEN, titleScreenMainLoopCallback);
 
     // naming screen
+#ifdef HM64_PC_PORT
+    registerMainLoopCallback(NAMING_SCREEN_LOAD, noOpCallback);
+    registerMainLoopCallback(NAMING_SCREEN, noOpCallback);
+#else
     registerMainLoopCallback(NAMING_SCREEN_LOAD, loadNamingScreenCallback);
     registerMainLoopCallback(NAMING_SCREEN, namingScreenCallback);
+#endif
 
     // game file
+#ifdef HM64_PC_PORT
+    registerMainLoopCallback(SELECT_GAME, noOpCallback);
+    registerMainLoopCallback(FARM_RANKING_SCREEN, noOpCallback);
+#else
     registerMainLoopCallback(SELECT_GAME, gameSelectCallback);
     registerMainLoopCallback(FARM_RANKING_SCREEN, farmRankingScreenCallback);
+#endif
 
     // game status
     // empty funtions

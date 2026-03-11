@@ -5,9 +5,11 @@
 
 OSPiHandle sramHandle;
 
+extern void osEPiLinkHandle(OSPiHandle* handle);
+
 //INCLUDE_ASM("asm/nonmatchings/system/memory", sramInit);
 
-inline OSPiHandle* sramInit(void) {
+static inline OSPiHandle* sramInit(void) {
     
     if (sramHandle.baseAddress == PHYS_TO_K1(SRAM_START_ADDR)) {
         return (&sramHandle);

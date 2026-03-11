@@ -327,7 +327,7 @@ static const u8 toolHeldItemIndices[5][3];
 
 // forward declarations
 void handleItemLevelInteraction(u8 arg0); 
-u8 checkAndTriggerStaminaExhaustion(u8);                 
+bool checkAndTriggerStaminaExhaustion(u8);
 bool checkTooFatiguedToUseTool(void);
 void handleToolAction(void);
 void handleThrowItemAction(void);
@@ -548,7 +548,7 @@ block_9:
 
 //INCLUDE_ASM("asm/nonmatchings/game/player", addItemToRucksack);
 
-inline u8 addItemToRucksack(u8 item) {
+static inline u8 addItemToRucksack(u8 item) {
 
     u8 i;
     u8 found = 0xFF;
@@ -637,7 +637,7 @@ u8 removeTool(u8 tool) {
 
 //INCLUDE_ASM("asm/nonmatchings/game/player", acquireKeyItem);
 
-inline u8 acquireKeyItem(u8 item) {
+u8 acquireKeyItem(u8 item) {
 
     u8 i;
     u8 found = 0xFF;
@@ -702,7 +702,7 @@ bool checkHaveTool(u8 tool) {
 
 //INCLUDE_ASM("asm/nonmatchings/game/player", checkHaveKeyItem);
 
-inline bool checkHaveKeyItem(u8 item) {
+bool checkHaveKeyItem(u8 item) {
 
     u8 i;
     bool found = FALSE;
@@ -1299,7 +1299,7 @@ void handlePlayerInput(void) {
 
 //INCLUDE_ASM("asm/nonmatchings/game/player", mountHorse);
 
-inline void mountHorse(void) {
+static inline void mountHorse(void) {
 
     deactivateEntity(horseInfo.entityIndex);
 
@@ -1520,7 +1520,7 @@ void handleItemLevelInteraction(u8 arg0) {
 
 //INCLUDE_ASM("asm/nonmatchings/game/player", checkStaminaExhaustionLevel);
 
-inline u8 checkStaminaExhaustionLevel(void) {
+static inline u8 checkStaminaExhaustionLevel(void) {
 
     s32 temp;
     u8 temp2;
@@ -1553,7 +1553,7 @@ inline u8 checkStaminaExhaustionLevel(void) {
 
 //INCLUDE_ASM("asm/nonmatchings/game/player", checkFatigueLevel);
 
-inline u8 checkFatigueLevel(void) {
+u8 checkFatigueLevel(void) {
 
     u8 result;
      

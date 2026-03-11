@@ -1,7 +1,8 @@
 // HM64 PC Port - Game Class Implementation
 
 #include "hm64_game.h"
-#include "hm64_title_runtime.h"
+#include "hm64_ram.h"
+#include "nugfx.h"
 
 #include <ship/Context.h>
 
@@ -10,20 +11,30 @@
 #include <ship/audio/Audio.h>
 #include <libultraship/libultra.h>
 #include <libultraship/bridge.h>
+#include <fast/interpreter.h>
 #include <iostream>
+#include <cstdlib>
 
 #include <thread>
 #include <chrono>
 
-// Target 20 FPS (N64 NTSC games typically ran at 20 or 30 FPS)
-constexpr float TARGET_FPS = 20.0f;
+extern "C" {
+void mainproc(void* arg);
+void HM64_InitCutsceneBytecodeAddresses(void);
+extern volatile u16 engineStateFlags;
+extern volatile u8 stepMainLoop;
+}
+
+// Drive the N64 retrace callback at 60 Hz.
+constexpr float TARGET_FPS = 60.0f;
 constexpr float TARGET_FRAME_TIME_MS = 1000.0f / TARGET_FPS;
 
 HM64Game::HM64Game(std::shared_ptr<Ship::Context> context)
     : m_context(context)
     , m_running(false)
     , m_initialized(false)
-    , m_titleRuntimeActive(false) {
+    , m_gameThreadStarted(false)
+    , m_hostFrameCounter(0) {
 }
 
 HM64Game::~HM64Game() {
@@ -78,17 +89,16 @@ bool HM64Game::InitWindow() {
 bool HM64Game::InitGraphics() {
     std::cout << "[INFO] Initializing graphics..." << std::endl;
 
-    m_titleRuntime = std::make_unique<HM64TitleRuntime>();
-    if (m_titleRuntime->Init(m_context)) {
-        m_titleRuntimeActive = true;
-        std::cout << "[INFO] Booting real HM64 title runtime" << std::endl;
-        return true;
+    HM64Host_ClearRam();
+    std::srand(0x486D3634);
+
+    // Mirror the N64 framebuffer setup before booting imported HM64 code.
+    if (gfx_create_framebuffer(320, 240, 320, 240, true) == 0) {
+        std::cerr << "[ERROR] Failed to create host framebuffer!" << std::endl;
+        return false;
     }
 
-    m_titleRuntime.reset();
-    std::cerr << "[ERROR] Moonwright must boot through the N64 intro/runtime path. "
-              << "Title runtime initialization failed." << std::endl;
-    return false;
+    return true;
 }
 
 bool HM64Game::InitAudio() {
@@ -120,6 +130,21 @@ bool HM64Game::InitInput() {
     return true;
 }
 
+void HM64Game::StartGameThread() {
+    if (m_gameThreadStarted) {
+        return;
+    }
+
+    HM64_InitCutsceneBytecodeAddresses();
+    // Moonwright [Port] Keep the real game owner path on mainproc/mainLoop instead of
+    // replacing it with a host-side runtime loop.
+    m_gameThread = std::thread([]() {
+        mainproc(nullptr);
+    });
+    m_gameThreadStarted = true;
+    std::cout << "[INFO] Booting real HM64 mainproc/mainLoop" << std::endl;
+}
+
 void HM64Game::Run() {
     if (!m_initialized) {
         std::cerr << "[ERROR] Cannot run game - not initialized!" << std::endl;
@@ -128,6 +153,7 @@ void HM64Game::Run() {
 
     m_running = true;
     std::cout << "[INFO] Starting game main loop" << std::endl;
+    StartGameThread();
 
     auto window = m_context->GetWindow();
     
@@ -137,16 +163,14 @@ void HM64Game::Run() {
     while (m_running && window && window->IsRunning()) {
         auto frameStart = Clock::now();
 
-        // Process window events
         window->HandleEvents();
+        while (nuGfxProcessPendingMainThread()) {
+        }
+        nuGfxCallFunc(nuGfxTaskNum());
+        while (nuGfxProcessPendingMainThread()) {
+        }
+        m_hostFrameCounter++;
 
-        // Update game state
-        Update();
-        
-        // Render frame
-        Render();
-
-        // Frame rate limiting
         auto frameEnd = Clock::now();
         Duration frameTime = frameEnd - frameStart;
         
@@ -158,17 +182,14 @@ void HM64Game::Run() {
     }
 
     m_running = false;
-    std::cout << "[INFO] Game main loop ended" << std::endl;
-}
+    engineStateFlags = 0;
+    stepMainLoop = TRUE;
 
-void HM64Game::Update() {
-    if (m_titleRuntimeActive && m_titleRuntime) {
-        m_titleRuntime->Tick();
+    if (m_gameThread.joinable()) {
+        m_gameThread.join();
     }
-}
 
-void HM64Game::Render() {
-    (void)m_context;
+    std::cout << "[INFO] Game main loop ended" << std::endl;
 }
 
 void HM64Game::Shutdown() {
@@ -179,6 +200,13 @@ void HM64Game::Shutdown() {
     std::cout << "[INFO] Shutting down HM64 Game..." << std::endl;
 
     m_running = false;
+
+    if (m_gameThread.joinable()) {
+        engineStateFlags = 0;
+        stepMainLoop = TRUE;
+        m_gameThread.join();
+    }
+
     m_initialized = false;
 
     std::cout << "[INFO] HM64 Game shutdown complete" << std::endl;

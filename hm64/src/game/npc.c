@@ -514,7 +514,7 @@ void updateNPCMovement(u8 npcIndex) {
 
 //INCLUDE_ASM("asm/nonmatchings/game/npc", stopNPCMovement);
 
-inline void stopNPCMovement(u8 npcIndex) {
+static inline void stopNPCMovement(u8 npcIndex) {
 
     npcs[npcIndex].speed = 0;
     npcs[npcIndex].animationState = 10;
@@ -581,7 +581,7 @@ void updateNPCWanderAnimation(u8 index) {
 
 //INCLUDE_ASM("asm/nonmatchings/game/npc", handleBabyIdleAnimation);
 
-inline void handleBabyIdleAnimation(u8 index, u8 animationIndex) {
+static inline void handleBabyIdleAnimation(u8 index, u8 animationIndex) {
 
     npcs[index].speed = 0;
     npcs[index].animationState = 10;
@@ -994,7 +994,7 @@ void setNPCSpawningLocations(void) {
 
 //INCLUDE_ASM("asm/nonmatchings/game/npc", getBabyCarryingState);
 
-inline u8 getBabyCarryingState(void) {
+u8 getBabyCarryingState(void) {
 
     u8 result = 0;
 

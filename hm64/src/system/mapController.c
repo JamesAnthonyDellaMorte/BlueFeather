@@ -7,6 +7,10 @@
 #include "system/map.h"
 #include "system/sceneGraph.h"
 
+#ifdef HM64_PC_PORT
+extern void* HM64_TranslateAddress(u32 n64Addr);
+#endif
+
 MapController mapControllers[1];
 MapDataAddress mapDataAddresses[96];
 
@@ -174,7 +178,24 @@ bool loadMap(u16 index, u16 mapIndex) {
 }
 
 static inline u8* getAddress(u32 offsets[], u32 i) {
-    return (u8*)offsets + offsets[i];
+    const u8* base = (const u8*)offsets;
+
+#ifdef HM64_PC_PORT
+    const uintptr_t baseAddr = (uintptr_t)offsets;
+    if (baseAddr >= 0x80000000ULL && baseAddr < 0x80800000ULL) {
+        base = (const u8*)HM64_TranslateAddress((u32)baseAddr);
+    }
+#endif
+
+    if (base == NULL) {
+        return NULL;
+    }
+
+#ifdef HM64_PC_PORT
+    return (u8*)base + hm64ReadRawU32(base + (i * sizeof(u32)));
+#else
+    return (u8*)base + offsets[i];
+#endif
 }
 
 //INCLUDE_ASM("asm/nonmatchings/system/mapController", dmaMapAssets);

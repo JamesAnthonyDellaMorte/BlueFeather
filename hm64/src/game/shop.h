@@ -26,7 +26,7 @@ extern void deactivateShopItemMapObject(u8);
 extern void handlePickUpShopItem(u8);    
 extern u8 checkCanPickUpShopItem(u8 index);
 extern void shopDialogueCallback(void);
-extern u8 checkShopItemShouldBeDisplayed(u16);
+extern bool checkShopItemShouldBeDisplayed(u16);
 
 extern ShopContext shopContext;
 

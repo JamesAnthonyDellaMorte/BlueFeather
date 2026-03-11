@@ -68,6 +68,167 @@ SPRITE_TARGETS = (
             "funeralIntroAssetsIndex.bin": 0x00CB4D30 - 0x00CB4D10,
         },
     },
+    {
+        "source": HM64_ROOT / "assets/sprites/entitySprites/player",
+        "dest_dir": Path("runtime/rom/entitySprites/player"),
+        "files": {
+            "playerTexture.bin": 0x002D0660 - 0x00159330,
+            "playerAssetsIndex.bin": 0x002D0680 - 0x002D0660,
+            "playerSpritesheetIndex.bin": 0x002D15E0 - 0x002D0680,
+        },
+    },
+    {
+        "source": HM64_ROOT / "assets/sprites/entitySprites/shadows",
+        "dest_dir": Path("runtime/rom/entitySprites/shadows"),
+        "files": {
+            "shadowsTexture.bin": 0x007FD1E0 - 0x007FCD10,
+            "shadowsAssetsIndex.bin": 0x007FD200 - 0x007FD1E0,
+        },
+    },
+    {
+        "source": HM64_ROOT / "assets/sprites/entitySprites/npc/mayor",
+        "dest_dir": Path("runtime/rom/entitySprites/npc/mayor"),
+        "files": {
+            "mayorTexture.bin": 0x00483D20 - 0x00477410,
+            "mayorAssetsIndex.bin": 0x00483D40 - 0x00483D20,
+            "mayorSpritesheetIndex.bin": 0x00483E80 - 0x00483D40,
+        },
+    },
+    {
+        "source": HM64_ROOT / "assets/sprites/entitySprites/npc/mayorWife",
+        "dest_dir": Path("runtime/rom/entitySprites/npc/mayorWife"),
+        "files": {
+            "mayorWifeTexture.bin": 0x0048B570 - 0x00483E80,
+            "mayorWifeAssetsIndex.bin": 0x0048B590 - 0x0048B570,
+            "mayorWifeSpritesheetIndex.bin": 0x0048B620 - 0x0048B590,
+        },
+    },
+    {
+        "source": HM64_ROOT / "assets/sprites/entitySprites/npc/kent",
+        "dest_dir": Path("runtime/rom/entitySprites/npc/kent"),
+        "files": {
+            "kentTexture.bin": 0x004DEF80 - 0x004CD890,
+            "kentAssetsIndex.bin": 0x004DEFA0 - 0x004DEF80,
+            "kentSpritesheetIndex.bin": 0x004DF110 - 0x004DEFA0,
+        },
+    },
+    {
+        "source": HM64_ROOT / "assets/sprites/entitySprites/npc/stu",
+        "dest_dir": Path("runtime/rom/entitySprites/npc/stu"),
+        "files": {
+            "stuTexture.bin": 0x004E85D0 - 0x004DF110,
+            "stuAssetsIndex.bin": 0x004E85F0 - 0x004E85D0,
+            "stuSpritesheetIndex.bin": 0x004E86B0 - 0x004E85F0,
+        },
+    },
+    {
+        "source": HM64_ROOT / "assets/sprites/entitySprites/npc/midwife",
+        "dest_dir": Path("runtime/rom/entitySprites/npc/midwife"),
+        "files": {
+            "midwifeTexture.bin": 0x004EFE00 - 0x004E86B0,
+            "midwifeAssetsIndex.bin": 0x004EFE20 - 0x004EFE00,
+            "midwifeSpritesheetIndex.bin": 0x004EFEB0 - 0x004EFE20,
+        },
+    },
+    {
+        "source": HM64_ROOT / "assets/sprites/entitySprites/npc/may",
+        "dest_dir": Path("runtime/rom/entitySprites/npc/may"),
+        "files": {
+            "mayTexture.bin": 0x004F47F0 - 0x004EFEB0,
+            "mayAssetsIndex.bin": 0x004F4810 - 0x004F47F0,
+            "maySpritesheetIndex.bin": 0x004F4890 - 0x004F4810,
+        },
+    },
+    {
+        "source": HM64_ROOT / "assets/sprites/entitySprites/npc/rick",
+        "dest_dir": Path("runtime/rom/entitySprites/npc/rick"),
+        "files": {
+            "rickTexture.bin": 0x004FBFF0 - 0x004F4890,
+            "rickAssetsIndex.bin": 0x004FC010 - 0x004FBFF0,
+            "rickSpritesheetIndex.bin": 0x004FC140 - 0x004FC010,
+        },
+    },
+    {
+        "source": HM64_ROOT / "assets/sprites/entitySprites/npc/pastor",
+        "dest_dir": Path("runtime/rom/entitySprites/npc/pastor"),
+        "files": {
+            "pastorTexture.bin": 0x00503AB0 - 0x004FC140,
+            "pastorAssetsIndex.bin": 0x00503AD0 - 0x00503AB0,
+            "pastorSpritesheetIndex.bin": 0x00503BC0 - 0x00503AD0,
+        },
+    },
+    {
+        "source": HM64_ROOT / "assets/sprites/entitySprites/npc/shipper",
+        "dest_dir": Path("runtime/rom/entitySprites/npc/shipper"),
+        "files": {
+            "shipperTexture.bin": 0x00518B00 - 0x00503BC0,
+            "shipperAssetsIndex.bin": 0x00518B20 - 0x00518B00,
+            "shipperSpritesheetIndex.bin": 0x00518BB0 - 0x00518B20,
+        },
+    },
+    {
+        "source": HM64_ROOT / "assets/sprites/entitySprites/npc/saibara",
+        "dest_dir": Path("runtime/rom/entitySprites/npc/saibara"),
+        "files": {
+            "saibaraTexture.bin": 0x00520D00 - 0x00518BB0,
+            "saibaraAssetsIndex.bin": 0x00520D20 - 0x00520D00,
+            "saibaraSpritesheetIndex.bin": 0x00520DB0 - 0x00520D20,
+        },
+    },
+    {
+        "source": HM64_ROOT / "assets/sprites/entitySprites/npc/duke",
+        "dest_dir": Path("runtime/rom/entitySprites/npc/duke"),
+        "files": {
+            "dukeTexture.bin": 0x005249E0 - 0x00520DB0,
+            "dukeAssetsIndex.bin": 0x00524A00 - 0x005249E0,
+            "dukeSpritesheetIndex.bin": 0x00524AE0 - 0x00524A00,
+        },
+    },
+    {
+        "source": HM64_ROOT / "assets/sprites/entitySprites/npc/greg",
+        "dest_dir": Path("runtime/rom/entitySprites/npc/greg"),
+        "files": {
+            "gregTexture.bin": 0x0052F260 - 0x00524AE0,
+            "gregAssetsIndex.bin": 0x0052F280 - 0x0052F260,
+            "gregSpritesheetIndex.bin": 0x0052F370 - 0x0052F280,
+        },
+    },
+    {
+        "source": HM64_ROOT / "assets/sprites/entitySprites/npc/assistantCarpenter",
+        "dest_dir": Path("runtime/rom/entitySprites/npc/assistantCarpenter"),
+        "files": {
+            "assistantCarpenterTexture.bin": 0x005488A0 - 0x0052F370,
+            "assistantCarpenterAssetsIndex.bin": 0x005488C0 - 0x005488A0,
+            "assistantCarpenterSpritesheetIndex.bin": 0x005489C0 - 0x005488C0,
+        },
+    },
+    {
+        "source": HM64_ROOT / "assets/sprites/entitySprites/npc/masterCarpenter",
+        "dest_dir": Path("runtime/rom/entitySprites/npc/masterCarpenter"),
+        "files": {
+            "masterCarpenterTexture.bin": 0x00555460 - 0x005489C0,
+            "masterCarpenterAssetsIndex.bin": 0x00555480 - 0x00555460,
+            "masterCarpenterSpritesheetIndex.bin": 0x00555570 - 0x00555480,
+        },
+    },
+    {
+        "source": HM64_ROOT / "assets/sprites/entitySprites/npc/harvestSprite",
+        "dest_dir": Path("runtime/rom/entitySprites/npc/harvestSprite"),
+        "files": {
+            "harvestSpriteTexture.bin": 0x0055A640 - 0x00555570,
+            "harvestSpriteAssetsIndex.bin": 0x0055A660 - 0x0055A640,
+            "harvestSpriteSpritesheetIndex.bin": 0x0055A730 - 0x0055A660,
+        },
+    },
+    {
+        "source": HM64_ROOT / "assets/sprites/entitySprites/npc/barley",
+        "dest_dir": Path("runtime/rom/entitySprites/npc/barley"),
+        "files": {
+            "barleyTexture.bin": 0x00560330 - 0x0055A730,
+            "barleyAssetsIndex.bin": 0x00560350 - 0x00560330,
+            "barleySpritesheetIndex.bin": 0x005603D0 - 0x00560350,
+        },
+    },
 )
 
 CUTSCENE_TARGETS = (

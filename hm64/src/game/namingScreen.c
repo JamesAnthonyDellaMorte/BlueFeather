@@ -13,6 +13,7 @@
 #include "game/animals.h"
 #include "game/game.h"
 #include "game/gameAudio.h"
+#include "game/gameStatus.h"
 #include "game/gameStart.h"
 #include "game/level.h"
 #include "game/npc.h"
@@ -141,7 +142,7 @@ static inline void setSpriteIndexOnFlags(s32 index) {
 
 //INCLUDE_ASM("asm/nonmatchings/game/namingScreen", initializeNamingScreen);
 
-inline void initializeNamingScreen(u8* arg0, u8 arg1) {
+void initializeNamingScreen(u8* arg0, u8 arg1) {
 
     s32 i = 0;
     
@@ -770,7 +771,7 @@ bool selectCharacterOrConfirm(void) {
             }
             
         } else {
-            return;
+            return result;
         }
         
     }

@@ -28,23 +28,26 @@
 #include "game/weather.h"
 
 #include "buffers/buffers.h"
+#include "buffers/farmRankingsBuffer.h"
+#include "buffers/farmRankingsSpriteBuffer.h"
+#include "buffers/sramBuffer.h"
 
 #include "mainLoop.h"
 
 #include "ld_symbols.h"
 
 // foward declarations
-u8 loadGameFromSram(u8, u8);                 
+bool loadGameFromSram(u8 saveSlot, bool gamePakEnabled);
 void resetGamePakState(void);
 void handleSramOperation(u8 srcSlot, bool srcGamePak, u8 destSlot, bool destGamePak);
 void deleteSaveSlot(u8 saveSlot, bool gamePakEnabled);
-void showDiarySelectScreen(u8 fadeIn, u8 diaryIndex);
+void showDiarySelectScreen(bool fadeIn, u8 diaryIndex);
 void loadAllDiarySlots(void);
 void setupDiaryMessageBoxes(void);
 void loadDiarySlotData(u8 slot, u8 source, u8 operation);
 void clearFarmRankingSlot(u8);
 void loadFarmRankingScreen(void);
-void setupRankingListMessageBoxes(u8);                 
+void setupRankingListMessageBoxes(bool noFadeIn);
 void setupRankingDetailMessageBoxes(u8);                
 void loadFarmRankingFromSram(u8);                  
 void saveFarmRankingToSram(u8);          

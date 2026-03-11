@@ -1,6 +1,6 @@
 [submodule "libultraship"]
 	path = libultraship
-	url = git@github.com:Kenix3/libultraship.git
+	url = git@github.com:JamesAnthonyDellaMorte/libultraship.git
 [submodule "OTRExporter"]
 	path = OTRExporter
 	url = git@github.com:JamesAnthonyDellaMorte/OTRExporter.git

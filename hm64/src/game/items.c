@@ -829,7 +829,7 @@ bool processBoulderHit(u8 groundObjectIndex, s16 x, s16 z) {
 
 //INCLUDE_ASM("asm/nonmatchings/game/itemHandlers", handleMusicBoxDigging);
 
-inline u8 handleMusicBoxDigging(s16 arg0, s16 arg1) {
+static inline u8 handleMusicBoxDigging(s16 arg0, s16 arg1) {
     
     if (gBaseMapIndex == FARM) {
          
@@ -3179,7 +3179,7 @@ void processItemShipping(u8 index) {
 
 //INCLUDE_ASM("asm/nonmatchings/game/itemHandlers", handleFeedDog);
 
-inline void handleFeedDog(void) {
+static inline void handleFeedDog(void) {
     setMapObjectAnimation(MAIN_MAP_INDEX, 0, 19);
     setDailyEventBit(FED_DOG);
 }

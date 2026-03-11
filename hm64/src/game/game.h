@@ -33,7 +33,7 @@ typedef struct {
     u8 dialogueMenuIndex;
 } MainLoopCallbackInfo;
 
-extern inline int adjustValue(int initial, int value, int max);
+extern int adjustValue(int initial, int value, int max);
 
 void resetDailyBits();
 extern void setFestivalDailyBits(void);      

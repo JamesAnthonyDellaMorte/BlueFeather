@@ -64,6 +64,14 @@ static inline u32 hm64ReadRawU32(const void* ptr) {
            (u32)bytes[3];
 }
 
+#ifndef BE16SWAP
+#define BE16SWAP(x) __builtin_bswap16(x)
+#endif
+
+#ifndef BE32SWAP
+#define BE32SWAP(x) __builtin_bswap32(x)
+#endif
+
 // libultraship names controller error fields err_no, while the HM64 codebase uses errno.
 #ifndef errno
 #define errno err_no
@@ -74,21 +82,5 @@ static inline u32 hm64ReadRawU32(const void* ptr) {
 #undef __assert
 #endif
 void __assert(const char* exp, const char* filename, int line);     
-
-// Player sprite buffer definitions (needed for transition.c)
-#define PLAYER_TEXTURE_1_BUFFER 0x80240B00
-#define PLAYER_TEXTURE_2_BUFFER 0x80243B00
-#define PLAYER_PALETTE_BUFFER 0x80246B00
-#define PLAYER_ANIMATION_FRAME_METADATA_BUFFER 0x8024AB00
-#define PLAYER_SPRITESHEET_INDEX_BUFFER 0x80252300
-#define PLAYER_TEXTURE_TO_PALETTE_LOOKUP_BUFFER 0x80252B00
-
-// Entity buffer definitions (needed for transition.c)
-#define ENTITY_REGION_SLOT_1_BASE 0x80252B00
-#define DOG_SIZE_TEX 0x3000
-#define ENTITY_SLOTS_1_20_PALETTE 0x80255B00
-#define ENTITY_SLOTS_1_20_ANIM_METADATA 0x80256B00
-#define ENTITY_SLOTS_1_20_SPRITESHEET_INDEX 0x8025E300
-#define ENTITY_SLOTS_1_20_TEXTURE_TO_PALETTE_LOOKUP 0x8025EB00
 
 #endif
