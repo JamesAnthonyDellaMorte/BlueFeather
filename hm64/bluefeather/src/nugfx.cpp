@@ -653,3 +653,20 @@ u16* nuGfxGetCfb(void) {
 bool nuGfxProcessPendingMainThread(void) {
     return FlushPendingDisplayLists();
 }
+
+// Returns the logical render width scaled for the current aspect ratio
+// (fixed 240 height, width adjusted for widescreen)
+uint32_t BF_GetRenderWidth(void) {
+    auto context = Ship::Context::GetInstance();
+    auto window = context ? std::dynamic_pointer_cast<Fast::Fast3dWindow>(context->GetWindow()) : nullptr;
+    if (!window) {
+        return 320;
+    }
+    uint32_t winW = window->GetWidth();
+    uint32_t winH = window->GetHeight();
+    if (winH == 0) {
+        return 320;
+    }
+    float aspect = (float)winW / (float)winH;
+    return (uint32_t)(240.0f * aspect);
+}

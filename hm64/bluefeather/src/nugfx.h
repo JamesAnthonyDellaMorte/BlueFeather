@@ -3,6 +3,10 @@
 
 #include <nusys.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 // Initialization
 void nuGfxInit(void);
 void nuGfxThreadStart(void);
@@ -31,5 +35,12 @@ u16* nuGfxGetCfb(void);
 // Callback execution
 void nuGfxCallFunc(int frame);
 bool nuGfxProcessPendingMainThread(void);
+
+// Widescreen helpers
+u32 BF_GetRenderWidth(void);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif // _NUGFX_H_

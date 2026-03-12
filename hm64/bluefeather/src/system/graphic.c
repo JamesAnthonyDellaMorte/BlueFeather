@@ -2,6 +2,7 @@
 
 #include <stdlib.h>
 #include "system/graphic.h"
+#include "system/mapController.h"
 
 #include "system/sprite.h"
 #include "system/sceneGraph.h"
@@ -18,9 +19,11 @@ Gfx *setupCameraMatrices(Gfx*, Camera*, SceneMatrices*);
 volatile u8 doViewportGfxTask(void);      
 void setInitialWorldRotationAngles(f32, f32, f32);            
 
-Gfx* clearFramebuffer(Gfx* dl);                  
-Gfx* initRcp(Gfx*);                               
+Gfx* clearFramebuffer(Gfx* dl);
+Gfx* initRcp(Gfx*);
 volatile u8 startGfxTask(void);
+
+extern u32 BF_GetRenderWidth(void);
 
 void setCameraLookAt(Camera*, f32, f32, f32, f32, f32, f32, f32, f32, f32); 
 void setCameraOrthographicValues(Camera*, f32, f32, f32, f32, f32, f32); 
@@ -117,7 +120,7 @@ volatile u8 startGfxTask(void) {
 volatile u8 doViewportGfxTask(void) {
 
     Gfx *dl = D_80205000[gGraphicsBufferIndex];
-    
+
     gSPDisplayList(dl++, OS_K0_TO_PHYSICAL(&viewportDL));
     gDPFullSync(dl++);
     gSPEndDisplayList(dl++);
@@ -140,9 +143,9 @@ volatile u8 doViewportGfxTask(void) {
 volatile u8 renderScene() {
 
     Gfx *dl = sceneGraphDisplayList[gGraphicsBufferIndex];
-    
+
     gSPDisplayList(dl++, OS_K0_TO_PHYSICAL(&viewportDL));
-    
+
     dl = setupCameraMatrices(dl++, &gCamera, &sceneMatrices[gGraphicsBufferIndex]);
     dl = renderSceneGraph(dl++, &sceneMatrices[gGraphicsBufferIndex]);
     
@@ -859,7 +862,7 @@ u8* getPalettePtrType2(u16 arg0, u32 *arg1, u8 *arg2) {
 //INCLUDE_ASM("asm/nonmatchings/system/graphic", initRcp);
 
 Gfx* initRcp(Gfx* dl) {
-    
+
     gSPSegment(dl++, 0, 0x0);
     gSPDisplayList(dl++, OS_K0_TO_PHYSICAL(setup_rspstate));
     gSPDisplayList(dl++, OS_K0_TO_PHYSICAL(setup_rdpstate));
@@ -880,8 +883,13 @@ Gfx* clearFramebuffer(Gfx* dl) {
     gDPFillRectangle(dl++, 0, 0, SCREEN_WD-1, SCREEN_HT-1);
     gDPPipeSync(dl++);
     
-    gDPSetColorImage(dl++, G_IM_FMT_RGBA, G_IM_SIZ_16b, SCREEN_WD, osVirtualToPhysical(nuGfxCfb_ptr));   
-    gDPSetFillColor(dl++, (GPACK_RGBA5551(0, 0, 0, 1) << 16 | GPACK_RGBA5551(0, 0, 0, 1)));
+    gDPSetColorImage(dl++, G_IM_FMT_RGBA, G_IM_SIZ_16b, SCREEN_WD, osVirtualToPhysical(nuGfxCfb_ptr));
+    {
+        u8 cr = (u8)currentMapLightingRGBA.r;
+        u8 cg = (u8)currentMapLightingRGBA.g;
+        u8 cb = (u8)currentMapLightingRGBA.b;
+        gDPSetFillColor(dl++, (GPACK_RGBA5551(cr, cg, cb, 1) << 16 | GPACK_RGBA5551(cr, cg, cb, 1)));
+    }
     gDPFillRectangle(dl++, 0, 0, SCREEN_WD-1, SCREEN_HT-1);
     gDPPipeSync(dl++);
     

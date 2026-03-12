@@ -1,31 +1,85 @@
+# macOS
 .DS_Store
+
+# AI / agent files
 .claude/
 AGENTS.md
 GEMINI.md
+
+# Python
 __pycache__/
 *.pyc
+.venv/
+.python-version
 
+# Editors / IDEs
+.vscode/*
+!.vscode/tasks.json
+.vs/
+.idea/
+*.sln.iml
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+*.userprefs
+xcuserdata/
+
+# Build output
 build/
-build-debug/
-build-relwithdeb/
-logs/
-compile_commands.json
-imgui.ini
-build.sh
+build-*/
+cmake-build-*/
+[Dd]ebug/
+[Rr]elease/
+[Bb]in/
+[Oo]bj/
+[Ll]og/
 
+# Build artifacts
+*.o
+*.d
+*.elf
+*.lib
+*.pdb
+*.ilk
+*.out
+
+# CMake
+CMakeLists.txt.user
+CMakeCache.txt
+CMakeFiles/
+CMakeScripts/
+compile_commands.json
+cmake_install.cmake
+install_manifest.txt
+_deps/
+_packages/
+
+# ROM / asset files
 *.z64
 *.n64
 *.v64
-*.o2r
 *.otr
-*.elf
-*.map
+*.o2r
+*.bin
 
+# Runtime / save files
+*.sav
+*.eeprom
+*.sra
+bluefeather.json
+imgui.ini
+logs/
+
+# HM64 decompilation tooling
 hm64/assets/
 hm64/tools/gcc-2.7.2/
 
+# Reference repos (not part of the build)
 Shipwright/
 SpaghettiKart/
-oot/
-src/
-include/
+Starship/
+
+# Worklog / scratch
+WIDESCREEN_FADE_WORKLOG.md
+.factory/

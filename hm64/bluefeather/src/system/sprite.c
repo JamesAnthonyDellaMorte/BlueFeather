@@ -10,6 +10,8 @@
 
 #include "mainproc.h"
 
+extern u32 BF_GetRenderWidth(void);
+
 // bss
 u16 bitmapCounter;
 
@@ -645,8 +647,9 @@ static void processBitmapSceneNode(BitmapObject* sprite, Gfx *dl) {
 
     Vec3f vec;
     f32 scaleZ;
+    f32 scaleX;
 
-    u16 spriteIndex; 
+    u16 spriteIndex;
 
     // adjust scaling if needed
     calculateSceneNodePosition(&vec, sprite);
@@ -656,7 +659,26 @@ static void processBitmapSceneNode(BitmapObject* sprite, Gfx *dl) {
     addSceneNodePosition(spriteIndex, vec.x, vec.y, vec.z);
     // Flat HM64 sprites commonly use z-scale 0; keep x/y scaling intact on the host path.
     scaleZ = (sprite->scaling.z == 0.0f) ? 1.0f : sprite->scaling.z;
-    addSceneNodeScaling(spriteIndex, sprite->scaling.x, sprite->scaling.y, scaleZ);
+    scaleX = sprite->scaling.x;
+
+    // Widescreen fix: detect full-screen sprites (fade overlays, backgrounds)
+    // and widen their X scale to compensate for the interpreter's AdjXForAspectRatio
+    // squishing 2D content into the 4:3 center.
+    {
+        f32 scaledWidth = sprite->width * scaleX;
+        if (scaledWidth < 0.0f) scaledWidth = -scaledWidth;
+        if (scaledWidth >= 300.0f) {
+            f32 windowAspect = (f32)BF_GetRenderWidth() / 240.0f;
+            f32 nativeAspect = (f32)SCREEN_WD / (f32)SCREEN_HT;
+            if (windowAspect > nativeAspect) {
+                // Scale to fill widescreen, with slight overshoot to avoid sub-pixel gaps
+                f32 widthRatio = (f32)BF_GetRenderWidth() / scaledWidth;
+                scaleX *= widthRatio * 1.05f;
+            }
+        }
+    }
+
+    addSceneNodeScaling(spriteIndex, scaleX, sprite->scaling.y, scaleZ);
     addSceneNodeRotation(spriteIndex, sprite->rotation.x, sprite->rotation.y, sprite->rotation.z);
 
 }
