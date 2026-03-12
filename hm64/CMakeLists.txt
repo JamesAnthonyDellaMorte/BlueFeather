@@ -7,6 +7,7 @@ set(HM64_ROOT ${CMAKE_CURRENT_SOURCE_DIR})
 set(BLUEFEATHER_ROOT ${HM64_ROOT}/bluefeather)
 set(BLUEFEATHER_PROJECT_ROOT ${HM64_ROOT}/..)
 set(HM64_DECOMP_ROOT ${BLUEFEATHER_PROJECT_ROOT}/../hm64-decomp)
+set(BLUEFEATHER_ASSET_TOOL_TARGET BlueFeatherAssetTool)
 
 find_package(Python3 COMPONENTS Interpreter REQUIRED)
 
@@ -224,14 +225,14 @@ add_custom_command(
     COMMAND ${CMAKE_COMMAND} -E rm -f ${HM64_BASE_O2R_FILE}
     COMMAND ${Python3_EXECUTABLE}
         ${BLUEFEATHER_PROJECT_ROOT}/OTRExporter/extract_assets.py
-        -z "$<TARGET_FILE:ZAPD>"
+        --asset-tool "$<TARGET_FILE:${BLUEFEATHER_ASSET_TOOL_TARGET}>"
         --norom
         --custom-otr-file ${HM64_BASE_O2R_FILE}
         --custom-assets-path ${HM64_BASE_CUSTOM_ASSET_DIR}
     DEPENDS
         ${BLUEFEATHER_PROJECT_ROOT}/OTRExporter/extract_assets.py
         ${HM64_BASE_CUSTOM_ASSET_STAMP}
-        ZAPD
+        ${BLUEFEATHER_ASSET_TOOL_TARGET}
     WORKING_DIRECTORY ${HM64_ROOT}
     COMMENT "Generating ${HM64_BASE_ASSET_ARCHIVE}"
     VERBATIM
@@ -245,14 +246,14 @@ add_custom_command(
     COMMAND ${CMAKE_COMMAND} -E rm -f ${BLUEFEATHER_PORT_O2R_FILE}
     COMMAND ${Python3_EXECUTABLE}
         ${BLUEFEATHER_PROJECT_ROOT}/OTRExporter/extract_assets.py
-        -z "$<TARGET_FILE:ZAPD>"
+        --asset-tool "$<TARGET_FILE:${BLUEFEATHER_ASSET_TOOL_TARGET}>"
         --norom
         --custom-otr-file ${BLUEFEATHER_PORT_O2R_FILE}
         --custom-assets-path ${BLUEFEATHER_PORT_CUSTOM_ASSET_DIR}
     DEPENDS
         ${BLUEFEATHER_PROJECT_ROOT}/OTRExporter/extract_assets.py
         ${BLUEFEATHER_PORT_CUSTOM_ASSET_STAMP}
-        ZAPD
+        ${BLUEFEATHER_ASSET_TOOL_TARGET}
     WORKING_DIRECTORY ${HM64_ROOT}
     COMMENT "Generating ${BLUEFEATHER_PORT_ASSET_ARCHIVE}"
     VERBATIM

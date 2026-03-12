@@ -1,0 +1,51 @@
+name: macos-arm64-validation
+
+on:
+  push:
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  build-macos-arm64:
+    runs-on: macos-14
+    steps:
+      - name: Checkout BlueFeather
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Checkout hm64-decomp
+        uses: actions/checkout@v4
+        with:
+          repository: harvestwhisperer/hm64-decomp
+          path: hm64-decomp-src
+
+      - name: Configure ccache
+        uses: hendrikmuhs/ccache-action@v1.2
+        with:
+          create-symlink: true
+          save: ${{ github.ref_name == github.event.repository.default_branch }}
+          key: ${{ runner.os }}-14-bluefeather-${{ github.ref }}-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-14-bluefeather-${{ github.ref }}
+            ${{ runner.os }}-14-bluefeather
+
+      - name: Install dependencies
+        run: |
+          brew install cmake ninja python ccache sdl2 glew libzip tinyxml2 nlohmann-json
+
+      - name: Recreate sibling hm64-decomp layout
+        run: |
+          ln -sfn "${GITHUB_WORKSPACE}/hm64-decomp-src" "${GITHUB_WORKSPACE}/../hm64-decomp"
+
+      - name: Configure
+        run: cmake --preset debug
+
+      - name: Build
+        run: cmake --build --preset debug --parallel 3
