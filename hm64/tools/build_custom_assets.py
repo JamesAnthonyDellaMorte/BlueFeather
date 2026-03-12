@@ -20,6 +20,7 @@ HM64_DECOMP_ROOT = BLUEFEATHER_PROJECT_ROOT.parent / "hm64-decomp"
 HM64_IMPORTED_ASSETS_ROOT = HM64_DECOMP_ROOT / "assets"
 LD_SYMBOL_HEADER = HM64_ROOT / "include" / "ld_symbols.h"
 SPLAT_CONFIG = HM64_DECOMP_ROOT / "config" / "us" / "splat.us.yaml"
+RAM_SYMBOLS_FILE = HM64_DECOMP_ROOT / "config" / "us" / "symbol_addrs.txt"
 sys.path.insert(0, str(TOOLS_ROOT))
 
 from libhm64.fonts.assembler import assemble_font_palette, assemble_font_texture  # noqa: E402
@@ -50,6 +51,10 @@ ROM_SYMBOL_ALIASES = {
     "_funeralSpritesTextureSegmentRomEnd": "_funeralIntroTextureSegmentRomEnd",
     "_funeralSpritesIndexSegmentRomStart": "_funeralIntroAssetsIndexSegmentRomStart",
     "_funeralSpritesIndexSegmentRomEnd": "_funeralIntroAssetsIndexSegmentRomEnd",
+}
+
+RAM_SYMBOL_ALIASES = {
+    "D_80237A00": "D_80237A00f",
 }
 
 
@@ -114,6 +119,25 @@ def get_rom_segment_symbol_values() -> dict[str, int]:
     return values
 
 
+@lru_cache(maxsize=1)
+def get_ram_symbol_values() -> dict[str, int]:
+    values: dict[str, int] = {}
+    pattern = re.compile(r"^\s*([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(0x[0-9A-Fa-f]+)\s*;")
+
+    for raw_line in RAM_SYMBOLS_FILE.read_text().splitlines():
+        match = pattern.match(raw_line)
+        if not match:
+            continue
+        values[match.group(1)] = int(match.group(2), 16)
+
+    for alias, target in RAM_SYMBOL_ALIASES.items():
+        value = values.get(target)
+        if value is not None:
+            values[alias] = value
+
+    return values
+
+
 def ensure_exact_size(data: bytes, expected_size: int, label: str, *, allow_pad: bool = False) -> bytes:
     actual_size = len(data)
     if actual_size == expected_size:
@@ -128,7 +152,11 @@ def ensure_exact_size(data: bytes, expected_size: int, label: str, *, allow_pad:
 def materialize_symbol_source(source: Path, dest: Path) -> None:
     text = source.read_text()
 
-    for symbol, addr in get_rom_segment_symbol_values().items():
+    symbol_values = {}
+    symbol_values.update(get_rom_segment_symbol_values())
+    symbol_values.update(get_ram_symbol_values())
+
+    for symbol, addr in sorted(symbol_values.items(), key=lambda item: len(item[0]), reverse=True):
         text = re.sub(rf"\b{re.escape(symbol)}\b", f"0x{addr:08X}", text)
 
     dest.write_text(text)

@@ -52,6 +52,7 @@ extern u32 playerSpritesheetIndexBuffer[0x200];
 extern u32 playerTextureToPaletteLookupBuffer[0x400];
 
 extern u8 namingScreenBuffer[0x1500];
+extern u8 mapDataBuffer[0x1A000];
 extern u8 spriteBuffer[0x73CC0];
 extern u8 mapObjectsBuffer[0x10000];
 
@@ -142,6 +143,9 @@ static void* resolveSpritePointer(const void* ptr) {
 
     if (addr >= NAMING_SCREEN_TEXTURE_BUFFER && addr < MAP_DATA_BUFFER) {
         return GLOBAL_SPRITE_OFFSET_PTR(namingScreenBuffer, NAMING_SCREEN_TEXTURE_BUFFER, addr);
+    }
+    if (addr >= MAP_DATA_BUFFER && addr < FARM_RANKINGS_TEXTURE_BUFFER) {
+        return GLOBAL_SPRITE_OFFSET_PTR(mapDataBuffer, MAP_DATA_BUFFER, addr);
     }
     if (addr >= ENTITY_VRAM_START && addr < 0x802E2CC0) {
         return GLOBAL_SPRITE_OFFSET_PTR(spriteBuffer, ENTITY_VRAM_START, addr);

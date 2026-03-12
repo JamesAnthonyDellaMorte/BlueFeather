@@ -233,9 +233,41 @@ static void* resolveCutsceneDataAddress(uint32_t n64Addr) {
         extern s32 gCutsceneCompletionFlags;
         return CUTSCENE_OFFSET_PTR(&gCutsceneCompletionFlags, 0x801891D4, n64Addr);
     }
+    if (n64Addr >= 0x8013D1C8 && n64Addr < 0x8013D248) {
+        extern u32 lifeEventBits[0x20];
+        return CUTSCENE_OFFSET_PTR(lifeEventBits, 0x8013D1C8, n64Addr);
+    }
+    if (n64Addr >= 0x8016FE00 && n64Addr < 0x8016FE04) {
+        extern u32 gCutsceneFlags;
+        return CUTSCENE_OFFSET_PTR(&gCutsceneFlags, 0x8016FE00, n64Addr);
+    }
+    if (n64Addr >= 0x80189140 && n64Addr < 0x801891C0) {
+        extern u32 dailyEventBits[0x20];
+        return CUTSCENE_OFFSET_PTR(dailyEventBits, 0x80189140, n64Addr);
+    }
     if (n64Addr >= 0x801C3B66 && n64Addr < 0x801C3B68) {
         extern u16 gCutsceneIndex;
         return CUTSCENE_OFFSET_PTR(&gCutsceneIndex, 0x801C3B66, n64Addr);
+    }
+    if (n64Addr >= 0x801C3F4C && n64Addr < 0x801C3F50) {
+        extern u32 D_801C3F4C;
+        return CUTSCENE_OFFSET_PTR(&D_801C3F4C, 0x801C3F4C, n64Addr);
+    }
+    if (n64Addr >= 0x801C3F78 && n64Addr < 0x801C3F7C) {
+        extern u32 D_801C3F78;
+        return CUTSCENE_OFFSET_PTR(&D_801C3F78, 0x801C3F78, n64Addr);
+    }
+    if (n64Addr >= 0x801FB5CA && n64Addr < 0x801FB5CB) {
+        extern u8 gHour;
+        return CUTSCENE_OFFSET_PTR(&gHour, 0x801FB5CA, n64Addr);
+    }
+    if (n64Addr >= 0x80215EB8 && n64Addr < 0x80215EBC) {
+        extern u32 acquiredPowerNutBits;
+        return CUTSCENE_OFFSET_PTR(&acquiredPowerNutBits, 0x80215EB8, n64Addr);
+    }
+    if (n64Addr >= 0x80237A00 && n64Addr < 0x80237A04) {
+        extern u32 D_80237A00;
+        return CUTSCENE_OFFSET_PTR(&D_80237A00, 0x80237A00, n64Addr);
     }
 
     return NULL;
