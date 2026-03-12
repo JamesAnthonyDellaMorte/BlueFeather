@@ -221,7 +221,6 @@ if(BLUEFEATHER_BUILD_RUNTIME_ASSETS)
     set(HM64_BASE_CUSTOM_ASSET_STAMP "${CMAKE_CURRENT_BINARY_DIR}/stage_base_custom_assets.stamp")
     add_custom_command(
         OUTPUT ${HM64_BASE_CUSTOM_ASSET_STAMP} ${HM64_RUNTIME_ARCHIVE_TABLE}
-        COMMAND ${CMAKE_COMMAND} -E rm -rf ${HM64_BASE_CUSTOM_ASSET_DIR}
         COMMAND ${Python3_EXECUTABLE}
             ${HM64_ROOT}/tools/build_custom_assets.py
             --output-dir ${HM64_BASE_CUSTOM_ASSET_DIR}

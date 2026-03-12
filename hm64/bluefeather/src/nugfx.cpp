@@ -40,6 +40,7 @@ static std::mutex s_pendingDisplayListsMutex;
 static std::condition_variable s_pendingDisplayListsCv;
 static uint64_t s_submissionSerial = 0;
 static uint64_t s_completedSerial = 0;
+static bool s_shuttingDown = false;
 
 // Globals defined here
 extern "C" u16** nuGfxCfb = NULL;
@@ -358,6 +359,10 @@ bool ReadArchiveRuntimeRange(uintptr_t romAddr, void* dst, size_t size) {
 }
 
 bool FlushPendingDisplayLists() {
+    if (s_shuttingDown) {
+        return false;
+    }
+
     std::vector<Gfx*> pendingDisplayLists;
     bool pendingSwap = false;
     uint64_t completedSerial = 0;
@@ -586,6 +591,19 @@ void nuGfxDisplayOn(void) {
 void nuGfxDisplayOff(void) {
     nuGfxDisplay = 0;
     nuGfxDisplayNum = 0;
+}
+
+void nuGfxShutdown(void) {
+    s_shuttingDown = true;
+    nuGfxDisplayOff();
+
+    {
+        std::lock_guard<std::mutex> lock(s_pendingDisplayListsMutex);
+        s_pendingDisplayLists.clear();
+        s_pendingSwap = false;
+        s_completedSerial = s_submissionSerial;
+    }
+    s_pendingDisplayListsCv.notify_all();
 }
 
 void nuGfxTaskStart(Gfx* dl, u32 size, u32 ucode, u32 flags) {

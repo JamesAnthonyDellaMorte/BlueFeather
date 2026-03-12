@@ -8,6 +8,7 @@
 #include <libultraship/controller/controldeck/ControlDeck.h>
 #include <libultraship/bridge/consolevariablebridge.h>
 #include <spdlog/spdlog.h>
+#include <cstdlib>
 #include <iostream>
 #include <memory>
 #include <filesystem>
@@ -90,21 +91,27 @@ int main(int argc, char* argv[]) {
         context->GetLogger()->set_level(
             static_cast<spdlog::level::level_enum>(CVarGetInteger("gDeveloperTools.LogLevel", spdlog::level::warn)));
 
-        auto window = std::make_shared<Fast::Fast3dWindow>();
-        auto controlDeck = std::make_shared<LUS::ControlDeck>();
+        // Create window and control deck in a nested scope so the local
+        // shared_ptrs are released immediately after context->Init() takes
+        // ownership.  This matches the golden-repo pattern and prevents the
+        // locals from outliving the context (whose destructor calls
+        // spdlog::shutdown() before these would otherwise destruct).
+        {
+            auto window = std::make_shared<Fast::Fast3dWindow>();
+            auto controlDeck = std::make_shared<LUS::ControlDeck>();
 
-        if (!context->Init(
-                archivePaths,            // Archive paths (assets folder)
-                {},                      // Valid hashes (empty = accept all)
-                1,                       // Reserved thread count
-                Ship::AudioSettings{},   // Default audio settings
-                window,
-                controlDeck)) {
-            SPDLOG_ERROR("Failed to initialize libultraship context.");
-            return 1;
+            if (!context->Init(
+                    archivePaths,            // Archive paths (assets folder)
+                    {},                      // Valid hashes (empty = accept all)
+                    1,                       // Reserved thread count
+                    Ship::AudioSettings{},   // Default audio settings
+                    window,
+                    controlDeck)) {
+                SPDLOG_ERROR("Failed to initialize libultraship context.");
+                return 1;
+            }
         }
 
-        // Verify critical components were initialized
         if (!context->GetWindow()) {
             SPDLOG_ERROR("Window initialization failed.");
             return 1;
@@ -124,6 +131,10 @@ int main(int argc, char* argv[]) {
         }
 
         game.Run();
+        game.Shutdown();
+
+        // Skip C++ destructors and let the OS reclaim all resources.
+        _Exit(0);
     } catch (const std::exception& e) {
         SPDLOG_ERROR("Exception caught: {}", e.what());
         return 1;

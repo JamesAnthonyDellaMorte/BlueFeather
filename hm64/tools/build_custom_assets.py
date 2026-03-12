@@ -4,14 +4,18 @@ from __future__ import annotations
 
 import argparse
 import csv
+import os
 import re
 import shutil
 import subprocess
 import sys
 import tempfile
+from concurrent.futures import ProcessPoolExecutor, as_completed
 from dataclasses import dataclass
 from functools import lru_cache
 from pathlib import Path
+
+MAX_WORKERS = max(1, (os.cpu_count() or 4) - 1)
 
 TOOLS_ROOT = Path(__file__).resolve().parent
 HM64_ROOT = TOOLS_ROOT.parent
@@ -149,16 +153,29 @@ def ensure_exact_size(data: bytes, expected_size: int, label: str, *, allow_pad:
     raise RuntimeError(f"{label}: expected {expected_size} bytes, got {actual_size}")
 
 
-def materialize_symbol_source(source: Path, dest: Path) -> None:
-    text = source.read_text()
-
-    symbol_values = {}
+@lru_cache(maxsize=1)
+def _build_symbol_replacer() -> tuple[re.Pattern, dict[str, str]]:
+    """Build a single compiled regex that matches all symbols at once."""
+    symbol_values: dict[str, int] = {}
     symbol_values.update(get_rom_segment_symbol_values())
     symbol_values.update(get_ram_symbol_values())
 
-    for symbol, addr in sorted(symbol_values.items(), key=lambda item: len(item[0]), reverse=True):
-        text = re.sub(rf"\b{re.escape(symbol)}\b", f"0x{addr:08X}", text)
+    replacements = {symbol: f"0x{addr:08X}" for symbol, addr in symbol_values.items()}
+    # Sort by length descending so longer symbols match first in alternation
+    sorted_symbols = sorted(replacements.keys(), key=len, reverse=True)
+    pattern = re.compile(r"\b(" + "|".join(re.escape(s) for s in sorted_symbols) + r")\b")
+    return pattern, replacements
 
+
+def materialize_symbol_source(source: Path, dest: Path, symbol_replacer: tuple[re.Pattern, dict[str, str]] | None = None) -> None:
+    text = source.read_text()
+
+    if symbol_replacer is None:
+        pattern, replacements = _build_symbol_replacer()
+    else:
+        pattern, replacements = symbol_replacer
+
+    text = pattern.sub(lambda m: replacements[m.group(1)], text)
     dest.write_text(text)
 
 
@@ -218,63 +235,102 @@ def write_asset(output_root: Path, relative_path: Path, data: bytes) -> None:
     output_path.write_bytes(data)
 
 
-def dump_data_section(source: Path, temp_dir: Path) -> bytes:
+def dump_data_section(source: Path, temp_dir: Path, symbol_replacer: tuple[re.Pattern, dict[str, str]] | None = None) -> bytes:
     asm_path = temp_dir / source.name
     obj_path = temp_dir / f"{source.stem}.o"
     data_path = temp_dir / f"{source.stem}.bin"
 
-    materialize_symbol_source(source, asm_path)
+    materialize_symbol_source(source, asm_path, symbol_replacer)
     run([str(MIPS_AS), "-march=vr4300", "-mabi=32", "-o", str(obj_path), str(asm_path)])
     run([str(OBJCOPY), f"--dump-section", f".data={data_path}", str(obj_path)])
 
     return data_path.read_bytes()
 
 
-def stage_spec_asm_assets(
-    spec_path: Path,
-    source_root: Path,
+# Module-level reference set by the main process before spawning workers.
+_worker_symbol_replacer: tuple[re.Pattern, dict[str, str]] | None = None
+
+
+def _init_worker(replacer: tuple[re.Pattern, dict[str, str]]) -> None:
+    """Pool initializer — stashes the pre-built replacer in each worker."""
+    global _worker_symbol_replacer
+    _worker_symbol_replacer = replacer
+
+
+def _dump_data_section_worker(source: Path) -> tuple[str, bytes]:
+    """Standalone worker for parallel assembly compilation."""
+    with tempfile.TemporaryDirectory() as td:
+        temp_dir = Path(td)
+        data = dump_data_section(source, temp_dir, _worker_symbol_replacer)
+    return source.stem, data
+
+
+def _finalize_spec_asm_entries(
+    spec_entries: list[SpecEntry],
+    compiled: dict[str, bytes],
     output_root: Path,
-    temp_dir: Path,
+    ranges: list[tuple[int, int]] | None = None,
 ) -> list[RuntimeAssetEntry]:
     entries: list[RuntimeAssetEntry] = []
-
-    for spec_entry in parse_spec(spec_path):
-        start, end = segment_range(spec_entry.name)
+    for i, spec_entry in enumerate(spec_entries):
+        if ranges is not None:
+            start, end = ranges[i]
+        else:
+            start, end = segment_range(spec_entry.name)
         expected_size = end - start
-        source = source_root / f"{spec_entry.name}.s"
         archive_path = archive_path_from_include(spec_entry.include)
-        data = ensure_exact_size(dump_data_section(source, temp_dir), expected_size, spec_entry.name, allow_pad=True)
+        data = ensure_exact_size(compiled[spec_entry.name], expected_size, spec_entry.name, allow_pad=True)
         write_asset(output_root, archive_path, data)
         entries.append(RuntimeAssetEntry(start, end, archive_path))
-
     return entries
 
 
-def stage_spec_asm_assets_by_order(
-    spec_path: Path,
-    source_root: Path,
-    range_csv_path: Path,
+def stage_all_asm_assets(
     output_root: Path,
-    temp_dir: Path,
+    asm_jobs: list[dict],
 ) -> list[RuntimeAssetEntry]:
-    entries: list[RuntimeAssetEntry] = []
-    spec_entries = parse_spec(spec_path)
-    range_entries = parse_range_csv(range_csv_path)
+    """Compile all assembly assets across all spec files in a single pool."""
+    replacer = _build_symbol_replacer()
 
-    if len(spec_entries) != len(range_entries):
-        raise RuntimeError(
-            f"{spec_path.name}: spec count ({len(spec_entries)}) does not match range count ({len(range_entries)})"
-        )
+    # Collect all sources with a tag to sort results back to their spec group
+    tagged_sources: list[tuple[str, Path]] = []
+    for job in asm_jobs:
+        spec_entries = parse_spec(job["spec_path"])
+        job["_spec_entries"] = spec_entries
+        source_root = job["source_root"]
+        tag = job["tag"]
+        for e in spec_entries:
+            tagged_sources.append((tag, source_root / f"{e.name}.s"))
 
-    for spec_entry, range_entry in zip(spec_entries, range_entries):
-        expected_size = range_entry.end - range_entry.start
-        source = source_root / f"{spec_entry.name}.s"
-        archive_path = archive_path_from_include(spec_entry.include)
-        data = ensure_exact_size(dump_data_section(source, temp_dir), expected_size, spec_entry.name, allow_pad=True)
-        write_asset(output_root, archive_path, data)
-        entries.append(RuntimeAssetEntry(range_entry.start, range_entry.end, archive_path))
+    # One pool for everything
+    compiled_by_tag: dict[str, dict[str, bytes]] = {job["tag"]: {} for job in asm_jobs}
+    sources_only = [s for _, s in tagged_sources]
+    tag_for_source = {str(s): tag for tag, s in tagged_sources}
 
-    return entries
+    with ProcessPoolExecutor(max_workers=MAX_WORKERS, initializer=_init_worker, initargs=(replacer,)) as pool:
+        futures = {pool.submit(_dump_data_section_worker, s): s for s in sources_only}
+        for future in as_completed(futures):
+            stem, data = future.result()
+            src = futures[future]
+            tag = tag_for_source[str(src)]
+            compiled_by_tag[tag][stem] = data
+
+    # Finalize each group
+    all_entries: list[RuntimeAssetEntry] = []
+    for job in asm_jobs:
+        spec_entries = job["_spec_entries"]
+        compiled = compiled_by_tag[job["tag"]]
+        ranges = None
+        if "range_csv_path" in job:
+            range_entries = parse_range_csv(job["range_csv_path"])
+            if len(spec_entries) != len(range_entries):
+                raise RuntimeError(
+                    f"{job['spec_path'].name}: spec count ({len(spec_entries)}) does not match range count ({len(range_entries)})"
+                )
+            ranges = [(r.start, r.end) for r in range_entries]
+        all_entries.extend(_finalize_spec_asm_entries(spec_entries, compiled, output_root, ranges))
+
+    return all_entries
 
 
 def stage_spec_copy_assets(spec_path: Path, output_root: Path, source_resolver) -> list[RuntimeAssetEntry]:
@@ -320,17 +376,33 @@ def stage_font_assets(output_root: Path) -> list[RuntimeAssetEntry]:
     return entries
 
 
+def _assemble_sprite_worker(args: tuple[Path, Path, Path]) -> tuple[str, Path]:
+    """Worker for parallel sprite assembly."""
+    source_dir, staged_output, label = args
+    if not assemble_sprite(source_dir, staged_output):
+        raise RuntimeError(f"Failed to assemble sprite asset {source_dir}")
+    return str(label), staged_output
+
+
 def stage_sprite_assets(output_root: Path) -> list[RuntimeAssetEntry]:
     entries: list[RuntimeAssetEntry] = []
+    all_sprites = get_all_sprites()
 
     with tempfile.TemporaryDirectory() as temp_dir_name:
         sprite_work_root = Path(temp_dir_name)
-        for info in get_all_sprites():
+
+        # Assemble all sprites in parallel
+        sprite_jobs = []
+        for info in all_sprites:
             source_dir = HM64_IMPORTED_ASSETS_ROOT / "sprites" / info.subdir / info.label
             staged_output = sprite_work_root / info.label
-            if not assemble_sprite(source_dir, staged_output):
-                raise RuntimeError(f"Failed to assemble sprite asset {source_dir}")
+            sprite_jobs.append((source_dir, staged_output, Path(info.label)))
 
+        with ProcessPoolExecutor(max_workers=MAX_WORKERS) as pool:
+            results = list(pool.map(_assemble_sprite_worker, sprite_jobs))
+
+        for info in all_sprites:
+            staged_output = sprite_work_root / info.label
             archive_base = RUNTIME_ROM_ROOT / "sprites" / info.subdir / info.label
             texture_name = f"{info.label}Texture.bin"
             assets_index_name = f"{info.label}AssetsIndex.bin"
@@ -424,33 +496,26 @@ def stage_all_assets(output_root: Path, table_header: Path) -> None:
     entries.extend(stage_font_assets(output_root))
     entries.extend(stage_sprite_assets(output_root))
 
-    with tempfile.TemporaryDirectory() as temp_dir_name:
-        temp_dir = Path(temp_dir_name)
-        entries.extend(
-            stage_spec_asm_assets_by_order(
-                HM64_IMPORTED_ASSETS_ROOT / "cutscenes/cutscenes.spec",
-                HM64_IMPORTED_ASSETS_ROOT / "cutscenes",
-                HM64_ROOT / "tools/libhm64/data/cutscene_addresses.csv",
-                output_root,
-                temp_dir,
-            )
-        )
-        entries.extend(
-            stage_spec_asm_assets(
-                HM64_IMPORTED_ASSETS_ROOT / "dialogues/dialogues.spec",
-                HM64_IMPORTED_ASSETS_ROOT / "dialogues",
-                output_root,
-                temp_dir,
-            )
-        )
-        entries.extend(
-            stage_spec_asm_assets(
-                HM64_IMPORTED_ASSETS_ROOT / "text/texts.spec",
-                HM64_IMPORTED_ASSETS_ROOT / "text",
-                output_root,
-                temp_dir,
-            )
-        )
+    entries.extend(
+        stage_all_asm_assets(output_root, [
+            {
+                "tag": "cutscenes",
+                "spec_path": HM64_IMPORTED_ASSETS_ROOT / "cutscenes/cutscenes.spec",
+                "source_root": HM64_IMPORTED_ASSETS_ROOT / "cutscenes",
+                "range_csv_path": HM64_ROOT / "tools/libhm64/data/cutscene_addresses.csv",
+            },
+            {
+                "tag": "dialogues",
+                "spec_path": HM64_IMPORTED_ASSETS_ROOT / "dialogues/dialogues.spec",
+                "source_root": HM64_IMPORTED_ASSETS_ROOT / "dialogues",
+            },
+            {
+                "tag": "texts",
+                "spec_path": HM64_IMPORTED_ASSETS_ROOT / "text/texts.spec",
+                "source_root": HM64_IMPORTED_ASSETS_ROOT / "text",
+            },
+        ])
+    )
 
     entries.extend(
         stage_spec_copy_assets(

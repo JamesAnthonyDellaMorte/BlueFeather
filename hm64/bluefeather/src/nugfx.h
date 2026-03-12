@@ -22,6 +22,7 @@ void nuGfxFuncSet(NUGfxFunc func);
 // Display control
 void nuGfxDisplayOn(void);
 void nuGfxDisplayOff(void);
+void nuGfxShutdown(void);
 
 // Task management
 void nuGfxTaskStart(Gfx* dl, u32 size, u32 ucode, u32 flags);

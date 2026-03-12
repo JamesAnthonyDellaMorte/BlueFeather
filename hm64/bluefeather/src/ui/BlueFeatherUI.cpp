@@ -160,6 +160,12 @@ class BlueFeatherMenuBar : public Ship::GuiMenuBar {
                 window->ToggleFullscreen();
             }
 
+            ImGui::Separator();
+
+            if (ImGui::MenuItem("Exit")) {
+                window->Close();
+            }
+
             ImGui::EndMenu();
         }
 

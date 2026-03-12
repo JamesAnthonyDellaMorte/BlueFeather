@@ -249,6 +249,8 @@ void HM64Game::Run() {
 
     m_running = false;
     engineStateFlags = 0;
+
+    nuGfxShutdown();
 }
 
 void HM64Game::Shutdown() {
@@ -258,6 +260,7 @@ void HM64Game::Shutdown() {
 
     m_running = false;
     engineStateFlags = 0;
+    nuGfxShutdown();
 
     m_initialized = false;
 }
