@@ -6,6 +6,7 @@
 
 #include <ship/Context.h>
 
+#include <fast/Fast3dWindow.h>
 #include <ship/window/Window.h>
 #include <ship/controller/controldeck/ControlDeck.h>
 #include <ship/audio/Audio.h>
@@ -15,25 +16,28 @@
 #include <iostream>
 #include <cstdlib>
 
-#include <thread>
 #include <chrono>
+#include <thread>
 
 extern "C" {
-void mainproc(void* arg);
+void HM64_BootGame(void);
+void HM64_BeginMainLoop(void);
+bool HM64_HostAdvanceFrame(int pendingGfx);
 void HM64_InitCutsceneBytecodeAddresses(void);
 extern volatile u16 engineStateFlags;
-extern volatile u8 stepMainLoop;
 }
 
-// Drive the N64 retrace callback at 60 Hz.
-constexpr float TARGET_FPS = 60.0f;
-constexpr float TARGET_FRAME_TIME_MS = 1000.0f / TARGET_FPS;
+// Drive imported HM64 timing from a fixed 60 Hz host retrace.
+constexpr double TARGET_RETRACE_HZ = 60.0;
+constexpr double TARGET_RETRACE_SECONDS = 1.0 / TARGET_RETRACE_HZ;
+constexpr double MAX_ACCUMULATED_SECONDS = TARGET_RETRACE_SECONDS * 5.0;
+constexpr int MAX_RETRACE_STEPS_PER_HOST_FRAME = 5;
 
 HM64Game::HM64Game(std::shared_ptr<Ship::Context> context)
     : m_context(context)
     , m_running(false)
     , m_initialized(false)
-    , m_gameThreadStarted(false)
+    , m_gameBooted(false)
     , m_hostFrameCounter(0) {
 }
 
@@ -130,19 +134,16 @@ bool HM64Game::InitInput() {
     return true;
 }
 
-void HM64Game::StartGameThread() {
-    if (m_gameThreadStarted) {
+void HM64Game::BootGame() {
+    if (m_gameBooted) {
         return;
     }
 
     HM64_InitCutsceneBytecodeAddresses();
-    // Moonwright [Port] Keep the real game owner path on mainproc/mainLoop instead of
-    // replacing it with a host-side runtime loop.
-    m_gameThread = std::thread([]() {
-        mainproc(nullptr);
-    });
-    m_gameThreadStarted = true;
-    std::cout << "[INFO] Booting real HM64 mainproc/mainLoop" << std::endl;
+    HM64_BootGame();
+    HM64_BeginMainLoop();
+    m_gameBooted = true;
+    std::cout << "[INFO] Booted HM64 and entered host-driven main loop" << std::endl;
 }
 
 void HM64Game::Run() {
@@ -153,41 +154,59 @@ void HM64Game::Run() {
 
     m_running = true;
     std::cout << "[INFO] Starting game main loop" << std::endl;
-    StartGameThread();
+    BootGame();
 
     auto window = m_context->GetWindow();
+    auto fastWindow = std::dynamic_pointer_cast<Fast::Fast3dWindow>(window);
+    if (fastWindow != nullptr) {
+        fastWindow->SetTargetFps(static_cast<int32_t>(TARGET_RETRACE_HZ));
+        fastWindow->SetMaximumFrameLatency(1);
+    }
     
-    using Clock = std::chrono::high_resolution_clock;
-    using Duration = std::chrono::duration<float, std::milli>;
+    using Clock = std::chrono::steady_clock;
+    using Seconds = std::chrono::duration<double>;
+    auto previousTick = Clock::now();
+    double accumulatedSeconds = 0.0;
     
     while (m_running && window && window->IsRunning()) {
-        auto frameStart = Clock::now();
+        auto now = Clock::now();
+        double frameDeltaSeconds = std::chrono::duration_cast<Seconds>(now - previousTick).count();
+        previousTick = now;
+
+        if (frameDeltaSeconds > MAX_ACCUMULATED_SECONDS) {
+            frameDeltaSeconds = MAX_ACCUMULATED_SECONDS;
+        }
+
+        accumulatedSeconds += frameDeltaSeconds;
 
         window->HandleEvents();
         while (nuGfxProcessPendingMainThread()) {
         }
-        nuGfxCallFunc(nuGfxTaskNum());
-        while (nuGfxProcessPendingMainThread()) {
-        }
-        m_hostFrameCounter++;
 
-        auto frameEnd = Clock::now();
-        Duration frameTime = frameEnd - frameStart;
-        
-        if (frameTime.count() < TARGET_FRAME_TIME_MS) {
-            std::this_thread::sleep_for(
-                std::chrono::milliseconds(static_cast<int>(TARGET_FRAME_TIME_MS - frameTime.count()))
-            );
+        int retraceSteps = 0;
+        while (accumulatedSeconds >= TARGET_RETRACE_SECONDS && retraceSteps < MAX_RETRACE_STEPS_PER_HOST_FRAME &&
+               m_running && window->IsRunning()) {
+            HM64_HostAdvanceFrame(nuGfxTaskNum());
+
+            while (nuGfxProcessPendingMainThread()) {
+            }
+
+            accumulatedSeconds -= TARGET_RETRACE_SECONDS;
+            retraceSteps++;
+            m_hostFrameCounter++;
+        }
+
+        if (accumulatedSeconds > MAX_ACCUMULATED_SECONDS) {
+            accumulatedSeconds = MAX_ACCUMULATED_SECONDS;
+        }
+
+        if (accumulatedSeconds < TARGET_RETRACE_SECONDS) {
+            std::this_thread::sleep_for(Seconds(TARGET_RETRACE_SECONDS - accumulatedSeconds));
         }
     }
 
     m_running = false;
     engineStateFlags = 0;
-    stepMainLoop = TRUE;
-
-    if (m_gameThread.joinable()) {
-        m_gameThread.join();
-    }
 
     std::cout << "[INFO] Game main loop ended" << std::endl;
 }
@@ -200,12 +219,7 @@ void HM64Game::Shutdown() {
     std::cout << "[INFO] Shutting down HM64 Game..." << std::endl;
 
     m_running = false;
-
-    if (m_gameThread.joinable()) {
-        engineStateFlags = 0;
-        stepMainLoop = TRUE;
-        m_gameThread.join();
-    }
+    engineStateFlags = 0;
 
     m_initialized = false;
 

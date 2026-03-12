@@ -65,6 +65,9 @@
 #define MAIN_LOOP_CALLBACK_FUNCTION_TABLE_SIZE 57
 
 extern void mainLoop();
+extern void HM64_BeginMainLoop(void);
+extern bool HM64_HostAdvanceFrame(int pendingGfx);
+extern bool HM64_MainLoopStep(void);
 
 extern u32 setMainLoopCallbackFunctionIndex(u16 callbackIndex); 
 extern bool registerMainLoopCallback(u16 index, void *(func)());

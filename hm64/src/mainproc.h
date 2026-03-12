@@ -25,4 +25,6 @@ extern volatile u8 frameCount;
 extern volatile u32 gGraphicsBufferIndex;
 extern volatile u8 gfxTaskNo;
 
+extern void HM64_BootGame(void);
+
 #endif

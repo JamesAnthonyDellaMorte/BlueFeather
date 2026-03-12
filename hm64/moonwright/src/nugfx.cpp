@@ -2,26 +2,27 @@
 // Maps N64 nuGfx functions to libultraship
 
 #include "nugfx.h"
+#include "buffers/buffers.h"
+#include "hm64_ram.h"
+#include "system/globalSprites.h"
 #include <libultraship/libultra.h>
 #include <fast/Fast3dWindow.h>
 #include <fast/interpreter.h>
 #include <ship/Context.h>
 #include <ship/resource/ResourceManager.h>
 
-#include "tables/runtime_archive_rom_table.h"
+#include "generated/runtime_archive_rom_table.h"
 
 #include <algorithm>
 #include <cstdint>
 #include <cstring>
 #include <cstdlib>
 #include <condition_variable>
-#include <filesystem>
-#include <fstream>
 #include <iostream>
-#include <mach-o/dyld.h>
 #include <memory>
 #include <mutex>
 #include <unordered_map>
+#include <unordered_set>
 #include <vector>
 
 // Forward declarations
@@ -56,25 +57,210 @@ extern "C" NUGfxFunc nuGfxFunc = NULL;
 extern "C" NUGfxSwapCfbFunc nuGfxSwapCfbFunc = NULL;
 extern "C" NUGfxPreNMIFunc nuGfxPreNMIFunc = NULL;
 
+extern "C" {
+extern u8 messageBoxTextureBuffer[0x2900];
+extern u16 messageBoxPaletteBuffer[0x80];
+extern AnimationFrameMetadata messageBoxAnimationFrameMetadataBuffer[0x40];
+extern u32 messageBoxAnimationTextureToPaletteLookupBuffer[0x40];
+
+extern u8 dialogueIconTextureBuffer[0x1800];
+extern u16 dialogueIconPaletteBuffer[0x100];
+extern u32 dialogueIconAnimationFrameMetadataBuffer[0x40];
+extern u32 dialogueIconTextureToPaletteLookupBuffer[0x100];
+
+extern u8 characterAvatarsTexture1Buffer[0x800];
+extern u8 characterAvatarsTexture2Buffer[0x800];
+extern u16 characterAvatarsPaletteBuffer[0x600];
+extern AnimationFrameMetadata characterAvatarsAnimationMetadataBuffer[0x400];
+extern u32 characterAvatarsSpritesheetIndexBuffer[0x200];
+extern u32 characterAvatarsTextureToPaletteLookupBuffer[0x40];
+
+extern u8 shadowSpriteTextureBuffer[0x500];
+extern u16 shadowSpritePaletteBuffer[0x100];
+extern u32 shadowSpriteSpriteToPaletteBuffer[0x100];
+extern u32 shadowSpriteSpritesheetIndexBuffer[0x100];
+
+extern u8 playerTexture1Buffer[0x3000];
+extern u8 playerTexture2Buffer[0x3000];
+extern u16 playerPaletteBuffer[0x2000];
+extern u32 playerAnimationMetadataBuffer[0x1E00];
+extern u32 playerSpritesheetIndexBuffer[0x200];
+extern u32 playerTextureToPaletteLookupBuffer[0x400];
+
+extern u8 namingScreenBuffer[0x1500];
+extern u8 mapDataBuffer[0x1A000];
+extern u8 spriteBuffer[0x73CC0];
+extern u8 mapObjectsBuffer[0x10000];
+extern u8 cutsceneBytecodeBuffer[0xB000];
+extern u8 fontTextureBuffer[0xB000];
+extern u16 font1PaletteBuffer[0x200];
+extern u16 font2PaletteBuffer[0x200];
+extern u8 textAddressesIndexBuffer[0x800];
+extern u8 messageBox1TextBuffer[0x400];
+extern u8 messageBox2TextBuffer[0x400];
+extern u8 messageBox3TextBuffer[0x400];
+extern u8 messageBox4TextBuffer[0x400];
+extern u8 messageBox5TextBuffer[0x400];
+extern u8 messageBox6TextBuffer[0x400];
+extern u8 dialogueBytecodeBuffer[0x800];
+extern u8 frameBuffer[0x70800];
+}
+
 namespace {
 constexpr size_t kOtrHeaderSize = 64;
 constexpr uint32_t kBlobResourceType = 0x4F424C42; // OBLB written little-endian as BLBO in files.
+
+#define HM64_RUNTIME_OFFSET_PTR(buffer, base, addr) (reinterpret_cast<u8*>(buffer) + ((addr) - (base)))
+
+void* ResolveRuntimeBufferAddress(uint32_t n64Addr) {
+    if (n64Addr >= MESSAGE_BOX_TEXTURE_BUFFER && n64Addr < MESSAGE_BOX_PALETTE_BUFFER) {
+        return HM64_RUNTIME_OFFSET_PTR(messageBoxTextureBuffer, MESSAGE_BOX_TEXTURE_BUFFER, n64Addr);
+    }
+    if (n64Addr >= MESSAGE_BOX_PALETTE_BUFFER && n64Addr < MESSAGE_BOX_ANIMATION_FRAME_METADATA_BUFFER) {
+        return HM64_RUNTIME_OFFSET_PTR(messageBoxPaletteBuffer, MESSAGE_BOX_PALETTE_BUFFER, n64Addr);
+    }
+    if (n64Addr >= MESSAGE_BOX_ANIMATION_FRAME_METADATA_BUFFER && n64Addr < MESSAGE_BOX_TEXTURE_TO_PALETTE_LOOKUP_BUFFER) {
+        return HM64_RUNTIME_OFFSET_PTR(messageBoxAnimationFrameMetadataBuffer, MESSAGE_BOX_ANIMATION_FRAME_METADATA_BUFFER, n64Addr);
+    }
+    if (n64Addr >= MESSAGE_BOX_TEXTURE_TO_PALETTE_LOOKUP_BUFFER && n64Addr < DIALOGUE_ICON_TEXTURE_BUFFER) {
+        return HM64_RUNTIME_OFFSET_PTR(messageBoxAnimationTextureToPaletteLookupBuffer, MESSAGE_BOX_TEXTURE_TO_PALETTE_LOOKUP_BUFFER, n64Addr);
+    }
+
+    if (n64Addr >= DIALOGUE_ICON_TEXTURE_BUFFER && n64Addr < DIALOGUE_ICON_PALETTE_BUFFER) {
+        return HM64_RUNTIME_OFFSET_PTR(dialogueIconTextureBuffer, DIALOGUE_ICON_TEXTURE_BUFFER, n64Addr);
+    }
+    if (n64Addr >= DIALOGUE_ICON_PALETTE_BUFFER && n64Addr < DIALOGUE_ICON_ANIMATION_FRAME_METADATA_BUFFER) {
+        return HM64_RUNTIME_OFFSET_PTR(dialogueIconPaletteBuffer, DIALOGUE_ICON_PALETTE_BUFFER, n64Addr);
+    }
+    if (n64Addr >= DIALOGUE_ICON_ANIMATION_FRAME_METADATA_BUFFER && n64Addr < DIALOGUE_ICON_TEXTURE_TO_PALETTE_LOOKUP_BUFFER) {
+        return HM64_RUNTIME_OFFSET_PTR(dialogueIconAnimationFrameMetadataBuffer, DIALOGUE_ICON_ANIMATION_FRAME_METADATA_BUFFER, n64Addr);
+    }
+    if (n64Addr >= DIALOGUE_ICON_TEXTURE_TO_PALETTE_LOOKUP_BUFFER && n64Addr < CHARACTER_AVATAR_TEXTURE_1_BUFFER) {
+        return HM64_RUNTIME_OFFSET_PTR(dialogueIconTextureToPaletteLookupBuffer, DIALOGUE_ICON_TEXTURE_TO_PALETTE_LOOKUP_BUFFER, n64Addr);
+    }
+
+    if (n64Addr >= CHARACTER_AVATAR_TEXTURE_1_BUFFER && n64Addr < CHARACTER_AVATAR_TEXTURE_2_BUFFER) {
+        return HM64_RUNTIME_OFFSET_PTR(characterAvatarsTexture1Buffer, CHARACTER_AVATAR_TEXTURE_1_BUFFER, n64Addr);
+    }
+    if (n64Addr >= CHARACTER_AVATAR_TEXTURE_2_BUFFER && n64Addr < CHARACTER_AVATAR_PALETTE_BUFFER) {
+        return HM64_RUNTIME_OFFSET_PTR(characterAvatarsTexture2Buffer, CHARACTER_AVATAR_TEXTURE_2_BUFFER, n64Addr);
+    }
+    if (n64Addr >= CHARACTER_AVATAR_PALETTE_BUFFER && n64Addr < CHARACTER_AVATAR_ANIMATION_FRAME_METADATA_BUFFER) {
+        return HM64_RUNTIME_OFFSET_PTR(characterAvatarsPaletteBuffer, CHARACTER_AVATAR_PALETTE_BUFFER, n64Addr);
+    }
+    if (n64Addr >= CHARACTER_AVATAR_ANIMATION_FRAME_METADATA_BUFFER && n64Addr < CHARACTER_AVATAR_SPRITESHEET_INDEX_BUFFER) {
+        return HM64_RUNTIME_OFFSET_PTR(characterAvatarsAnimationMetadataBuffer, CHARACTER_AVATAR_ANIMATION_FRAME_METADATA_BUFFER, n64Addr);
+    }
+    if (n64Addr >= CHARACTER_AVATAR_SPRITESHEET_INDEX_BUFFER && n64Addr < CHARACTER_AVATAR_TEXTURE_TO_PALETTE_LOOKUP_BUFFER) {
+        return HM64_RUNTIME_OFFSET_PTR(characterAvatarsSpritesheetIndexBuffer, CHARACTER_AVATAR_SPRITESHEET_INDEX_BUFFER, n64Addr);
+    }
+    if (n64Addr >= CHARACTER_AVATAR_TEXTURE_TO_PALETTE_LOOKUP_BUFFER && n64Addr < SHADOW_TEXTURE_BUFFER) {
+        return HM64_RUNTIME_OFFSET_PTR(characterAvatarsTextureToPaletteLookupBuffer, CHARACTER_AVATAR_TEXTURE_TO_PALETTE_LOOKUP_BUFFER, n64Addr);
+    }
+
+    if (n64Addr >= SHADOW_TEXTURE_BUFFER && n64Addr < SHADOW_PALETTE_BUFFER) {
+        return HM64_RUNTIME_OFFSET_PTR(shadowSpriteTextureBuffer, SHADOW_TEXTURE_BUFFER, n64Addr);
+    }
+    if (n64Addr >= SHADOW_PALETTE_BUFFER && n64Addr < SHADOW_ANIMATION_FRAME_METADATA_BUFFER) {
+        return HM64_RUNTIME_OFFSET_PTR(shadowSpritePaletteBuffer, SHADOW_PALETTE_BUFFER, n64Addr);
+    }
+    if (n64Addr >= SHADOW_ANIMATION_FRAME_METADATA_BUFFER && n64Addr < SHADOW_TEXTURE_TO_PALETTE_LOOKUP_BUFFER) {
+        return HM64_RUNTIME_OFFSET_PTR(shadowSpriteSpriteToPaletteBuffer, SHADOW_ANIMATION_FRAME_METADATA_BUFFER, n64Addr);
+    }
+    if (n64Addr >= SHADOW_TEXTURE_TO_PALETTE_LOOKUP_BUFFER && n64Addr < PLAYER_TEXTURE_1_BUFFER) {
+        return HM64_RUNTIME_OFFSET_PTR(shadowSpriteSpritesheetIndexBuffer, SHADOW_TEXTURE_TO_PALETTE_LOOKUP_BUFFER, n64Addr);
+    }
+
+    if (n64Addr >= PLAYER_TEXTURE_1_BUFFER && n64Addr < PLAYER_TEXTURE_2_BUFFER) {
+        return HM64_RUNTIME_OFFSET_PTR(playerTexture1Buffer, PLAYER_TEXTURE_1_BUFFER, n64Addr);
+    }
+    if (n64Addr >= PLAYER_TEXTURE_2_BUFFER && n64Addr < PLAYER_PALETTE_BUFFER) {
+        return HM64_RUNTIME_OFFSET_PTR(playerTexture2Buffer, PLAYER_TEXTURE_2_BUFFER, n64Addr);
+    }
+    if (n64Addr >= PLAYER_PALETTE_BUFFER && n64Addr < PLAYER_ANIMATION_FRAME_METADATA_BUFFER) {
+        return HM64_RUNTIME_OFFSET_PTR(playerPaletteBuffer, PLAYER_PALETTE_BUFFER, n64Addr);
+    }
+    if (n64Addr >= PLAYER_ANIMATION_FRAME_METADATA_BUFFER && n64Addr < PLAYER_SPRITESHEET_INDEX_BUFFER) {
+        return HM64_RUNTIME_OFFSET_PTR(playerAnimationMetadataBuffer, PLAYER_ANIMATION_FRAME_METADATA_BUFFER, n64Addr);
+    }
+    if (n64Addr >= PLAYER_SPRITESHEET_INDEX_BUFFER && n64Addr < PLAYER_TEXTURE_TO_PALETTE_LOOKUP_BUFFER) {
+        return HM64_RUNTIME_OFFSET_PTR(playerSpritesheetIndexBuffer, PLAYER_SPRITESHEET_INDEX_BUFFER, n64Addr);
+    }
+    if (n64Addr >= PLAYER_TEXTURE_TO_PALETTE_LOOKUP_BUFFER && n64Addr < NAMING_SCREEN_TEXTURE_BUFFER) {
+        return HM64_RUNTIME_OFFSET_PTR(playerTextureToPaletteLookupBuffer, PLAYER_TEXTURE_TO_PALETTE_LOOKUP_BUFFER, n64Addr);
+    }
+
+    if (n64Addr >= NAMING_SCREEN_TEXTURE_BUFFER && n64Addr < MAP_DATA_BUFFER) {
+        return HM64_RUNTIME_OFFSET_PTR(namingScreenBuffer, NAMING_SCREEN_TEXTURE_BUFFER, n64Addr);
+    }
+    if (n64Addr >= MAP_DATA_BUFFER && n64Addr < ENTITY_VRAM_START) {
+        return HM64_RUNTIME_OFFSET_PTR(mapDataBuffer, MAP_DATA_BUFFER, n64Addr);
+    }
+    if (n64Addr >= ENTITY_VRAM_START && n64Addr < 0x802E2CC0) {
+        return HM64_RUNTIME_OFFSET_PTR(spriteBuffer, ENTITY_VRAM_START, n64Addr);
+    }
+    if (n64Addr >= MAP_OBJECT_SLOT_1_TEXTURE_1 && n64Addr < CUTSCENE_BYTECODE_BUFFER_1) {
+        return HM64_RUNTIME_OFFSET_PTR(mapObjectsBuffer, MAP_OBJECT_SLOT_1_TEXTURE_1, n64Addr);
+    }
+    if (n64Addr >= CUTSCENE_BYTECODE_BUFFER_1 && n64Addr < FONT_TEXTURE_BUFFER) {
+        return HM64_RUNTIME_OFFSET_PTR(cutsceneBytecodeBuffer, CUTSCENE_BYTECODE_BUFFER_1, n64Addr);
+    }
+
+    if (n64Addr >= FONT_TEXTURE_BUFFER && n64Addr < FONT_PALETTE_1_BUFFER) {
+        return HM64_RUNTIME_OFFSET_PTR(fontTextureBuffer, FONT_TEXTURE_BUFFER, n64Addr);
+    }
+    if (n64Addr >= FONT_PALETTE_1_BUFFER && n64Addr < FONT_PALETTE_2_BUFFER) {
+        return HM64_RUNTIME_OFFSET_PTR(font1PaletteBuffer, FONT_PALETTE_1_BUFFER, n64Addr);
+    }
+    if (n64Addr >= FONT_PALETTE_2_BUFFER && n64Addr < TEXT_ADDRESSES_INDEX_BUFFER) {
+        return HM64_RUNTIME_OFFSET_PTR(font2PaletteBuffer, FONT_PALETTE_2_BUFFER, n64Addr);
+    }
+    if (n64Addr >= TEXT_ADDRESSES_INDEX_BUFFER && n64Addr < MESSAGE_BOX_1_TEXT_BUFFER) {
+        return HM64_RUNTIME_OFFSET_PTR(textAddressesIndexBuffer, TEXT_ADDRESSES_INDEX_BUFFER, n64Addr);
+    }
+    if (n64Addr >= MESSAGE_BOX_1_TEXT_BUFFER && n64Addr < MESSAGE_BOX_2_TEXT_BUFFER) {
+        return HM64_RUNTIME_OFFSET_PTR(messageBox1TextBuffer, MESSAGE_BOX_1_TEXT_BUFFER, n64Addr);
+    }
+    if (n64Addr >= MESSAGE_BOX_2_TEXT_BUFFER && n64Addr < MESSAGE_BOX_3_TEXT_BUFFER) {
+        return HM64_RUNTIME_OFFSET_PTR(messageBox2TextBuffer, MESSAGE_BOX_2_TEXT_BUFFER, n64Addr);
+    }
+    if (n64Addr >= MESSAGE_BOX_3_TEXT_BUFFER && n64Addr < MESSAGE_BOX_4_TEXT_BUFFER) {
+        return HM64_RUNTIME_OFFSET_PTR(messageBox3TextBuffer, MESSAGE_BOX_3_TEXT_BUFFER, n64Addr);
+    }
+    if (n64Addr >= MESSAGE_BOX_4_TEXT_BUFFER && n64Addr < MESSAGE_BOX_5_TEXT_BUFFER) {
+        return HM64_RUNTIME_OFFSET_PTR(messageBox4TextBuffer, MESSAGE_BOX_4_TEXT_BUFFER, n64Addr);
+    }
+    if (n64Addr >= MESSAGE_BOX_5_TEXT_BUFFER && n64Addr < MESSAGE_BOX_6_TEXT_BUFFER) {
+        return HM64_RUNTIME_OFFSET_PTR(messageBox5TextBuffer, MESSAGE_BOX_5_TEXT_BUFFER, n64Addr);
+    }
+    if (n64Addr >= MESSAGE_BOX_6_TEXT_BUFFER && n64Addr < DIALOGUE_BYTECODE_INDEX_BUFFER) {
+        return HM64_RUNTIME_OFFSET_PTR(messageBox6TextBuffer, MESSAGE_BOX_6_TEXT_BUFFER, n64Addr);
+    }
+    if (n64Addr >= DIALOGUE_BYTECODE_INDEX_BUFFER && n64Addr < SRAM_BUFFER) {
+        return HM64_RUNTIME_OFFSET_PTR(dialogueBytecodeBuffer, DIALOGUE_BYTECODE_INDEX_BUFFER, n64Addr);
+    }
+    if (n64Addr >= SRAM_BUFFER && n64Addr < FARM_RANKINGS_BUFFER) {
+        return HM64_RUNTIME_OFFSET_PTR(&sramBuffer, SRAM_BUFFER, n64Addr);
+    }
+    if (n64Addr >= FARM_RANKINGS_BUFFER && n64Addr < 0x8030F800) {
+        return HM64_RUNTIME_OFFSET_PTR(&farmRankingsBuffer, FARM_RANKINGS_BUFFER, n64Addr);
+    }
+    if (n64Addr >= FRAME_BUFFER && n64Addr < (FRAME_BUFFER + sizeof(frameBuffer))) {
+        return HM64_RUNTIME_OFFSET_PTR(frameBuffer, FRAME_BUFFER, n64Addr);
+    }
+
+    if (n64Addr >= HM64_RAM_BASE && n64Addr < (HM64_RAM_BASE + HM64_RAM_SIZE)) {
+        return HM64_RAM_PTR(n64Addr);
+    }
+
+    return nullptr;
+}
 
 uint32_t ReadLittleU32(const std::vector<char>& buffer, size_t offset) {
     return static_cast<uint32_t>(static_cast<uint8_t>(buffer[offset])) |
            (static_cast<uint32_t>(static_cast<uint8_t>(buffer[offset + 1])) << 8) |
            (static_cast<uint32_t>(static_cast<uint8_t>(buffer[offset + 2])) << 16) |
            (static_cast<uint32_t>(static_cast<uint8_t>(buffer[offset + 3])) << 24);
-}
-
-std::filesystem::path GetExecutablePath() {
-    uint32_t size = 0;
-    _NSGetExecutablePath(nullptr, &size);
-    std::vector<char> buffer(size + 1, '\0');
-    if (_NSGetExecutablePath(buffer.data(), &size) != 0) {
-        return {};
-    }
-    return std::filesystem::weakly_canonical(std::filesystem::path(buffer.data()));
 }
 
 std::shared_ptr<std::vector<char>> LoadArchiveBlob(const char* path) {
@@ -137,7 +323,7 @@ bool ReadArchiveRuntimeRange(uintptr_t romAddr, void* dst, size_t size) {
     static std::unordered_set<std::string> s_loggedArchivePaths;
 
     for (const auto& entry : kMWRuntimeArchiveRomRanges) {
-        if (romAddr < entry.Start || romAddr > entry.End) {
+        if (romAddr < entry.Start || romAddr >= entry.End) {
             continue;
         }
         if (size > (entry.End - romAddr)) {
@@ -170,81 +356,6 @@ bool ReadArchiveRuntimeRange(uintptr_t romAddr, void* dst, size_t size) {
     }
 
     return false;
-}
-
-const std::vector<uint8_t>* GetRomImage() {
-    static std::vector<uint8_t> romImage;
-    static bool loaded = false;
-
-    if (loaded) {
-        return romImage.empty() ? nullptr : &romImage;
-    }
-
-    loaded = true;
-
-    const auto executablePath = GetExecutablePath();
-    const auto executableDir = executablePath.empty() ? std::filesystem::path() : executablePath.parent_path();
-    const auto cwd = std::filesystem::current_path();
-
-    const std::vector<std::filesystem::path> candidates = {
-        cwd / "hm64.z64",
-        cwd / "baserom.us.z64",
-        executableDir / "hm64.z64",
-        executableDir / "baserom.us.z64",
-        executableDir / ".." / ".." / ".." / ".." / "hm64.z64",
-        executableDir / ".." / ".." / ".." / ".." / "baserom.us.z64",
-        executableDir / ".." / ".." / ".." / ".." / ".." / "hm64.z64",
-        executableDir / ".." / ".." / ".." / ".." / ".." / "baserom.us.z64",
-    };
-
-    for (const auto& candidate : candidates) {
-        std::error_code ec;
-        const auto canonical = std::filesystem::weakly_canonical(candidate, ec);
-        const auto path = ec ? candidate : canonical;
-        if (!std::filesystem::exists(path)) {
-            continue;
-        }
-
-        std::ifstream file(path, std::ios::binary | std::ios::ate);
-        if (!file) {
-            continue;
-        }
-
-        const auto size = file.tellg();
-        if (size <= 0) {
-            continue;
-        }
-
-        romImage.resize(static_cast<size_t>(size));
-        file.seekg(0, std::ios::beg);
-        file.read(reinterpret_cast<char*>(romImage.data()), size);
-        if (!file) {
-            romImage.clear();
-            continue;
-        }
-
-        std::cout << "[Moonwright] Loaded ROM image from " << path << " (" << romImage.size() << " bytes)" << std::endl;
-        return &romImage;
-    }
-
-    std::cerr << "[Moonwright] Failed to locate hm64.z64 or baserom.us.z64 for nuPiReadRomCompat()" << std::endl;
-    return nullptr;
-}
-
-bool ReadRomRange(uintptr_t romAddr, void* dst, size_t size) {
-    const auto* romImage = GetRomImage();
-    if (romImage == nullptr) {
-        return false;
-    }
-
-    if (romAddr > romImage->size() || size > (romImage->size() - romAddr)) {
-        std::cerr << "[Moonwright] Invalid ROM read: romAddr=0x" << std::hex << romAddr << std::dec
-                  << " size=" << size << " romSize=" << romImage->size() << std::endl;
-        return false;
-    }
-
-    std::memcpy(dst, romImage->data() + romAddr, size);
-    return true;
 }
 
 bool FlushPendingDisplayLists() {
@@ -391,27 +502,11 @@ extern "C" void nuContPakFileNum(NUContPakFile* file, s32* maxFiles, s32* usedFi
     }
 }
 
-// Forward declaration for address translation
-extern "C" void* HM64_TranslateAddress(u32 n64Addr);
-
 extern "C" void nuPiReadRomCompat(uintptr_t romAddr, uintptr_t bufAddr, u32 size) {
-    // Debug: print every ROM read attempt
-    static int debugCount = 0;
-    if (debugCount < 20) {
-        std::cerr << "[HM64_ROM_DEBUG] Read request: romAddr=0x" << std::hex << romAddr 
-                  << " bufAddr=0x" << bufAddr << std::dec << " size=" << size << std::endl;
-        debugCount++;
-    }
-    
     // Translate N64 RAM address to PC pointer if needed
     void* pcBufPtr = (void*)bufAddr;
     if (bufAddr >= 0x80000000ULL && bufAddr < 0x80800000ULL) {
-        // This is an N64 RAM address - translate it
-        pcBufPtr = HM64_TranslateAddress((u32)bufAddr);
-        if (debugCount < 20) {
-            std::cerr << "[HM64_ROM_DEBUG] Translated buffer 0x" << std::hex << bufAddr 
-                      << " -> " << pcBufPtr << std::dec << std::endl;
-        }
+        pcBufPtr = ResolveRuntimeBufferAddress((u32)bufAddr);
         if (pcBufPtr == nullptr) {
             std::cerr << "[HM64_ROM_ERROR] Failed to translate N64 buffer address 0x" 
                       << std::hex << bufAddr << std::dec << std::endl;
@@ -427,11 +522,7 @@ extern "C" void nuPiReadRomCompat(uintptr_t romAddr, uintptr_t bufAddr, u32 size
         return;
     }
 
-    if (ReadRomRange(romAddr, pcBufPtr, size)) {
-        return;
-    }
-
-    std::cerr << "[Moonwright] Unexpected nuPiReadRom failure at runtime: 0x" << std::hex << romAddr
+    std::cerr << "[Moonwright] Missing archive-backed runtime asset for ROM range 0x" << std::hex << romAddr
               << std::dec << " (" << size << " bytes)." << std::endl;
     std::abort();
 }
@@ -522,16 +613,25 @@ void nuGfxTaskStart(Gfx* dl, u32 size, u32 ucode, u32 flags) {
 }
 
 void nuGfxTaskAllEndWait(void) {
-    std::unique_lock<std::mutex> lock(s_pendingDisplayListsMutex);
-    const uint64_t targetSerial = s_submissionSerial;
+    while (true) {
+        uint64_t targetSerial = 0;
 
-    if (targetSerial == s_completedSerial && s_pendingDisplayLists.empty()) {
-        return;
+        {
+            std::unique_lock<std::mutex> lock(s_pendingDisplayListsMutex);
+            targetSerial = s_submissionSerial;
+
+            if (targetSerial == s_completedSerial && s_pendingDisplayLists.empty()) {
+                return;
+            }
+        }
+
+        if (!FlushPendingDisplayLists()) {
+            std::unique_lock<std::mutex> lock(s_pendingDisplayListsMutex);
+            s_pendingDisplayListsCv.wait(lock, [&]() {
+                return s_completedSerial >= targetSerial && s_pendingDisplayLists.empty();
+            });
+        }
     }
-
-    s_pendingDisplayListsCv.wait(lock, [&]() {
-        return s_completedSerial >= targetSerial && s_pendingDisplayLists.empty();
-    });
 }
 
 // Call the registered retrace callback

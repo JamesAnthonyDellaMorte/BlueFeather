@@ -1130,7 +1130,7 @@ void gameSelectCallback(void) {
 
 //INCLUDE_ASM("asm/nonmatchings/game/gameFile", verifySramSignature);
 
-inline bool verifySramSignature(u8 buffer[]) {
+static inline bool verifySramSignature(u8 buffer[]) {
 
     u8 i = 0;
     bool result = 0;
@@ -1300,7 +1300,7 @@ void loadDiarySlotData(u8 slot, u8 source, u8 status) {
 
 //INCLUDE_ASM("asm/nonmatchings/game/gameFile", calculateSaveChecksum);
 
-inline u16 calculateSaveChecksum(u8 buffer[]) {
+static inline u16 calculateSaveChecksum(u8 buffer[]) {
 
     u16 result = 0;
     u16 i = 0;
@@ -1318,7 +1318,7 @@ inline u16 calculateSaveChecksum(u8 buffer[]) {
 
 //INCLUDE_ASM("asm/nonmatchings/game/gameFile", verifySaveChecksum);
 
-inline u16 verifySaveChecksum(u8* buffer) {
+static inline u16 verifySaveChecksum(u8* buffer) {
 
     u16 result = 0;
     u16 i = 0;
@@ -1336,7 +1336,7 @@ inline u16 verifySaveChecksum(u8* buffer) {
 
 //INCLUDE_ASM("asm/nonmatchings/game/gameFile", calculateRankingChecksum);
 
-inline u16 calculateRankingChecksum(u8 buffer[]) {
+static inline u16 calculateRankingChecksum(u8 buffer[]) {
 
     u16 result = 0;
     u16 i = 0;
@@ -1354,7 +1354,7 @@ inline u16 calculateRankingChecksum(u8 buffer[]) {
 
 //INCLUDE_ASM("asm/nonmatchings/game/gameFile", verifyRankingChecksum);
 
-inline u16 verifyRankingChecksum(u8 buffer[]) {
+static inline u16 verifyRankingChecksum(u8 buffer[]) {
 
     u16 result = 0;
     u16 i = 0;

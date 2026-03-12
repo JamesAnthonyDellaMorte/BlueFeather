@@ -16,15 +16,114 @@
 #include "mainproc.h"
 
 #include "ld_symbols.h"
-#include "hm64_ram.h"
 
-extern void* HM64_TranslateAddress(u32 n64Addr);
+extern u8 messageBoxTextureBuffer[0x2900];
+extern u16 messageBoxPaletteBuffer[0x80];
+extern AnimationFrameMetadata messageBoxAnimationFrameMetadataBuffer[0x40];
+extern u32 messageBoxAnimationTextureToPaletteLookupBuffer[0x40];
+
+extern u8 dialogueIconTextureBuffer[0x1800];
+extern u16 dialogueIconPaletteBuffer[0x100];
+extern u32 dialogueIconAnimationFrameMetadataBuffer[0x40];
+extern u32 dialogueIconTextureToPaletteLookupBuffer[0x100];
+
+extern u8 characterAvatarsTexture1Buffer[0x800];
+extern u8 characterAvatarsTexture2Buffer[0x800];
+extern u16 characterAvatarsPaletteBuffer[0x600];
+extern AnimationFrameMetadata characterAvatarsAnimationMetadataBuffer[0x400];
+extern u32 characterAvatarsSpritesheetIndexBuffer[0x200];
+extern u32 characterAvatarsTextureToPaletteLookupBuffer[0x40];
+
+extern u8 fontTextureBuffer[0xB000];
+extern u16 font1PaletteBuffer[0x200];
+extern u16 font2PaletteBuffer[0x200];
+extern u8 textAddressesIndexBuffer[0x800];
+extern u8 messageBox1TextBuffer[0x400];
+extern u8 messageBox2TextBuffer[0x400];
+extern u8 messageBox3TextBuffer[0x400];
+extern u8 messageBox4TextBuffer[0x400];
+extern u8 messageBox5TextBuffer[0x400];
+extern u8 messageBox6TextBuffer[0x400];
+
+#define MESSAGE_OFFSET_PTR(buffer, base, addr) ((u8*)(buffer) + ((addr) - (base)))
 
 static void* resolveMessagePointer(const void* ptr) {
     uintptr_t addr = (uintptr_t)ptr;
 
-    if (addr >= HM64_RAM_BASE && addr < (HM64_RAM_BASE + HM64_RAM_SIZE)) {
-        return HM64_TranslateAddress((u32)addr);
+    if (addr >= MESSAGE_BOX_TEXTURE_BUFFER && addr < MESSAGE_BOX_PALETTE_BUFFER) {
+        return MESSAGE_OFFSET_PTR(messageBoxTextureBuffer, MESSAGE_BOX_TEXTURE_BUFFER, addr);
+    }
+    if (addr >= MESSAGE_BOX_PALETTE_BUFFER && addr < MESSAGE_BOX_ANIMATION_FRAME_METADATA_BUFFER) {
+        return MESSAGE_OFFSET_PTR(messageBoxPaletteBuffer, MESSAGE_BOX_PALETTE_BUFFER, addr);
+    }
+    if (addr >= MESSAGE_BOX_ANIMATION_FRAME_METADATA_BUFFER && addr < MESSAGE_BOX_TEXTURE_TO_PALETTE_LOOKUP_BUFFER) {
+        return MESSAGE_OFFSET_PTR(messageBoxAnimationFrameMetadataBuffer, MESSAGE_BOX_ANIMATION_FRAME_METADATA_BUFFER, addr);
+    }
+    if (addr >= MESSAGE_BOX_TEXTURE_TO_PALETTE_LOOKUP_BUFFER && addr < DIALOGUE_ICON_TEXTURE_BUFFER) {
+        return MESSAGE_OFFSET_PTR(messageBoxAnimationTextureToPaletteLookupBuffer, MESSAGE_BOX_TEXTURE_TO_PALETTE_LOOKUP_BUFFER, addr);
+    }
+
+    if (addr >= DIALOGUE_ICON_TEXTURE_BUFFER && addr < DIALOGUE_ICON_PALETTE_BUFFER) {
+        return MESSAGE_OFFSET_PTR(dialogueIconTextureBuffer, DIALOGUE_ICON_TEXTURE_BUFFER, addr);
+    }
+    if (addr >= DIALOGUE_ICON_PALETTE_BUFFER && addr < DIALOGUE_ICON_ANIMATION_FRAME_METADATA_BUFFER) {
+        return MESSAGE_OFFSET_PTR(dialogueIconPaletteBuffer, DIALOGUE_ICON_PALETTE_BUFFER, addr);
+    }
+    if (addr >= DIALOGUE_ICON_ANIMATION_FRAME_METADATA_BUFFER && addr < DIALOGUE_ICON_TEXTURE_TO_PALETTE_LOOKUP_BUFFER) {
+        return MESSAGE_OFFSET_PTR(dialogueIconAnimationFrameMetadataBuffer, DIALOGUE_ICON_ANIMATION_FRAME_METADATA_BUFFER, addr);
+    }
+    if (addr >= DIALOGUE_ICON_TEXTURE_TO_PALETTE_LOOKUP_BUFFER && addr < CHARACTER_AVATAR_TEXTURE_1_BUFFER) {
+        return MESSAGE_OFFSET_PTR(dialogueIconTextureToPaletteLookupBuffer, DIALOGUE_ICON_TEXTURE_TO_PALETTE_LOOKUP_BUFFER, addr);
+    }
+
+    if (addr >= CHARACTER_AVATAR_TEXTURE_1_BUFFER && addr < CHARACTER_AVATAR_TEXTURE_2_BUFFER) {
+        return MESSAGE_OFFSET_PTR(characterAvatarsTexture1Buffer, CHARACTER_AVATAR_TEXTURE_1_BUFFER, addr);
+    }
+    if (addr >= CHARACTER_AVATAR_TEXTURE_2_BUFFER && addr < CHARACTER_AVATAR_PALETTE_BUFFER) {
+        return MESSAGE_OFFSET_PTR(characterAvatarsTexture2Buffer, CHARACTER_AVATAR_TEXTURE_2_BUFFER, addr);
+    }
+    if (addr >= CHARACTER_AVATAR_PALETTE_BUFFER && addr < CHARACTER_AVATAR_ANIMATION_FRAME_METADATA_BUFFER) {
+        return MESSAGE_OFFSET_PTR(characterAvatarsPaletteBuffer, CHARACTER_AVATAR_PALETTE_BUFFER, addr);
+    }
+    if (addr >= CHARACTER_AVATAR_ANIMATION_FRAME_METADATA_BUFFER && addr < CHARACTER_AVATAR_SPRITESHEET_INDEX_BUFFER) {
+        return MESSAGE_OFFSET_PTR(characterAvatarsAnimationMetadataBuffer, CHARACTER_AVATAR_ANIMATION_FRAME_METADATA_BUFFER, addr);
+    }
+    if (addr >= CHARACTER_AVATAR_SPRITESHEET_INDEX_BUFFER && addr < CHARACTER_AVATAR_TEXTURE_TO_PALETTE_LOOKUP_BUFFER) {
+        return MESSAGE_OFFSET_PTR(characterAvatarsSpritesheetIndexBuffer, CHARACTER_AVATAR_SPRITESHEET_INDEX_BUFFER, addr);
+    }
+    if (addr >= CHARACTER_AVATAR_TEXTURE_TO_PALETTE_LOOKUP_BUFFER && addr < FONT_TEXTURE_BUFFER) {
+        return MESSAGE_OFFSET_PTR(characterAvatarsTextureToPaletteLookupBuffer, CHARACTER_AVATAR_TEXTURE_TO_PALETTE_LOOKUP_BUFFER, addr);
+    }
+
+    if (addr >= FONT_TEXTURE_BUFFER && addr < FONT_PALETTE_1_BUFFER) {
+        return MESSAGE_OFFSET_PTR(fontTextureBuffer, FONT_TEXTURE_BUFFER, addr);
+    }
+    if (addr >= FONT_PALETTE_1_BUFFER && addr < FONT_PALETTE_2_BUFFER) {
+        return MESSAGE_OFFSET_PTR(font1PaletteBuffer, FONT_PALETTE_1_BUFFER, addr);
+    }
+    if (addr >= FONT_PALETTE_2_BUFFER && addr < TEXT_ADDRESSES_INDEX_BUFFER) {
+        return MESSAGE_OFFSET_PTR(font2PaletteBuffer, FONT_PALETTE_2_BUFFER, addr);
+    }
+    if (addr >= TEXT_ADDRESSES_INDEX_BUFFER && addr < MESSAGE_BOX_1_TEXT_BUFFER) {
+        return MESSAGE_OFFSET_PTR(textAddressesIndexBuffer, TEXT_ADDRESSES_INDEX_BUFFER, addr);
+    }
+    if (addr >= MESSAGE_BOX_1_TEXT_BUFFER && addr < MESSAGE_BOX_2_TEXT_BUFFER) {
+        return MESSAGE_OFFSET_PTR(messageBox1TextBuffer, MESSAGE_BOX_1_TEXT_BUFFER, addr);
+    }
+    if (addr >= MESSAGE_BOX_2_TEXT_BUFFER && addr < MESSAGE_BOX_3_TEXT_BUFFER) {
+        return MESSAGE_OFFSET_PTR(messageBox2TextBuffer, MESSAGE_BOX_2_TEXT_BUFFER, addr);
+    }
+    if (addr >= MESSAGE_BOX_3_TEXT_BUFFER && addr < MESSAGE_BOX_4_TEXT_BUFFER) {
+        return MESSAGE_OFFSET_PTR(messageBox3TextBuffer, MESSAGE_BOX_3_TEXT_BUFFER, addr);
+    }
+    if (addr >= MESSAGE_BOX_4_TEXT_BUFFER && addr < MESSAGE_BOX_5_TEXT_BUFFER) {
+        return MESSAGE_OFFSET_PTR(messageBox4TextBuffer, MESSAGE_BOX_4_TEXT_BUFFER, addr);
+    }
+    if (addr >= MESSAGE_BOX_5_TEXT_BUFFER && addr < MESSAGE_BOX_6_TEXT_BUFFER) {
+        return MESSAGE_OFFSET_PTR(messageBox5TextBuffer, MESSAGE_BOX_5_TEXT_BUFFER, addr);
+    }
+    if (addr >= MESSAGE_BOX_6_TEXT_BUFFER && addr < DIALOGUE_BYTECODE_INDEX_BUFFER) {
+        return MESSAGE_OFFSET_PTR(messageBox6TextBuffer, MESSAGE_BOX_6_TEXT_BUFFER, addr);
     }
 
     return (void*)ptr;
@@ -614,7 +713,7 @@ bool setTextAddresses(u16 textAddressesIndex, u32 romIndexStart, u32 romIndexEnd
 
         textAddresses[textAddressesIndex].romIndexStart = romIndexStart;
         textAddresses[textAddressesIndex].romIndexEnd = romIndexEnd;
-        textAddresses[textAddressesIndex].indexVaddr = indexVaddr;
+        textAddresses[textAddressesIndex].indexVaddr = (u32*)resolveMessagePointer((const void*)(uintptr_t)indexVaddr);
         textAddresses[textAddressesIndex].romTextStart = romTextStart;
         
         result = TRUE;
@@ -842,10 +941,10 @@ bool setDialogueWindowSprite(u16 index, u16 spriteIndex, u32 romTextureStart, u3
         dialogueWindows[index].romIndexStart = romIndexStart;
         dialogueWindows[index].romIndexEnd = romIndexEnd;
 
-        dialogueWindows[index].vaddrTexture = vaddrTexture;
-        dialogueWindows[index].vaddrPalette = vaddrPalette;
-        dialogueWindows[index].vaddrAnimationFrameMetadata = vaddrAnimationFrameMetadata;
-        dialogueWindows[index].vaddrTextureToPaletteLookup = vaddrTextureToPaletteLookup;
+        dialogueWindows[index].vaddrTexture = resolveMessagePointer(vaddrTexture);
+        dialogueWindows[index].vaddrPalette = resolveMessagePointer(vaddrPalette);
+        dialogueWindows[index].vaddrAnimationFrameMetadata = resolveMessagePointer(vaddrAnimationFrameMetadata);
+        dialogueWindows[index].vaddrTextureToPaletteLookup = resolveMessagePointer(vaddrTextureToPaletteLookup);
 
         dialogueWindows[index].unk_20 = argA;
 
@@ -881,10 +980,10 @@ bool setOverlayIconSprite(u16 index, u16 spriteIndex, u32 romTextureStart, u32 r
         overlayIcons[index].romIndexStart = romIndexStart;
         overlayIcons[index].romIndexEnd = romIndexEnd;
 
-        overlayIcons[index].vaddrTexture = vaddrTexture;
-        overlayIcons[index].vaddrPalette = vaddrPalette;
-        overlayIcons[index].vaddrAnimationFrameMetadata = vaddrAnimationFrameMetadata;
-        overlayIcons[index].vaddrTextureToPaletteLookup = vaddrTextureToPaletteLookup;
+        overlayIcons[index].vaddrTexture = resolveMessagePointer(vaddrTexture);
+        overlayIcons[index].vaddrPalette = resolveMessagePointer(vaddrPalette);
+        overlayIcons[index].vaddrAnimationFrameMetadata = resolveMessagePointer(vaddrAnimationFrameMetadata);
+        overlayIcons[index].vaddrTextureToPaletteLookup = resolveMessagePointer(vaddrTextureToPaletteLookup);
 
         overlayIcons[index].unk_20 = argA;
         overlayIcons[index].spriteIndex = spriteIndex;
@@ -926,12 +1025,12 @@ bool setCharacterAvatarSprite(u16 index, u16 spriteIndex, u32 romTextureStart, u
         characterAvatars[index].romSpritesheetIndexStart = romSpritesheetIndexStart;
         characterAvatars[index].romSpritesheetIndexEnd = romSpritesheetIndexEnd;
   
-        characterAvatars[index].vaddrTexture1 = vaddrTexture1;
-        characterAvatars[index].vaddrTexture2 = vaddrTexture2;
-        characterAvatars[index].vaddrPalette = vaddrPalette;
-        characterAvatars[index].vaddrAnimation = vaddrAnimation;
-        characterAvatars[index].vaddrSpriteToPalette = vaddrSpriteToPalette;
-        characterAvatars[index].vaddrSpritesheetIndex = vaddrSpritesheetIndex;
+        characterAvatars[index].vaddrTexture1 = resolveMessagePointer(vaddrTexture1);
+        characterAvatars[index].vaddrTexture2 = resolveMessagePointer(vaddrTexture2);
+        characterAvatars[index].vaddrPalette = resolveMessagePointer(vaddrPalette);
+        characterAvatars[index].vaddrAnimation = resolveMessagePointer(vaddrAnimation);
+        characterAvatars[index].vaddrSpriteToPalette = resolveMessagePointer(vaddrSpriteToPalette);
+        characterAvatars[index].vaddrSpritesheetIndex = resolveMessagePointer(vaddrSpritesheetIndex);
 
         characterAvatars[index].spriteIndex = spriteIndex;
 
@@ -950,7 +1049,7 @@ bool setCharacterAvatarSprite(u16 index, u16 spriteIndex, u32 romTextureStart, u
 //INCLUDE_ASM("asm/nonmatchings/system/message", setCharacterAvatarAnimationsPtr);
 
 void setCharacterAvatarAnimationsPtr(u8* arg0) {
-    characterAvatarsAnimationsPtr = arg0;
+    characterAvatarsAnimationsPtr = resolveMessagePointer(arg0);
 }
 
 //INCLUDE_ASM("asm/nonmatchings/system/message", setMessageBoxButtonMask);
@@ -1999,7 +2098,7 @@ u8 readGameVariableChar(u16 index) {
 u32 getTextAddress(u16 index, u16 textIndex) {
 
     u32 result = textAddresses[messageBoxes[index].textAddressesIndex].romTextStart;
-    u32* indexVaddr = resolveMessagePointer(textAddresses[messageBoxes[index].textAddressesIndex].indexVaddr);
+    u32* indexVaddr = textAddresses[messageBoxes[index].textAddressesIndex].indexVaddr;
 
     result += hm64ReadIndexedU32(indexVaddr, textIndex);
 

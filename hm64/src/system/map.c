@@ -8,7 +8,10 @@
 #include "system/mapController.h"
 #include "system/sceneGraph.h"
 
+#include "buffers/buffers.h"
 #include "mainproc.h" 
+
+extern u8 mapObjectsBuffer[0x10000];
   
 // forward declarations
 Vec3f getTerrainHeight(TerrainQuad *quad, f32 x, f32 z, u8 fallbackHeight);
@@ -41,6 +44,16 @@ void setupWeatherSprites(MainMap*);
 void processMapSceneNode(u16, Gfx*);                 
 void renderGroundObjects(MainMap*);         
 void processMapAdditions(u16);   
+
+static void* resolveMapPointer(const void* ptr) {
+    uintptr_t addr = (uintptr_t)ptr;
+
+    if (addr >= MAP_OBJECT_SLOT_1_TEXTURE_1 && addr < (MAP_OBJECT_SLOT_1_TEXTURE_1 + sizeof(mapObjectsBuffer))) {
+        return mapObjectsBuffer + (addr - MAP_OBJECT_SLOT_1_TEXTURE_1);
+    }
+
+    return (void*)ptr;
+}
 
 
 // bss
@@ -849,9 +862,9 @@ bool loadGroundObjects(u16 mapIndex, u8 x, u8 z, u32* textureIndex, u32* palette
 
     if (mapIndex == MAIN_MAP_INDEX && (mainMap[mapIndex].mapState.flags & MAP_ACTIVE)) {
         
-        mainMap[mapIndex].groundObjects.textureIndex = textureIndex;
-        mainMap[mapIndex].groundObjects.paletteIndex = paletteIndex;
-        mainMap[mapIndex].groundObjects.spriteToPaletteIndex = spriteToPaletteIndex;
+        mainMap[mapIndex].groundObjects.textureIndex = resolveMapPointer(textureIndex);
+        mainMap[mapIndex].groundObjects.paletteIndex = resolveMapPointer(paletteIndex);
+        mainMap[mapIndex].groundObjects.spriteToPaletteIndex = resolveMapPointer(spriteToPaletteIndex);
 
         // grid positions
         mainMap[mapIndex].groundObjects.x = x;
@@ -861,11 +874,11 @@ bool loadGroundObjects(u16 mapIndex, u8 x, u8 z, u32* textureIndex, u32* palette
         
         nuPiReadRom(romAssetsIndexStart, assetIndex, romAssetsIndexEnd - romAssetsIndexStart);
         
-        offset1 = assetIndex[0];
-        offset2 = assetIndex[1];
-        offset3 = assetIndex[2];
-        offset4 = assetIndex[3];
-        offset5 = assetIndex[4];
+        offset1 = hm64ReadIndexedU32(assetIndex, 0);
+        offset2 = hm64ReadIndexedU32(assetIndex, 1);
+        offset3 = hm64ReadIndexedU32(assetIndex, 2);
+        offset4 = hm64ReadIndexedU32(assetIndex, 3);
+        offset5 = hm64ReadIndexedU32(assetIndex, 4);
         
         nuPiReadRom(romTextureStart + offset1, mainMap[mapIndex].groundObjects.textureIndex, offset2 - offset1);
         nuPiReadRom(romTextureStart + offset2, mainMap[mapIndex].groundObjects.paletteIndex, offset3 - offset2);

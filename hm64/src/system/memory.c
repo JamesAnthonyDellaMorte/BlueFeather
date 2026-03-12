@@ -1,5 +1,7 @@
 #include "common.h"
-#include <PR/os.h>
+#include <string.h>
+#include <libultra/os.h>
+#include <libultra/r4300.h>
 
 #include "system/memory.h"
 
@@ -25,7 +27,7 @@ static inline OSPiHandle* sramInit(void) {
     
     sramHandle.speed = 0;
     
-    bzero((void*)&sramHandle.transferInfo, sizeof(sramHandle.transferInfo));
+    memset((void*)&sramHandle.transferInfo, 0, sizeof(sramHandle.transferInfo));
     
     osEPiLinkHandle(&sramHandle);
 

@@ -29,94 +29,130 @@ MainLoopCallback mainLoopCallbacksTable[MAIN_LOOP_CALLBACK_FUNCTION_TABLE_SIZE];
 volatile u16 D_80182BA0;
 volatile u16 D_8020564C;
 void *currentGfxTaskPtr;
+static bool sMainLoopStarted = FALSE;
+static bool sMainLoopReady = FALSE;
 
 // forward declarations
 void func_80026284(void);
 void handleGraphicsUpdate(int pendingGfx);
 void updateMainLoopTimer(int pendingGfx);
+static void HM64_FinishMainLoopBoot(void);
+static void HM64_RunMainLoopIteration(void);
 
 extern s32 __osSpSetPc(u32 pc);
 
   
 //INCLUDE_ASM("asm/nonmatchings/mainLoop", mainLoop)
 
-void mainLoop(void) {
-
+void HM64_BeginMainLoop(void) {
     stepMainLoop = FALSE;
     engineStateFlags = 1;
-    
-    // wait 60 frames until engineStateFlags |= 2
-    func_80026284();
+    sMainLoopStarted = TRUE;
+    sMainLoopReady = FALSE;
+}
 
-    // toggle flags
+static void HM64_FinishMainLoopBoot(void) {
     func_8004DEC8();
-    
-    // could be inline func_80026230
     D_80182BA0 = 1;
     D_8020564C = 0;
+    sMainLoopReady = TRUE;
+}
 
-    while (WindowIsRunning()) {
+static void HM64_RunMainLoopIteration(void) {
+    if (!D_8020564C) { 
       
-        nuGfxDisplayOn();
-          
-        while ((engineStateFlags & 1) && WindowIsRunning()) {
-            
-            while ((stepMainLoop == FALSE) && WindowIsRunning());
+      D_80182BA0 = 1;
+      
+      // handle specific logic depending on game mode/screen
+      mainLoopCallbacksTable[mainLoopCallbackCurrentIndex](); 
 
-            if (!WindowIsRunning()) {
-                break;
-            }
-            
-            if (!D_8020564C) { 
-              
-              D_80182BA0 = 1;
-              
-              // handle specific logic depending on game mode/screen
-              mainLoopCallbacksTable[mainLoopCallbackCurrentIndex](); 
+      D_8020564C = D_80182BA0; 
 
-              D_8020564C = D_80182BA0; 
-
-            } 
-            
-            D_8020564C -= 1;    
-
-            // dead code
-            if (D_8020564C) {
-
-            }
-            
-            resetBitmaps();
-            updateAudio(); 
-            resetSceneNodeCounter();
-            updateCutsceneExecutors();
-            updateEntities();
-            updateMapController();
-            updateMapGraphics();
-            updateNumberSprites();
-            updateSprites(); 
-            dmaSprites(); 
-            updateBitmaps(); 
-            updateMessageBox(); 
-            updateDialogues();
-
-            // no op
-            // shelved or debug code
-            func_800293B8(); 
-
-            stepMainLoop = FALSE; 
-
-            // unused
-            D_80237A04 = retraceCount;
-              
-            // update RNG seed
-            rand();
-            
-        }
+    } 
     
-        nuGfxDisplayOff();
-        
+    D_8020564C -= 1;    
+
+    // dead code
+    if (D_8020564C) {
+
     }
     
+    resetBitmaps();
+    updateAudio(); 
+    resetSceneNodeCounter();
+    updateCutsceneExecutors();
+    updateEntities();
+    updateMapController();
+    updateMapGraphics();
+    updateNumberSprites();
+    updateSprites(); 
+    dmaSprites(); 
+    updateBitmaps(); 
+    updateMessageBox(); 
+    updateDialogues();
+
+    // no op
+    // shelved or debug code
+    func_800293B8(); 
+
+    stepMainLoop = FALSE; 
+
+    // unused
+    D_80237A04 = retraceCount;
+      
+    // update RNG seed
+    rand();
+}
+
+bool HM64_MainLoopStep(void) {
+    if (!sMainLoopStarted || !WindowIsRunning()) {
+        return FALSE;
+    }
+
+    nuGfxDisplayOn();
+
+    if (!(engineStateFlags & 1)) {
+        nuGfxDisplayOff();
+        return FALSE;
+    }
+
+    if (stepMainLoop == FALSE) {
+        return FALSE;
+    }
+
+    if (!sMainLoopReady) {
+        stepMainLoop = FALSE;
+
+        if (engineStateFlags & 2) {
+            HM64_FinishMainLoopBoot();
+        }
+
+        return TRUE;
+    }
+
+    HM64_RunMainLoopIteration();
+    return TRUE;
+}
+
+bool HM64_HostAdvanceFrame(int pendingGfx) {
+    if (!sMainLoopStarted || !WindowIsRunning()) {
+        return FALSE;
+    }
+
+    gfxRetraceCallback(pendingGfx);
+    return HM64_MainLoopStep();
+}
+
+void mainLoop(void) {
+    HM64_BeginMainLoop();
+
+    while (WindowIsRunning()) {
+        while ((engineStateFlags & 1) && WindowIsRunning()) {
+            HM64_HostAdvanceFrame(0);
+        }
+
+        nuGfxDisplayOff();
+    }
 }
 
 //INCLUDE_ASM("asm/nonmatchings/mainLoop", registerMainLoopCallback);
@@ -187,28 +223,15 @@ void* noOpCallback(void) {
 //INCLUDE_ASM("asm/nonmatchings/mainLoop", func_80026248);
 
 static inline void func_80026248(u16 count) {
+    u16 counter;
 
-  u16 counter = 1;
-  u16 currentCount;
+    for (counter = 0; counter < count; counter++) {
+        if (!WindowIsRunning()) {
+            return;
+        }
 
-  if (count != 0) {
-    
-    do {
-      
-      stepMainLoop = FALSE;
-      
-      while ((stepMainLoop == FALSE) && WindowIsRunning());
-
-      if (!WindowIsRunning()) {
-          return;
-      }
-
-      currentCount = counter;
-      counter++;
-
-    } while (currentCount < count);
-
-  }
+        HM64_HostAdvanceFrame(0);
+    }
 
 }
 

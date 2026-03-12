@@ -56,9 +56,7 @@ volatile u8 D_80237408;
 void initializeEngine(void);
 void initializeMainProcess(void);
 
-//INCLUDE_ASM("asm/nonmatchings/mainproc", mainproc);
-
-void mainproc(void *arg) {
+void HM64_BootGame(void) {
     
     #ifndef JP
     OSViMode *mode;
@@ -92,7 +90,12 @@ void mainproc(void *arg) {
     
     // load "no controller" screen or intro cutscene
     setupGameStart();
+}
 
+//INCLUDE_ASM("asm/nonmatchings/mainproc", mainproc);
+
+void mainproc(void *arg) {
+    HM64_BootGame();
     mainLoop();
 
 }

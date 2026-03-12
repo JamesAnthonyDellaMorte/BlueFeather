@@ -1564,9 +1564,6 @@ void endCutsceneCallback(void) {
 //INCLUDE_ASM("asm/nonmatchings/game/game", loadNamingScreenCallback);
 
 void loadNamingScreenCallback(void) {
-#ifdef HM64_PC_PORT
-    setMainLoopCallbackFunctionIndex(MAIN_GAME);
-#else
     u8* namePtr;
 
     openOverlayScreen_2();
@@ -1601,7 +1598,6 @@ void loadNamingScreenCallback(void) {
     }
     
     initializeNamingScreen(namePtr, gNamingScreenIndex);
-#endif
 
 }
 

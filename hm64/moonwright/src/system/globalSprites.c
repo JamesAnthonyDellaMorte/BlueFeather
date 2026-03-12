@@ -3,6 +3,7 @@
 #include "system/globalSprites.h"
 
 #include "graphic.h"
+#include "buffers/buffers.h"
 #include "system/memory.h"
 #include "system/sprite.h"
 #include "system/math.h"
@@ -11,7 +12,6 @@
 #include "mainproc.h"
 
 #include "ld_symbols.h"
-#include "hm64_ram.h"
 
 // forward declarations
 bool setupSpriteAnimation(u16 spriteIndex, u8 animationModeOrFrameIndex, u16* animationDataPtr);
@@ -21,7 +21,41 @@ static void setAnimationFrameMetadata(AnimationFrameMetadata* animationFrameMeta
 static void setBitmapMetadata(BitmapMetadata* ptr, const void* data);
 static AnimationFrameMetadata* getAnimationFrameMetadataPtrFromFrame(u16 currentFrame, u16* animationFrameMetadataPtr);
 static u16* advanceBitmapMetadataPtr(u16 numFrames, u16* bitmapMetadataPtr);
-extern void* HM64_TranslateAddress(u32 n64Addr);
+
+extern u8 messageBoxTextureBuffer[0x2900];
+extern u16 messageBoxPaletteBuffer[0x80];
+extern AnimationFrameMetadata messageBoxAnimationFrameMetadataBuffer[0x40];
+extern u32 messageBoxAnimationTextureToPaletteLookupBuffer[0x40];
+
+extern u8 dialogueIconTextureBuffer[0x1800];
+extern u16 dialogueIconPaletteBuffer[0x100];
+extern u32 dialogueIconAnimationFrameMetadataBuffer[0x40];
+extern u32 dialogueIconTextureToPaletteLookupBuffer[0x100];
+
+extern u8 characterAvatarsTexture1Buffer[0x800];
+extern u8 characterAvatarsTexture2Buffer[0x800];
+extern u16 characterAvatarsPaletteBuffer[0x600];
+extern AnimationFrameMetadata characterAvatarsAnimationMetadataBuffer[0x400];
+extern u32 characterAvatarsSpritesheetIndexBuffer[0x200];
+extern u32 characterAvatarsTextureToPaletteLookupBuffer[0x40];
+
+extern u8 shadowSpriteTextureBuffer[0x500];
+extern u16 shadowSpritePaletteBuffer[0x100];
+extern u32 shadowSpriteSpriteToPaletteBuffer[0x100];
+extern u32 shadowSpriteSpritesheetIndexBuffer[0x100];
+
+extern u8 playerTexture1Buffer[0x3000];
+extern u8 playerTexture2Buffer[0x3000];
+extern u16 playerPaletteBuffer[0x2000];
+extern u32 playerAnimationMetadataBuffer[0x1E00];
+extern u32 playerSpritesheetIndexBuffer[0x200];
+extern u32 playerTextureToPaletteLookupBuffer[0x400];
+
+extern u8 namingScreenBuffer[0x1500];
+extern u8 spriteBuffer[0x73CC0];
+extern u8 mapObjectsBuffer[0x10000];
+
+#define GLOBAL_SPRITE_OFFSET_PTR(buffer, base, addr) ((u8*)(buffer) + ((addr) - (base)))
 
 // bss
 SpriteObject globalSprites[MAX_SPRITES];
@@ -29,8 +63,91 @@ SpriteObject globalSprites[MAX_SPRITES];
 static void* resolveSpritePointer(const void* ptr) {
     uintptr_t addr = (uintptr_t)ptr;
 
-    if (addr >= HM64_RAM_BASE && addr < (HM64_RAM_BASE + HM64_RAM_SIZE)) {
-        return HM64_TranslateAddress((u32)addr);
+    if (addr >= MESSAGE_BOX_TEXTURE_BUFFER && addr < MESSAGE_BOX_PALETTE_BUFFER) {
+        return GLOBAL_SPRITE_OFFSET_PTR(messageBoxTextureBuffer, MESSAGE_BOX_TEXTURE_BUFFER, addr);
+    }
+    if (addr >= MESSAGE_BOX_PALETTE_BUFFER && addr < MESSAGE_BOX_ANIMATION_FRAME_METADATA_BUFFER) {
+        return GLOBAL_SPRITE_OFFSET_PTR(messageBoxPaletteBuffer, MESSAGE_BOX_PALETTE_BUFFER, addr);
+    }
+    if (addr >= MESSAGE_BOX_ANIMATION_FRAME_METADATA_BUFFER && addr < MESSAGE_BOX_TEXTURE_TO_PALETTE_LOOKUP_BUFFER) {
+        return GLOBAL_SPRITE_OFFSET_PTR(messageBoxAnimationFrameMetadataBuffer, MESSAGE_BOX_ANIMATION_FRAME_METADATA_BUFFER, addr);
+    }
+    if (addr >= MESSAGE_BOX_TEXTURE_TO_PALETTE_LOOKUP_BUFFER && addr < DIALOGUE_ICON_TEXTURE_BUFFER) {
+        return GLOBAL_SPRITE_OFFSET_PTR(messageBoxAnimationTextureToPaletteLookupBuffer, MESSAGE_BOX_TEXTURE_TO_PALETTE_LOOKUP_BUFFER, addr);
+    }
+
+    if (addr >= DIALOGUE_ICON_TEXTURE_BUFFER && addr < DIALOGUE_ICON_PALETTE_BUFFER) {
+        return GLOBAL_SPRITE_OFFSET_PTR(dialogueIconTextureBuffer, DIALOGUE_ICON_TEXTURE_BUFFER, addr);
+    }
+    if (addr >= DIALOGUE_ICON_PALETTE_BUFFER && addr < DIALOGUE_ICON_ANIMATION_FRAME_METADATA_BUFFER) {
+        return GLOBAL_SPRITE_OFFSET_PTR(dialogueIconPaletteBuffer, DIALOGUE_ICON_PALETTE_BUFFER, addr);
+    }
+    if (addr >= DIALOGUE_ICON_ANIMATION_FRAME_METADATA_BUFFER && addr < DIALOGUE_ICON_TEXTURE_TO_PALETTE_LOOKUP_BUFFER) {
+        return GLOBAL_SPRITE_OFFSET_PTR(dialogueIconAnimationFrameMetadataBuffer, DIALOGUE_ICON_ANIMATION_FRAME_METADATA_BUFFER, addr);
+    }
+    if (addr >= DIALOGUE_ICON_TEXTURE_TO_PALETTE_LOOKUP_BUFFER && addr < CHARACTER_AVATAR_TEXTURE_1_BUFFER) {
+        return GLOBAL_SPRITE_OFFSET_PTR(dialogueIconTextureToPaletteLookupBuffer, DIALOGUE_ICON_TEXTURE_TO_PALETTE_LOOKUP_BUFFER, addr);
+    }
+
+    if (addr >= CHARACTER_AVATAR_TEXTURE_1_BUFFER && addr < CHARACTER_AVATAR_TEXTURE_2_BUFFER) {
+        return GLOBAL_SPRITE_OFFSET_PTR(characterAvatarsTexture1Buffer, CHARACTER_AVATAR_TEXTURE_1_BUFFER, addr);
+    }
+    if (addr >= CHARACTER_AVATAR_TEXTURE_2_BUFFER && addr < CHARACTER_AVATAR_PALETTE_BUFFER) {
+        return GLOBAL_SPRITE_OFFSET_PTR(characterAvatarsTexture2Buffer, CHARACTER_AVATAR_TEXTURE_2_BUFFER, addr);
+    }
+    if (addr >= CHARACTER_AVATAR_PALETTE_BUFFER && addr < CHARACTER_AVATAR_ANIMATION_FRAME_METADATA_BUFFER) {
+        return GLOBAL_SPRITE_OFFSET_PTR(characterAvatarsPaletteBuffer, CHARACTER_AVATAR_PALETTE_BUFFER, addr);
+    }
+    if (addr >= CHARACTER_AVATAR_ANIMATION_FRAME_METADATA_BUFFER && addr < CHARACTER_AVATAR_SPRITESHEET_INDEX_BUFFER) {
+        return GLOBAL_SPRITE_OFFSET_PTR(characterAvatarsAnimationMetadataBuffer, CHARACTER_AVATAR_ANIMATION_FRAME_METADATA_BUFFER, addr);
+    }
+    if (addr >= CHARACTER_AVATAR_SPRITESHEET_INDEX_BUFFER && addr < CHARACTER_AVATAR_TEXTURE_TO_PALETTE_LOOKUP_BUFFER) {
+        return GLOBAL_SPRITE_OFFSET_PTR(characterAvatarsSpritesheetIndexBuffer, CHARACTER_AVATAR_SPRITESHEET_INDEX_BUFFER, addr);
+    }
+    if (addr >= CHARACTER_AVATAR_TEXTURE_TO_PALETTE_LOOKUP_BUFFER && addr < SHADOW_TEXTURE_BUFFER) {
+        return GLOBAL_SPRITE_OFFSET_PTR(characterAvatarsTextureToPaletteLookupBuffer, CHARACTER_AVATAR_TEXTURE_TO_PALETTE_LOOKUP_BUFFER, addr);
+    }
+
+    if (addr >= SHADOW_TEXTURE_BUFFER && addr < SHADOW_PALETTE_BUFFER) {
+        return GLOBAL_SPRITE_OFFSET_PTR(shadowSpriteTextureBuffer, SHADOW_TEXTURE_BUFFER, addr);
+    }
+    if (addr >= SHADOW_PALETTE_BUFFER && addr < SHADOW_ANIMATION_FRAME_METADATA_BUFFER) {
+        return GLOBAL_SPRITE_OFFSET_PTR(shadowSpritePaletteBuffer, SHADOW_PALETTE_BUFFER, addr);
+    }
+    if (addr >= SHADOW_ANIMATION_FRAME_METADATA_BUFFER && addr < SHADOW_TEXTURE_TO_PALETTE_LOOKUP_BUFFER) {
+        return GLOBAL_SPRITE_OFFSET_PTR(shadowSpriteSpriteToPaletteBuffer, SHADOW_ANIMATION_FRAME_METADATA_BUFFER, addr);
+    }
+    if (addr >= SHADOW_TEXTURE_TO_PALETTE_LOOKUP_BUFFER && addr < PLAYER_TEXTURE_1_BUFFER) {
+        return GLOBAL_SPRITE_OFFSET_PTR(shadowSpriteSpritesheetIndexBuffer, SHADOW_TEXTURE_TO_PALETTE_LOOKUP_BUFFER, addr);
+    }
+
+    if (addr >= PLAYER_TEXTURE_1_BUFFER && addr < PLAYER_TEXTURE_2_BUFFER) {
+        return GLOBAL_SPRITE_OFFSET_PTR(playerTexture1Buffer, PLAYER_TEXTURE_1_BUFFER, addr);
+    }
+    if (addr >= PLAYER_TEXTURE_2_BUFFER && addr < PLAYER_PALETTE_BUFFER) {
+        return GLOBAL_SPRITE_OFFSET_PTR(playerTexture2Buffer, PLAYER_TEXTURE_2_BUFFER, addr);
+    }
+    if (addr >= PLAYER_PALETTE_BUFFER && addr < PLAYER_ANIMATION_FRAME_METADATA_BUFFER) {
+        return GLOBAL_SPRITE_OFFSET_PTR(playerPaletteBuffer, PLAYER_PALETTE_BUFFER, addr);
+    }
+    if (addr >= PLAYER_ANIMATION_FRAME_METADATA_BUFFER && addr < PLAYER_SPRITESHEET_INDEX_BUFFER) {
+        return GLOBAL_SPRITE_OFFSET_PTR(playerAnimationMetadataBuffer, PLAYER_ANIMATION_FRAME_METADATA_BUFFER, addr);
+    }
+    if (addr >= PLAYER_SPRITESHEET_INDEX_BUFFER && addr < PLAYER_TEXTURE_TO_PALETTE_LOOKUP_BUFFER) {
+        return GLOBAL_SPRITE_OFFSET_PTR(playerSpritesheetIndexBuffer, PLAYER_SPRITESHEET_INDEX_BUFFER, addr);
+    }
+    if (addr >= PLAYER_TEXTURE_TO_PALETTE_LOOKUP_BUFFER && addr < NAMING_SCREEN_TEXTURE_BUFFER) {
+        return GLOBAL_SPRITE_OFFSET_PTR(playerTextureToPaletteLookupBuffer, PLAYER_TEXTURE_TO_PALETTE_LOOKUP_BUFFER, addr);
+    }
+
+    if (addr >= NAMING_SCREEN_TEXTURE_BUFFER && addr < MAP_DATA_BUFFER) {
+        return GLOBAL_SPRITE_OFFSET_PTR(namingScreenBuffer, NAMING_SCREEN_TEXTURE_BUFFER, addr);
+    }
+    if (addr >= ENTITY_VRAM_START && addr < 0x802E2CC0) {
+        return GLOBAL_SPRITE_OFFSET_PTR(spriteBuffer, ENTITY_VRAM_START, addr);
+    }
+    if (addr >= MAP_OBJECT_SLOT_1_TEXTURE_1 && addr < CUTSCENE_BYTECODE_BUFFER_1) {
+        return GLOBAL_SPRITE_OFFSET_PTR(mapObjectsBuffer, MAP_OBJECT_SLOT_1_TEXTURE_1, addr);
     }
 
     return (void*)ptr;

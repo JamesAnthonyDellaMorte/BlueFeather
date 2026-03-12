@@ -20,21 +20,22 @@ int main(int argc, char* argv[]) {
     // Just pass the filename and let libultraship handle the path resolution
     std::string configFileName = "hm64.json";
     
-    // Moonwright [Port] Mirror Shipwright-style startup ownership by mounting the packaged
-    // archive first and keeping the active executable off loose extracted assets.
+    // Mirror the golden-image model: locate port/base archives via the shared
+    // app-dir -> bundle -> current-dir search, then load port first.
     std::vector<std::string> archivePaths;
     std::unordered_set<std::string> seenArchivePaths;
 
-    auto addArchivePathIfExists = [&](const std::filesystem::path& path) {
-        std::filesystem::path canonicalPath;
-        try {
-            canonicalPath = std::filesystem::weakly_canonical(path);
-        } catch (...) {
-            canonicalPath = path;
+    auto addArchivePathIfExists = [&](const std::string& path) {
+        const std::filesystem::path archivePath(path);
+        if (!std::filesystem::exists(archivePath)) {
+            return;
         }
 
-        if (!std::filesystem::exists(canonicalPath)) {
-            return;
+        std::filesystem::path canonicalPath;
+        try {
+            canonicalPath = std::filesystem::weakly_canonical(archivePath);
+        } catch (...) {
+            canonicalPath = archivePath;
         }
 
         const std::string canonicalString = canonicalPath.string();
@@ -44,24 +45,22 @@ int main(int argc, char* argv[]) {
         }
     };
 
-    const auto executablePath = std::filesystem::path(argv[0]).parent_path();
-    std::vector<std::filesystem::path> possibleAssetPaths = {
-        executablePath / ".." / "Resources" / "Moonwright.o2r",
-        executablePath / "Moonwright.o2r",
-        std::filesystem::path("Moonwright.o2r"),
-        std::filesystem::path("../Moonwright.o2r"),
-        std::filesystem::path("../../Moonwright.o2r"),
-    };
+    const std::string portArchivePath = Ship::Context::LocateFileAcrossAppDirs("Moonwright.o2r", "HM64");
+    const std::string baseArchivePath = Ship::Context::LocateFileAcrossAppDirs("hm64.o2r", "HM64");
+    addArchivePathIfExists(portArchivePath);
+    addArchivePathIfExists(baseArchivePath);
 
-    for (const auto& path : possibleAssetPaths) {
-        addArchivePathIfExists(path);
+    if (!std::filesystem::exists(portArchivePath)) {
+        std::cerr << "[ERROR] Missing Moonwright.o2r. Moonwright requires its port archive and will not fall back to in-exe assets." << std::endl;
+        return 1;
     }
-    
-    if (archivePaths.empty()) {
-        std::cerr << "[WARN] No Moonwright.o2r found. Runtime asset loading may fail." << std::endl;
-    } else {
-        std::cout << "[INFO] Total asset sources: " << archivePaths.size() << std::endl;
+
+    if (!std::filesystem::exists(baseArchivePath)) {
+        std::cerr << "[ERROR] Missing hm64.o2r. Moonwright is archive-only and will not fall back to a raw ROM." << std::endl;
+        return 1;
     }
+
+    std::cout << "[INFO] Total asset sources: " << archivePaths.size() << std::endl;
     
     try {
         std::cout << "[DEBUG] Creating libultraship bootstrap context..." << std::endl;

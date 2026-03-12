@@ -16,7 +16,7 @@
 
 // 0x802055D8
 typedef struct {
-	u32 *mapDataIndex; // virtual address for map data dma
+	u32 *mapDataIndex; // host buffer containing DMA-loaded map data
 	Vec3f viewPosition;
 	Vec3f viewBoundsCorner0;
 	Vec3f viewBoundsCorner1;

@@ -7,9 +7,9 @@
 #include "system/map.h"
 #include "system/sceneGraph.h"
 
-#ifdef HM64_PC_PORT
-extern void* HM64_TranslateAddress(u32 n64Addr);
-#endif
+#include "buffers/buffers.h"
+
+extern u8 mapDataBuffer[0x1A000];
 
 MapController mapControllers[1];
 MapDataAddress mapDataAddresses[96];
@@ -116,7 +116,11 @@ bool initializeMapController(u16 index, u16 mapIndex, u32 *mapDataIndex) {
         
         mapControllers[index].mainMapIndex = mapIndex;
         
-        mapControllers[index].mapDataIndex = mapDataIndex;
+        if ((uintptr_t)mapDataIndex == MAP_DATA_BUFFER) {
+            mapControllers[index].mapDataIndex = (u32*)mapDataBuffer;
+        } else {
+            mapControllers[index].mapDataIndex = mapDataIndex;
+        }
         
         mapControllers[index].flags = MAP_CONTROLLER_INITIALIZED;
 
@@ -180,22 +184,11 @@ bool loadMap(u16 index, u16 mapIndex) {
 static inline u8* getAddress(u32 offsets[], u32 i) {
     const u8* base = (const u8*)offsets;
 
-#ifdef HM64_PC_PORT
-    const uintptr_t baseAddr = (uintptr_t)offsets;
-    if (baseAddr >= 0x80000000ULL && baseAddr < 0x80800000ULL) {
-        base = (const u8*)HM64_TranslateAddress((u32)baseAddr);
-    }
-#endif
-
     if (base == NULL) {
         return NULL;
     }
 
-#ifdef HM64_PC_PORT
     return (u8*)base + hm64ReadRawU32(base + (i * sizeof(u32)));
-#else
-    return (u8*)base + offsets[i];
-#endif
 }
 
 //INCLUDE_ASM("asm/nonmatchings/system/mapController", dmaMapAssets);
@@ -219,7 +212,7 @@ bool dmaMapAssets(u16 mainMapIndex, u16 levelMapIndex) {
         
         mapControllers[mainMapIndex].mapIndex = levelMapIndex;
         
-        // mapDataIndex = virtual address of map data 
+        // mapDataIndex points at the host-side DMA buffer for the imported map blob.
         nuPiReadRom(mapDataAddresses[levelMapIndex].romStart, mapControllers[mainMapIndex].mapDataIndex, mapDataAddresses[levelMapIndex].romEnd - mapDataAddresses[levelMapIndex].romStart);
  
         mapGrid = getAddress(mapControllers[mainMapIndex].mapDataIndex, 0);
