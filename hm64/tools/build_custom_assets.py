@@ -15,8 +15,8 @@ from pathlib import Path
 
 TOOLS_ROOT = Path(__file__).resolve().parent
 HM64_ROOT = TOOLS_ROOT.parent
-MOONWRIGHT_PROJECT_ROOT = HM64_ROOT.parent
-HM64_DECOMP_ROOT = MOONWRIGHT_PROJECT_ROOT.parent / "hm64-decomp"
+BLUEFEATHER_PROJECT_ROOT = HM64_ROOT.parent
+HM64_DECOMP_ROOT = BLUEFEATHER_PROJECT_ROOT.parent / "hm64-decomp"
 LD_SYMBOL_HEADER = HM64_ROOT / "include" / "ld_symbols.h"
 SPLAT_CONFIG = HM64_DECOMP_ROOT / "config" / "us" / "splat.us.yaml"
 sys.path.insert(0, str(TOOLS_ROOT))
@@ -31,7 +31,7 @@ OBJCOPY = Path("llvm-objcopy")
 RUNTIME_ROM_ROOT = Path("runtime/rom")
 
 # Generated cutscene assembly still carries a few legacy segment names from older
-# symbol databases. Resolve them to the active Moonwright segment names at build
+# symbol databases. Resolve them to the active BlueFeather segment names at build
 # time so the assembled archive blobs contain real ROM ranges instead of zeroed
 # relocations.
 ROM_SYMBOL_ALIASES = {
@@ -357,8 +357,8 @@ def generate_runtime_table(table_header: Path, entries: list[RuntimeAssetEntry])
 
     sorted_entries = sorted(entries, key=lambda entry: entry.start)
     lines = [
-        "#ifndef MOONWRIGHT_RUNTIME_ARCHIVE_ROM_TABLE_H",
-        "#define MOONWRIGHT_RUNTIME_ARCHIVE_ROM_TABLE_H",
+        "#ifndef BLUEFEATHER_RUNTIME_ARCHIVE_ROM_TABLE_H",
+        "#define BLUEFEATHER_RUNTIME_ARCHIVE_ROM_TABLE_H",
         "",
         "#include <cstddef>",
         "#include <cstdint>",

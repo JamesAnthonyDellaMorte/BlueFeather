@@ -1,28 +1,28 @@
-set(GAME_NAME "Moonwright")
-set(GAME_SHORT_NAME "Moonwright")
+set(GAME_NAME "BlueFeather")
+set(GAME_SHORT_NAME "BlueFeather")
 set(HM64_BASE_ASSET_ARCHIVE "hm64.o2r")
-set(MOONWRIGHT_PORT_ASSET_ARCHIVE "${GAME_SHORT_NAME}.o2r")
+set(BLUEFEATHER_PORT_ASSET_ARCHIVE "${GAME_SHORT_NAME}.o2r")
 
 set(HM64_ROOT ${CMAKE_CURRENT_SOURCE_DIR})
-set(MOONWRIGHT_ROOT ${HM64_ROOT}/moonwright)
-set(MOONWRIGHT_PROJECT_ROOT ${HM64_ROOT}/..)
-set(HM64_DECOMP_ROOT ${MOONWRIGHT_PROJECT_ROOT}/../hm64-decomp)
+set(BLUEFEATHER_ROOT ${HM64_ROOT}/bluefeather)
+set(BLUEFEATHER_PROJECT_ROOT ${HM64_ROOT}/..)
+set(HM64_DECOMP_ROOT ${BLUEFEATHER_PROJECT_ROOT}/../hm64-decomp)
 
 find_package(Python3 COMPONENTS Interpreter REQUIRED)
 
 set(HM64_PORT_SOURCES
-    ${MOONWRIGHT_ROOT}/src/main.cpp
-    ${MOONWRIGHT_ROOT}/src/hm64_game.cpp
-    ${MOONWRIGHT_ROOT}/src/hm64_gu_compat.c
-    ${MOONWRIGHT_ROOT}/src/hm64_ram.cpp
-    ${MOONWRIGHT_ROOT}/src/hm64_title_globals.c
-    ${MOONWRIGHT_ROOT}/src/nugfx.cpp
-    ${MOONWRIGHT_ROOT}/src/ultra64_compat.cpp
+    ${BLUEFEATHER_ROOT}/src/main.cpp
+    ${BLUEFEATHER_ROOT}/src/hm64_game.cpp
+    ${BLUEFEATHER_ROOT}/src/hm64_gu_compat.c
+    ${BLUEFEATHER_ROOT}/src/hm64_ram.cpp
+    ${BLUEFEATHER_ROOT}/src/hm64_title_globals.c
+    ${BLUEFEATHER_ROOT}/src/nugfx.cpp
+    ${BLUEFEATHER_ROOT}/src/ultra64_compat.cpp
 )
 
 set(HM64_RUNTIME_SOURCES
     ${HM64_ROOT}/src/mainproc.c
-    ${MOONWRIGHT_ROOT}/src/mainLoop.c
+    ${BLUEFEATHER_ROOT}/src/mainLoop.c
     ${HM64_ROOT}/src/buffers/characterAvatarsSpriteBuffer.c
     ${HM64_ROOT}/src/buffers/cutsceneBytecodeBuffer.c
     ${HM64_ROOT}/src/buffers/dialogueBytecodeBuffer.c
@@ -74,8 +74,8 @@ set(HM64_RUNTIME_SOURCES
     ${HM64_ROOT}/src/system/dialogue.c
     ${HM64_ROOT}/src/system/entity.c
     ${HM64_ROOT}/src/system/flags.c
-    ${MOONWRIGHT_ROOT}/src/system/globalSprites.c
-    ${MOONWRIGHT_ROOT}/src/system/graphic.c
+    ${BLUEFEATHER_ROOT}/src/system/globalSprites.c
+    ${BLUEFEATHER_ROOT}/src/system/graphic.c
     ${HM64_ROOT}/src/system/interpolation.c
     ${HM64_ROOT}/src/system/map.c
     ${HM64_ROOT}/src/system/mapController.c
@@ -84,7 +84,7 @@ set(HM64_RUNTIME_SOURCES
     ${HM64_ROOT}/src/system/message.c
     ${HM64_ROOT}/src/system/numberSprites.c
     ${HM64_ROOT}/src/system/sceneGraph.c
-    ${MOONWRIGHT_ROOT}/src/system/sprite.c
+    ${BLUEFEATHER_ROOT}/src/system/sprite.c
     ${HM64_ROOT}/src/system/spriteDMAManager.c
     ${HM64_ROOT}/src/system/staticGfx.c
     ${HM64_ROOT}/src/data/animationScripts/animationScripts.c
@@ -92,8 +92,8 @@ set(HM64_RUNTIME_SOURCES
 
 set(HM64_COMMON_INCLUDE_DIRS
     ${CMAKE_CURRENT_BINARY_DIR}
-    ${MOONWRIGHT_ROOT}/src
-    ${MOONWRIGHT_ROOT}/include
+    ${BLUEFEATHER_ROOT}/src
+    ${BLUEFEATHER_ROOT}/include
     ${HM64_ROOT}/include
     ${HM64_ROOT}/src
     ${LIBULTRASHIP_DIR}/include
@@ -113,7 +113,7 @@ add_custom_command(
         ${HM64_ROOT}/tools/generate_rom_symbol_asm.py
         ${HM64_ROOT}/include/ld_symbols.h
         ${HM64_DECOMP_ROOT}/config/us/splat.us.yaml
-    COMMENT "Generating Moonwright ROM symbols"
+    COMMENT "Generating BlueFeather ROM symbols"
     VERBATIM
 )
 
@@ -152,9 +152,9 @@ endif()
 if(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
     set_target_properties(${GAME_SHORT_NAME} PROPERTIES
         MACOSX_BUNDLE TRUE
-        MACOSX_BUNDLE_INFO_PLIST ${MOONWRIGHT_PROJECT_ROOT}/CMake/Info.plist.in
-        MACOSX_BUNDLE_BUNDLE_NAME "Moonwright"
-        MACOSX_BUNDLE_BUNDLE_IDENTIFIER "com.hm64.moonwright"
+        MACOSX_BUNDLE_INFO_PLIST ${BLUEFEATHER_PROJECT_ROOT}/CMake/Info.plist.in
+        MACOSX_BUNDLE_BUNDLE_NAME "BlueFeather"
+        MACOSX_BUNDLE_BUNDLE_IDENTIFIER "com.hm64.bluefeather"
         MACOSX_BUNDLE_SHORT_VERSION_STRING "1.0"
         MACOSX_BUNDLE_LONG_VERSION_STRING "1.0.0"
     )
@@ -202,34 +202,34 @@ add_custom_command(
 )
 add_custom_target(StageHm64BaseAssets DEPENDS ${HM64_BASE_CUSTOM_ASSET_STAMP} ${HM64_RUNTIME_ARCHIVE_TABLE})
 
-set(MOONWRIGHT_PORT_CUSTOM_ASSET_DIR "${CMAKE_CURRENT_BINARY_DIR}/custom_port_assets")
-set(MOONWRIGHT_PORT_CUSTOM_ASSET_STAMP "${CMAKE_CURRENT_BINARY_DIR}/stage_port_custom_assets.stamp")
+set(BLUEFEATHER_PORT_CUSTOM_ASSET_DIR "${CMAKE_CURRENT_BINARY_DIR}/custom_port_assets")
+set(BLUEFEATHER_PORT_CUSTOM_ASSET_STAMP "${CMAKE_CURRENT_BINARY_DIR}/stage_port_custom_assets.stamp")
 add_custom_command(
-    OUTPUT ${MOONWRIGHT_PORT_CUSTOM_ASSET_STAMP}
-    COMMAND ${CMAKE_COMMAND} -E rm -rf ${MOONWRIGHT_PORT_CUSTOM_ASSET_DIR}
-    COMMAND ${CMAKE_COMMAND} -E make_directory ${MOONWRIGHT_PORT_CUSTOM_ASSET_DIR}
+    OUTPUT ${BLUEFEATHER_PORT_CUSTOM_ASSET_STAMP}
+    COMMAND ${CMAKE_COMMAND} -E rm -rf ${BLUEFEATHER_PORT_CUSTOM_ASSET_DIR}
+    COMMAND ${CMAKE_COMMAND} -E make_directory ${BLUEFEATHER_PORT_CUSTOM_ASSET_DIR}
     COMMAND ${CMAKE_COMMAND} -E copy_directory
         ${LIBULTRASHIP_DIR}/src/fast/shaders
-        ${MOONWRIGHT_PORT_CUSTOM_ASSET_DIR}/shaders
-    COMMAND ${CMAKE_COMMAND} -E touch ${MOONWRIGHT_PORT_CUSTOM_ASSET_STAMP}
+        ${BLUEFEATHER_PORT_CUSTOM_ASSET_DIR}/shaders
+    COMMAND ${CMAKE_COMMAND} -E touch ${BLUEFEATHER_PORT_CUSTOM_ASSET_STAMP}
     DEPENDS ${HM64_SHADER_FILES}
-    COMMENT "Staging Moonwright port assets"
+    COMMENT "Staging BlueFeather port assets"
     VERBATIM
 )
-add_custom_target(StageMoonwrightPortAssets DEPENDS ${MOONWRIGHT_PORT_CUSTOM_ASSET_STAMP})
+add_custom_target(StageBlueFeatherPortAssets DEPENDS ${BLUEFEATHER_PORT_CUSTOM_ASSET_STAMP})
 
 set(HM64_BASE_O2R_FILE "${CMAKE_CURRENT_BINARY_DIR}/${HM64_BASE_ASSET_ARCHIVE}")
 add_custom_command(
     OUTPUT ${HM64_BASE_O2R_FILE}
     COMMAND ${CMAKE_COMMAND} -E rm -f ${HM64_BASE_O2R_FILE}
     COMMAND ${Python3_EXECUTABLE}
-        ${MOONWRIGHT_PROJECT_ROOT}/OTRExporter/extract_assets.py
+        ${BLUEFEATHER_PROJECT_ROOT}/OTRExporter/extract_assets.py
         -z "$<TARGET_FILE:ZAPD>"
         --norom
         --custom-otr-file ${HM64_BASE_O2R_FILE}
         --custom-assets-path ${HM64_BASE_CUSTOM_ASSET_DIR}
     DEPENDS
-        ${MOONWRIGHT_PROJECT_ROOT}/OTRExporter/extract_assets.py
+        ${BLUEFEATHER_PROJECT_ROOT}/OTRExporter/extract_assets.py
         ${HM64_BASE_CUSTOM_ASSET_STAMP}
         ZAPD
     WORKING_DIRECTORY ${HM64_ROOT}
@@ -239,33 +239,33 @@ add_custom_command(
 add_custom_target(GenerateHm64Otr DEPENDS ${HM64_BASE_O2R_FILE})
 add_dependencies(GenerateHm64Otr StageHm64BaseAssets)
 
-set(MOONWRIGHT_PORT_O2R_FILE "${CMAKE_CURRENT_BINARY_DIR}/${MOONWRIGHT_PORT_ASSET_ARCHIVE}")
+set(BLUEFEATHER_PORT_O2R_FILE "${CMAKE_CURRENT_BINARY_DIR}/${BLUEFEATHER_PORT_ASSET_ARCHIVE}")
 add_custom_command(
-    OUTPUT ${MOONWRIGHT_PORT_O2R_FILE}
-    COMMAND ${CMAKE_COMMAND} -E rm -f ${MOONWRIGHT_PORT_O2R_FILE}
+    OUTPUT ${BLUEFEATHER_PORT_O2R_FILE}
+    COMMAND ${CMAKE_COMMAND} -E rm -f ${BLUEFEATHER_PORT_O2R_FILE}
     COMMAND ${Python3_EXECUTABLE}
-        ${MOONWRIGHT_PROJECT_ROOT}/OTRExporter/extract_assets.py
+        ${BLUEFEATHER_PROJECT_ROOT}/OTRExporter/extract_assets.py
         -z "$<TARGET_FILE:ZAPD>"
         --norom
-        --custom-otr-file ${MOONWRIGHT_PORT_O2R_FILE}
-        --custom-assets-path ${MOONWRIGHT_PORT_CUSTOM_ASSET_DIR}
+        --custom-otr-file ${BLUEFEATHER_PORT_O2R_FILE}
+        --custom-assets-path ${BLUEFEATHER_PORT_CUSTOM_ASSET_DIR}
     DEPENDS
-        ${MOONWRIGHT_PROJECT_ROOT}/OTRExporter/extract_assets.py
-        ${MOONWRIGHT_PORT_CUSTOM_ASSET_STAMP}
+        ${BLUEFEATHER_PROJECT_ROOT}/OTRExporter/extract_assets.py
+        ${BLUEFEATHER_PORT_CUSTOM_ASSET_STAMP}
         ZAPD
     WORKING_DIRECTORY ${HM64_ROOT}
-    COMMENT "Generating ${MOONWRIGHT_PORT_ASSET_ARCHIVE}"
+    COMMENT "Generating ${BLUEFEATHER_PORT_ASSET_ARCHIVE}"
     VERBATIM
 )
-add_custom_target(GenerateMoonwrightOtr DEPENDS ${MOONWRIGHT_PORT_O2R_FILE})
-add_dependencies(GenerateMoonwrightOtr StageMoonwrightPortAssets)
+add_custom_target(GenerateBlueFeatherOtr DEPENDS ${BLUEFEATHER_PORT_O2R_FILE})
+add_dependencies(GenerateBlueFeatherOtr StageBlueFeatherPortAssets)
 
 add_dependencies(${GAME_SHORT_NAME} GenerateHm64Otr)
-add_dependencies(${GAME_SHORT_NAME} GenerateMoonwrightOtr)
+add_dependencies(${GAME_SHORT_NAME} GenerateBlueFeatherOtr)
 
-add_custom_target(ExtractAssets DEPENDS ${HM64_BASE_O2R_FILE} ${MOONWRIGHT_PORT_O2R_FILE})
+add_custom_target(ExtractAssets DEPENDS ${HM64_BASE_O2R_FILE} ${BLUEFEATHER_PORT_O2R_FILE})
 add_dependencies(ExtractAssets GenerateHm64Otr)
-add_dependencies(ExtractAssets GenerateMoonwrightOtr)
+add_dependencies(ExtractAssets GenerateBlueFeatherOtr)
 
 set(HM64_RUNTIME_ASSET_STAMP "${CMAKE_CURRENT_BINARY_DIR}/copy_o2r.stamp")
 add_custom_command(
@@ -275,10 +275,10 @@ add_custom_command(
         ${HM64_BASE_O2R_FILE}
         ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${HM64_BASE_ASSET_ARCHIVE}
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
-        ${MOONWRIGHT_PORT_O2R_FILE}
-        ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${MOONWRIGHT_PORT_ASSET_ARCHIVE}
+        ${BLUEFEATHER_PORT_O2R_FILE}
+        ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${BLUEFEATHER_PORT_ASSET_ARCHIVE}
     COMMAND ${CMAKE_COMMAND} -E touch ${HM64_RUNTIME_ASSET_STAMP}
-    DEPENDS ${HM64_BASE_O2R_FILE} ${MOONWRIGHT_PORT_O2R_FILE}
+    DEPENDS ${HM64_BASE_O2R_FILE} ${BLUEFEATHER_PORT_O2R_FILE}
     COMMENT "Copying O2R archives to build output"
     VERBATIM
 )
@@ -290,10 +290,10 @@ add_custom_command(
     OUTPUT ${HM64_RUNTIME_CONFIG_STAMP}
     COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
-        ${MOONWRIGHT_PROJECT_ROOT}/hm64.json
-        ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/hm64.json
+        ${BLUEFEATHER_PROJECT_ROOT}/bluefeather.json
+        ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/bluefeather.json
     COMMAND ${CMAKE_COMMAND} -E touch ${HM64_RUNTIME_CONFIG_STAMP}
-    DEPENDS ${MOONWRIGHT_PROJECT_ROOT}/hm64.json
+    DEPENDS ${BLUEFEATHER_PROJECT_ROOT}/bluefeather.json
     COMMENT "Copying config file"
     VERBATIM
 )
@@ -311,10 +311,10 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
             ${HM64_BASE_O2R_FILE}
             ${APP_RESOURCES}/${HM64_BASE_ASSET_ARCHIVE}
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
-            ${MOONWRIGHT_PORT_O2R_FILE}
-            ${APP_RESOURCES}/${MOONWRIGHT_PORT_ASSET_ARCHIVE}
+            ${BLUEFEATHER_PORT_O2R_FILE}
+            ${APP_RESOURCES}/${BLUEFEATHER_PORT_ASSET_ARCHIVE}
         COMMAND ${CMAKE_COMMAND} -E touch ${HM64_BUNDLE_ASSET_STAMP}
-        DEPENDS ${HM64_BASE_O2R_FILE} ${MOONWRIGHT_PORT_O2R_FILE}
+        DEPENDS ${HM64_BASE_O2R_FILE} ${BLUEFEATHER_PORT_O2R_FILE}
         COMMENT "Copying O2R archives to app bundle"
         VERBATIM
     )
@@ -326,10 +326,10 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
         OUTPUT ${HM64_BUNDLE_CONFIG_STAMP}
         COMMAND ${CMAKE_COMMAND} -E make_directory ${APP_RESOURCES}
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
-            ${MOONWRIGHT_PROJECT_ROOT}/hm64.json
-            ${APP_RESOURCES}/hm64.json
+            ${BLUEFEATHER_PROJECT_ROOT}/bluefeather.json
+            ${APP_RESOURCES}/bluefeather.json
         COMMAND ${CMAKE_COMMAND} -E touch ${HM64_BUNDLE_CONFIG_STAMP}
-        DEPENDS ${MOONWRIGHT_PROJECT_ROOT}/hm64.json
+        DEPENDS ${BLUEFEATHER_PROJECT_ROOT}/bluefeather.json
         COMMENT "Copying config to app bundle"
         VERBATIM
     )
@@ -346,10 +346,10 @@ install(FILES ${HM64_BASE_O2R_FILE}
     DESTINATION share/${GAME_SHORT_NAME}
 )
 
-install(FILES ${MOONWRIGHT_PORT_O2R_FILE}
+install(FILES ${BLUEFEATHER_PORT_O2R_FILE}
     DESTINATION share/${GAME_SHORT_NAME}
 )
 
-install(FILES ${MOONWRIGHT_PROJECT_ROOT}/hm64.json
+install(FILES ${BLUEFEATHER_PROJECT_ROOT}/bluefeather.json
     DESTINATION share/${GAME_SHORT_NAME}
 )

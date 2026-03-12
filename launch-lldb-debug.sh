@@ -3,7 +3,7 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "$0")" && pwd)"
 LLDB_BIN="${LLDB_BIN:-/opt/homebrew/opt/llvm/bin/lldb}"
-DEBUG_BIN="${DEBUG_BIN:-$ROOT_DIR/build-debug/bin/Moonwright-debug.app/Contents/MacOS/Moonwright-debug}"
+DEBUG_BIN="${DEBUG_BIN:-$ROOT_DIR/build-debug/bin/BlueFeather-debug.app/Contents/MacOS/BlueFeather-debug}"
 LLDB_MCP_PORT="${LLDB_MCP_PORT:-59999}"
 
 if [[ ! -x "$LLDB_BIN" ]]; then
@@ -17,7 +17,7 @@ if [[ ! -x "$DEBUG_BIN" ]]; then
   exit 1
 fi
 
-echo "Launching LLDB with Moonwright-debug"
+echo "Launching LLDB with BlueFeather-debug"
 echo "Binary: $DEBUG_BIN"
 echo "MCP port: $LLDB_MCP_PORT"
 echo

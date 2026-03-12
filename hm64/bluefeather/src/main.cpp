@@ -14,11 +14,11 @@
 #include "hm64_game.h"
 
 int main(int argc, char* argv[]) {
-    std::cout << "[INFO] Moonwright starting..." << std::endl;
+    std::cout << "[INFO] BlueFeather starting..." << std::endl;
     
     // On macOS, libultraship will look for the config in the app bundle's Resources folder
     // Just pass the filename and let libultraship handle the path resolution
-    std::string configFileName = "hm64.json";
+    std::string configFileName = "bluefeather.json";
     
     // Mirror the golden-image model: locate port/base archives via the shared
     // app-dir -> bundle -> current-dir search, then load port first.
@@ -45,18 +45,18 @@ int main(int argc, char* argv[]) {
         }
     };
 
-    const std::string portArchivePath = Ship::Context::LocateFileAcrossAppDirs("Moonwright.o2r", "HM64");
-    const std::string baseArchivePath = Ship::Context::LocateFileAcrossAppDirs("hm64.o2r", "HM64");
+    const std::string portArchivePath = Ship::Context::LocateFileAcrossAppDirs("BlueFeather.o2r", "bluefeather");
+    const std::string baseArchivePath = Ship::Context::LocateFileAcrossAppDirs("hm64.o2r", "bluefeather");
     addArchivePathIfExists(portArchivePath);
     addArchivePathIfExists(baseArchivePath);
 
     if (!std::filesystem::exists(portArchivePath)) {
-        std::cerr << "[ERROR] Missing Moonwright.o2r. Moonwright requires its port archive and will not fall back to in-exe assets." << std::endl;
+        std::cerr << "[ERROR] Missing BlueFeather.o2r. BlueFeather requires its port archive and will not fall back to in-exe assets." << std::endl;
         return 1;
     }
 
     if (!std::filesystem::exists(baseArchivePath)) {
-        std::cerr << "[ERROR] Missing hm64.o2r. Moonwright is archive-only and will not fall back to a raw ROM." << std::endl;
+        std::cerr << "[ERROR] Missing hm64.o2r. BlueFeather is archive-only and will not fall back to a raw ROM." << std::endl;
         return 1;
     }
 
@@ -66,8 +66,8 @@ int main(int argc, char* argv[]) {
         std::cout << "[DEBUG] Creating libultraship bootstrap context..." << std::endl;
 
         auto context = Ship::Context::CreateUninitializedInstance(
-            "Harvest Moon 64",       // Full game name
-            "HM64",                  // Short name
+            "BlueFeather",           // Full app name
+            "bluefeather",           // Short app name
             configFileName           // Config file (just the name)
         );
 
@@ -83,7 +83,7 @@ int main(int argc, char* argv[]) {
 
         if (!context->InitConfiguration()) {
             std::cerr << "[ERROR] Failed to initialize libultraship config!" << std::endl;
-            std::cerr << "[HINT] Make sure hm64.json exists in the app bundle's Resources folder" << std::endl;
+            std::cerr << "[HINT] Make sure bluefeather.json exists in the app bundle's Resources folder" << std::endl;
             return 1;
         }
 
@@ -142,7 +142,7 @@ int main(int argc, char* argv[]) {
         std::cout << "[DEBUG] About to call game.Run()..." << std::endl;
         game.Run();
 
-        std::cout << "[INFO] Harvest Moon 64 PC Port shutting down" << std::endl;
+        std::cout << "[INFO] BlueFeather shutting down" << std::endl;
 
     } catch (const std::exception& e) {
         std::cerr << "[ERROR] Exception caught: " << e.what() << std::endl;

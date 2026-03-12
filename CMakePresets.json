@@ -46,21 +46,21 @@
       "name": "release",
       "configurePreset": "release",
       "targets": [
-        "Moonwright"
+        "BlueFeather"
       ]
     },
     {
       "name": "relwithdeb",
       "configurePreset": "relwithdeb",
       "targets": [
-        "Moonwright"
+        "BlueFeather"
       ]
     },
     {
       "name": "debug",
       "configurePreset": "debug",
       "targets": [
-        "Moonwright"
+        "BlueFeather"
       ]
     }
   ]
