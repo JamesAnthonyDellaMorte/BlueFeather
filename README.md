@@ -1,6 +1,15 @@
 # BlueFeather
 
-BlueFeather is a native PC port of Harvest Moon 64.
+BlueFeather is a work-in-progress native PC port of Harvest Moon 64.
+
+> [!WARNING]
+> BlueFeather is currently a proof-of-concept port. The full intro sequence works, audio is up, and the early flow is running with only very minor graphics issues in that path, but the project is not yet fully playable. Expect missing systems, bugs, visual issues, audio issues, and breaking changes while development continues.
+
+## Current Status
+
+BlueFeather is still in active early development. The project is focused on bringing up a clean native PC port architecture, archive-backed assets, host-driven timing, host audio playback, and basic debugging tools before it is treated as a complete game port. The port currently gets through the full intro sequence and into early game flow, with only minor graphics issues remaining in the intro/title path.
+
+At the moment, BlueFeather should be treated as a development snapshot rather than a finished way to play Harvest Moon 64.
 
 BlueFeather does not include copyrighted game assets. To build and run the port, you need this repository, its submodules, and a matching `hm64-decomp` checkout beside it.
 
