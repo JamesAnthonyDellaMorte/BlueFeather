@@ -25,6 +25,8 @@ void HM64_BeginMainLoop(void);
 bool HM64_HostAdvanceFrame(int pendingGfx);
 void HM64_InitCutsceneBytecodeAddresses(void);
 extern volatile u16 engineStateFlags;
+extern volatile u8 frameRate;
+extern volatile u8 mainLoopUpdateRate;
 }
 
 // Drive imported HM64 timing from a fixed 60 Hz host retrace.
@@ -142,6 +144,13 @@ void HM64Game::BootGame() {
     HM64_InitCutsceneBytecodeAddresses();
     HM64_BootGame();
     HM64_BeginMainLoop();
+
+    // HM64 initializes both rates to 1, which runs logic and drawing every VI.
+    // On original hardware the engine regularly missed those deadlines; on host
+    // it does not, so the intro and title flow end up effectively doubled.
+    frameRate = 2;
+    mainLoopUpdateRate = 2;
+
     m_gameBooted = true;
     std::cout << "[INFO] Booted HM64 and entered host-driven main loop" << std::endl;
 }
