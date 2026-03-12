@@ -29,7 +29,7 @@ extern u32 messageBoxAnimationTextureToPaletteLookupBuffer[0x40];
 
 extern u8 dialogueIconTextureBuffer[0x1800];
 extern u16 dialogueIconPaletteBuffer[0x100];
-extern u32 dialogueIconAnimationFrameMetadataBuffer[0x40];
+extern u8 dialogueIconAnimationFrameMetadataBuffer[0x400];
 extern u32 dialogueIconTextureToPaletteLookupBuffer[0x100];
 
 extern u8 characterAvatarsTexture1Buffer[0x800];
