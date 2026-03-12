@@ -3,6 +3,7 @@
 #include "hm64_game.h"
 #include "hm64_ram.h"
 #include "nugfx.h"
+#include "ui/BlueFeatherUI.h"
 
 #include <ship/Context.h>
 
@@ -10,12 +11,14 @@
 #include <ship/window/Window.h>
 #include <ship/controller/controldeck/ControlDeck.h>
 #include <ship/audio/Audio.h>
+#include <libultraship/bridge/consolevariablebridge.h>
 #include <libultraship/libultra.h>
 #include <libultraship/bridge.h>
 #include <fast/interpreter.h>
-#include <iostream>
+#include <spdlog/spdlog.h>
 #include <cstdlib>
 
+#include <algorithm>
 #include <chrono>
 #include <thread>
 
@@ -23,6 +26,7 @@ extern "C" {
 void HM64_BootGame(void);
 void HM64_BeginMainLoop(void);
 bool HM64_HostAdvanceFrame(int pendingGfx);
+bool HM64_HostPumpIdleFrame(int pendingGfx);
 void HM64_InitCutsceneBytecodeAddresses(void);
 extern volatile u16 engineStateFlags;
 extern volatile u8 frameRate;
@@ -34,6 +38,27 @@ constexpr double TARGET_RETRACE_HZ = 60.0;
 constexpr double TARGET_RETRACE_SECONDS = 1.0 / TARGET_RETRACE_HZ;
 constexpr double MAX_ACCUMULATED_SECONDS = TARGET_RETRACE_SECONDS * 5.0;
 constexpr int MAX_RETRACE_STEPS_PER_HOST_FRAME = 5;
+constexpr const char* CVAR_GAME_SPEED = "gGameSpeed";
+constexpr const char* CVAR_GAME_PAUSED = "gGamePaused";
+constexpr const char* CVAR_GAME_STEP_FRAME = "gGameStepFrame";
+
+static double GetGameSpeedScale() {
+    const int32_t speedPercent = std::clamp(CVarGetInteger(CVAR_GAME_SPEED, 100), 50, 400);
+    return static_cast<double>(speedPercent) / 100.0;
+}
+
+static bool IsGamePaused() {
+    return CVarGetInteger(CVAR_GAME_PAUSED, 0) != 0;
+}
+
+static bool ConsumeStepFrameRequest() {
+    if (CVarGetInteger(CVAR_GAME_STEP_FRAME, 0) == 0) {
+        return false;
+    }
+
+    CVarSetInteger(CVAR_GAME_STEP_FRAME, 0);
+    return true;
+}
 
 HM64Game::HM64Game(std::shared_ptr<Ship::Context> context)
     : m_context(context)
@@ -52,55 +77,48 @@ bool HM64Game::Init() {
         return true;
     }
 
-    std::cout << "[INFO] Initializing HM64 Game..." << std::endl;
-
     if (!InitWindow()) {
-        std::cerr << "[ERROR] Failed to initialize window!" << std::endl;
+        SPDLOG_ERROR("Failed to initialize window.");
         return false;
     }
 
     if (!InitGraphics()) {
-        std::cerr << "[ERROR] Failed to initialize graphics!" << std::endl;
+        SPDLOG_ERROR("Failed to initialize graphics.");
         return false;
     }
 
     if (!InitAudio()) {
-        std::cout << "[WARN] Failed to initialize audio (continuing without audio)" << std::endl;
+        SPDLOG_WARN("Failed to initialize audio, continuing without audio.");
     }
 
     if (!InitInput()) {
-        std::cerr << "[ERROR] Failed to initialize input!" << std::endl;
+        SPDLOG_ERROR("Failed to initialize input.");
         return false;
     }
 
     m_initialized = true;
-    std::cout << "[INFO] HM64 Game initialization complete" << std::endl;
 
     return true;
 }
 
 bool HM64Game::InitWindow() {
-    std::cout << "[INFO] Initializing window..." << std::endl;
-    
     auto window = m_context->GetWindow();
     if (!window) {
-        std::cerr << "[ERROR] Window not available from context!" << std::endl;
+        SPDLOG_ERROR("Window not available from context.");
         return false;
     }
 
-    std::cout << "[INFO] Window initialized" << std::endl;
+    BlueFeatherSetupGuiElements();
     return true;
 }
 
 bool HM64Game::InitGraphics() {
-    std::cout << "[INFO] Initializing graphics..." << std::endl;
-
     HM64Host_ClearRam();
     std::srand(0x486D3634);
 
     // Mirror the N64 framebuffer setup before booting imported HM64 code.
     if (gfx_create_framebuffer(320, 240, 320, 240, true) == 0) {
-        std::cerr << "[ERROR] Failed to create host framebuffer!" << std::endl;
+        SPDLOG_ERROR("Failed to create host framebuffer.");
         return false;
     }
 
@@ -108,31 +126,25 @@ bool HM64Game::InitGraphics() {
 }
 
 bool HM64Game::InitAudio() {
-    std::cout << "[INFO] Initializing audio..." << std::endl;
-    
     auto audio = m_context->GetAudio();
     if (!audio) {
-        std::cout << "[WARN] Audio not available from context" << std::endl;
+        SPDLOG_WARN("Audio not available from context.");
         return false;
     }
 
-    std::cout << "[INFO] Audio initialized" << std::endl;
     return true;
 }
 
 bool HM64Game::InitInput() {
-    std::cout << "[INFO] Initializing input..." << std::endl;
-    
     auto controlDeck = m_context->GetControlDeck();
     if (!controlDeck) {
-        std::cerr << "[ERROR] Control deck not available from context!" << std::endl;
+        SPDLOG_ERROR("Control deck not available from context.");
         return false;
     }
 
     // Set up controller mappings for N64-style controls
     // This will map keyboard/controller inputs to N64 buttons
 
-    std::cout << "[INFO] Input initialized" << std::endl;
     return true;
 }
 
@@ -152,17 +164,15 @@ void HM64Game::BootGame() {
     mainLoopUpdateRate = 2;
 
     m_gameBooted = true;
-    std::cout << "[INFO] Booted HM64 and entered host-driven main loop" << std::endl;
 }
 
 void HM64Game::Run() {
     if (!m_initialized) {
-        std::cerr << "[ERROR] Cannot run game - not initialized!" << std::endl;
+        SPDLOG_ERROR("Cannot run game before initialization.");
         return;
     }
 
     m_running = true;
-    std::cout << "[INFO] Starting game main loop" << std::endl;
     BootGame();
 
     auto window = m_context->GetWindow();
@@ -186,13 +196,36 @@ void HM64Game::Run() {
             frameDeltaSeconds = MAX_ACCUMULATED_SECONDS;
         }
 
-        accumulatedSeconds += frameDeltaSeconds;
-
         window->HandleEvents();
         while (nuGfxProcessPendingMainThread()) {
         }
 
+        const bool isPaused = IsGamePaused();
+        const bool stepSingleFrame = isPaused && ConsumeStepFrameRequest();
+        if (!isPaused) {
+            accumulatedSeconds += frameDeltaSeconds * GetGameSpeedScale();
+        } else {
+            accumulatedSeconds = 0.0;
+        }
+
         int retraceSteps = 0;
+        if (stepSingleFrame && m_running && window->IsRunning()) {
+            HM64_HostAdvanceFrame(nuGfxTaskNum());
+
+            while (nuGfxProcessPendingMainThread()) {
+            }
+
+            retraceSteps = 1;
+            m_hostFrameCounter++;
+        }
+
+        if (isPaused && !stepSingleFrame && m_running && window->IsRunning()) {
+            HM64_HostPumpIdleFrame(nuGfxTaskNum());
+
+            while (nuGfxProcessPendingMainThread()) {
+            }
+        }
+
         while (accumulatedSeconds >= TARGET_RETRACE_SECONDS && retraceSteps < MAX_RETRACE_STEPS_PER_HOST_FRAME &&
                m_running && window->IsRunning()) {
             HM64_HostAdvanceFrame(nuGfxTaskNum());
@@ -216,8 +249,6 @@ void HM64Game::Run() {
 
     m_running = false;
     engineStateFlags = 0;
-
-    std::cout << "[INFO] Game main loop ended" << std::endl;
 }
 
 void HM64Game::Shutdown() {
@@ -225,12 +256,8 @@ void HM64Game::Shutdown() {
         return;
     }
 
-    std::cout << "[INFO] Shutting down HM64 Game..." << std::endl;
-
     m_running = false;
     engineStateFlags = 0;
 
     m_initialized = false;
-
-    std::cout << "[INFO] HM64 Game shutdown complete" << std::endl;
 }

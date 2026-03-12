@@ -342,20 +342,10 @@ void initializeCutscene(u16 segmentIndex) {
     u8* bankLoadAddress = getCutsceneBankLoadAddress(segmentIndex);
     u8* entryPointAddress = getCutsceneEntryPointAddress(segmentIndex);
 
-    printf("[CUTSCENE] initializeCutscene: segmentIndex=%u, romAddrStart=%p, romAddrEnd=%p, loadAddr=%p\n",
-           segmentIndex,
-           (void*)cutsceneBytecodeAddresses[segmentIndex].romAddrStart,
-           (void*)cutsceneBytecodeAddresses[segmentIndex].romAddrEnd,
-           bankLoadAddress);
-
     nuPiReadRom(cutsceneBytecodeAddresses[segmentIndex].romAddrStart, bankLoadAddress,
                 cutsceneSize);
 
     gCutsceneCompletionFlags = 0;
-
-    printf("[CUTSCENE] initializeCutscene: spawning executor %u at %p\n",
-           cutsceneExecutorIndices[segmentIndex],
-           entryPointAddress);
 
     spawnCutsceneExecutor(cutsceneExecutorIndices[segmentIndex], entryPointAddress);
     

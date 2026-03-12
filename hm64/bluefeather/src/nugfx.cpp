@@ -8,6 +8,7 @@
 #include <libultraship/libultra.h>
 #include <fast/Fast3dWindow.h>
 #include <fast/interpreter.h>
+#include <spdlog/spdlog.h>
 #include <ship/Context.h>
 #include <ship/resource/ResourceManager.h>
 
@@ -18,7 +19,6 @@
 #include <cstring>
 #include <cstdlib>
 #include <condition_variable>
-#include <iostream>
 #include <memory>
 #include <mutex>
 #include <unordered_map>
@@ -303,8 +303,8 @@ std::shared_ptr<std::vector<char>> LoadArchiveBlob(const char* path) {
                 file->Buffer = std::make_shared<std::vector<char>>(file->Buffer->begin() + payloadOffset,
                                                                    file->Buffer->begin() + payloadOffset + payloadSize);
             } else {
-                std::cerr << "[Moonwright] Invalid blob payload for " << path << ": payloadSize=" << payloadSize
-                          << " wrappedSize=" << file->Buffer->size() << std::endl;
+                SPDLOG_ERROR("Invalid blob payload for {}: payloadSize={} wrappedSize={}", path, payloadSize,
+                             file->Buffer->size());
                 std::lock_guard<std::mutex> lock(s_archiveBlobCacheMutex);
                 s_archiveBlobLoadFailures.emplace(path);
                 return nullptr;
@@ -340,16 +340,15 @@ bool ReadArchiveRuntimeRange(uintptr_t romAddr, void* dst, size_t size) {
 
         const size_t offset = romAddr - entry.Start;
         if (offset > blob->size() || size > (blob->size() - offset)) {
-            std::cerr << "[Moonwright] Archive blob size mismatch for " << entry.Path << ": romRange=0x" << std::hex
-                      << entry.Start << "-0x" << entry.End << std::dec << " blobSize=" << blob->size()
-                      << " offset=" << offset << " size=" << size << std::endl;
+            SPDLOG_ERROR("Archive blob size mismatch for {}: romRange=0x{:08x}-0x{:08x} blobSize={} offset={} size={}",
+                         entry.Path, entry.Start, entry.End, blob->size(), offset, size);
             return false;
         }
 
         std::memcpy(dst, blob->data() + offset, size);
 
         if (!s_loggedArchivePaths.contains(entry.Path)) {
-            std::cout << "[Moonwright] Serving runtime ROM reads from archive: " << entry.Path << std::endl;
+            SPDLOG_DEBUG("Serving runtime ROM reads from archive: {}", entry.Path);
             s_loggedArchivePaths.emplace(entry.Path);
         }
         return true;
@@ -508,8 +507,7 @@ extern "C" void nuPiReadRomCompat(uintptr_t romAddr, uintptr_t bufAddr, u32 size
     if (bufAddr >= 0x80000000ULL && bufAddr < 0x80800000ULL) {
         pcBufPtr = ResolveRuntimeBufferAddress((u32)bufAddr);
         if (pcBufPtr == nullptr) {
-            std::cerr << "[HM64_ROM_ERROR] Failed to translate N64 buffer address 0x" 
-                      << std::hex << bufAddr << std::dec << std::endl;
+            SPDLOG_ERROR("Failed to translate N64 buffer address 0x{:08x}", static_cast<uint32_t>(bufAddr));
             return;
         }
     }
@@ -522,8 +520,8 @@ extern "C" void nuPiReadRomCompat(uintptr_t romAddr, uintptr_t bufAddr, u32 size
         return;
     }
 
-    std::cerr << "[Moonwright] Missing archive-backed runtime asset for ROM range 0x" << std::hex << romAddr
-              << std::dec << " (" << size << " bytes)." << std::endl;
+    SPDLOG_ERROR("Missing archive-backed runtime asset for ROM range 0x{:08x} ({} bytes).",
+                 static_cast<uint32_t>(romAddr), size);
     std::abort();
 }
 

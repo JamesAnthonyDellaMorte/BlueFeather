@@ -67,6 +67,7 @@
 extern void mainLoop();
 extern void HM64_BeginMainLoop(void);
 extern bool HM64_HostAdvanceFrame(int pendingGfx);
+extern bool HM64_HostPumpIdleFrame(int pendingGfx);
 extern bool HM64_MainLoopStep(void);
 
 extern u32 setMainLoopCallbackFunctionIndex(u16 callbackIndex); 

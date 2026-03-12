@@ -47,6 +47,7 @@ set(HM64_PORT_SOURCES
     ${BLUEFEATHER_ROOT}/src/hm64_title_globals.c
     ${BLUEFEATHER_ROOT}/src/libmus.cpp
     ${BLUEFEATHER_ROOT}/src/nugfx.cpp
+    ${BLUEFEATHER_ROOT}/src/ui/BlueFeatherUI.cpp
     ${BLUEFEATHER_ROOT}/src/ultra64_compat.cpp
     ${HM64_DECOMP_ROOT}/lib/libmus/src/player.c
 )

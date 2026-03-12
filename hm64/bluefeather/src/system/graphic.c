@@ -1,8 +1,6 @@
 #include "common.h"
 
 #include <stdlib.h>
-#include <stdio.h>
-
 #include "system/graphic.h"
 
 #include "system/sprite.h"
@@ -80,12 +78,6 @@ void graphicsInit(void) {
 //INCLUDE_ASM("asm/nonmatchings/system/graphic", drawFrame);
 
 void drawFrame(void) {
-    static int drawCount = 0;
-    if (drawCount < 5) {
-        printf("[HM64_GFX] drawFrame called: %d\n", drawCount);
-        drawCount++;
-    }
-
     gfxTaskNo = 0;
 
     startGfxTask();

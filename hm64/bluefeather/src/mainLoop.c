@@ -146,6 +146,18 @@ bool HM64_HostAdvanceFrame(int pendingGfx) {
     return stepped;
 }
 
+bool HM64_HostPumpIdleFrame(int pendingGfx) {
+    if (!sMainLoopStarted || !WindowIsRunning()) {
+        return FALSE;
+    }
+
+    // Keep retrace, input, and drawing alive while the host has game logic paused.
+    stepMainLoop = FALSE;
+    gfxRetraceCallback(pendingGfx);
+    stepMainLoop = FALSE;
+    return TRUE;
+}
+
 void mainLoop(void) {
     HM64_BeginMainLoop();
 

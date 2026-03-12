@@ -2,6 +2,8 @@
 
 #include <stdio.h>
 
+#include <libultraship/luslog.h>
+
 #include "ld_symbols.h"
 #include "buffers/buffers.h"
 #include "system/globalSprites.h"
@@ -576,21 +578,12 @@ void initializeCutsceneExecutors(void) {
 //INCLUDE_ASM("asm/nonmatchings/system/cutscene", spawnCutsceneExecutor);
 
 bool spawnCutsceneExecutor(u16 index, void *bytecodePtr) {
-    static int spawnCount = 0;
     bool result = FALSE;
-
-    if (spawnCount < 5) {
-        printf("[CUTSCENE] spawnCutsceneExecutor: index=%u, bytecodePtr=%p\n", index, bytecodePtr);
-        spawnCount++;
-    }
 
     if (index < MAX_BYTECODE_EXECUTORS) {
 
         if (!(cutsceneExecutors[index].flags & CUTSCENE_ASSET_ACTIVE)) {
             cutsceneExecutors[index].bytecodePtr = bytecodePtr;
-            if (spawnCount < 5) {
-                printf("[CUTSCENE] spawnCutsceneExecutor: host bytecodePtr=%p\n", bytecodePtr);
-            }
             
             cutsceneExecutors[index].waitFrames = 0;
             
@@ -781,29 +774,7 @@ static s32 cutsceneUpdateValue(s32 initial, s32 value, s32 max) {
 //INCLUDE_ASM("asm/nonmatchings/system/cutscene", updateCutsceneExecutors);
 
 void updateCutsceneExecutors(void) {
-    static int updateCount = 0;
     u16 i;
-
-    // Debug: always print on first call
-    if (updateCount == 0) {
-        printf("[CUTSCENE] updateCutsceneExecutors called!\n");
-    }
-
-    // Debug: print executor status on first few calls
-    if (updateCount < 5) {
-        int activeCount = 0;
-        for (int j = 0; j < MAX_BYTECODE_EXECUTORS && j < 5; j++) {
-            if (cutsceneExecutors[j].flags & CUTSCENE_ASSET_ACTIVE) {
-                activeCount++;
-                printf("[CUTSCENE] Executor %d: flags=0x%x, bytecodePtr=%p\n",
-                       j, cutsceneExecutors[j].flags, cutsceneExecutors[j].bytecodePtr);
-            }
-        }
-        if (activeCount == 0) {
-            printf("[CUTSCENE] No active executors (updateCount=%d)\n", updateCount);
-        }
-        updateCount++;
-    }
 
     for (i = 0; i < MAX_BYTECODE_EXECUTORS; i++) {
         if (cutsceneExecutors[i].flags & CUTSCENE_ASSET_ACTIVE && !(cutsceneExecutors[i].flags & CUTSCENE_PAUSE_EXECUTION)) {
@@ -852,8 +823,8 @@ void updateCutsceneExecutors(void) {
                 u16 opcode = BE16SWAP(rawOpcode);
 #endif
                 if (opcode >= 100) {
-                    printf("[CUTSCENE] ERROR: Invalid opcode %u (raw=0x%04x) at bytecodePtr=%p, executor=%d\n",
-                           opcode, rawOpcode, bytecodePtr, i);
+                    LUSLOG_ERROR("Invalid cutscene opcode %u (raw=0x%04x) at bytecodePtr=%p, executor=%d",
+                                 opcode, rawOpcode, bytecodePtr, i);
                 }
                 cutsceneCommandHandlers[opcode](i);
                 
@@ -1487,18 +1458,13 @@ void cutsceneHandlerSpawnExecutor(u16 index) {
     branchBase = cutsceneExecutors[index].bytecodePtr;
 
     offset = CUTSCENE_READ_S16(bytecodePtr + 4);
-    
-    printf("[SPAWN] executor %d: rawOffset=0x%04x, offset=%d\n", index, (u16)CUTSCENE_READ_U16(bytecodePtr + 4), offset);
-    
+
     cutsceneExecutors[index].bytecodePtr += 4;
     
     // Spawn offsets are relative to the command stream immediately after the
     // opcode/executor words, not after the full 8-byte spawn command.
     spawnedPtr = branchBase + offset;
-    
-    printf("[SPAWN] executor %d: afterCmd=%p, spawnedPtr=%p, spawning executor %d\n", 
-           index, cutsceneExecutors[index].bytecodePtr, spawnedPtr, executorIndex);
-    
+
     spawnCutsceneExecutor(executorIndex, spawnedPtr);
     
 }
@@ -1596,20 +1562,6 @@ void cutsceneHandlerDMASprite(u16 index) {
     cutsceneExecutors[index].bytecodePtr += 4;
     romSpritesheetIndexEnd = CUTSCENE_READ_U32(cutsceneExecutors[index].bytecodePtr);
 
-    {
-        u32 tex1N64 = CUTSCENE_READ_U32(cutsceneExecutors[index].bytecodePtr + 4);
-        u32 tex2N64 = CUTSCENE_READ_U32(cutsceneExecutors[index].bytecodePtr + 8);
-        u32 palN64 = CUTSCENE_READ_U32(cutsceneExecutors[index].bytecodePtr + 12);
-        u32 animN64 = CUTSCENE_READ_U32(cutsceneExecutors[index].bytecodePtr + 16);
-        u32 s2pN64 = CUTSCENE_READ_U32(cutsceneExecutors[index].bytecodePtr + 20);
-        u32 ssN64 = CUTSCENE_READ_U32(cutsceneExecutors[index].bytecodePtr + 24);
-        printf("[DMA_SPRITE] executor=%u spriteIdx=%u assetType=%u\n", index, cutsceneExecutors[index].assetIndex, assetType);
-        printf("[DMA_SPRITE] romTex=0x%08x-0x%08x romAssets=0x%08x-0x%08x romSS=0x%08x-0x%08x\n",
-               romTextureStart, romTextureEnd, romAssetsIndexStart, romAssetsIndexEnd, romSpritesheetIndexStart, romSpritesheetIndexEnd);
-        printf("[DMA_SPRITE] N64 vaddrs: tex1=0x%08x tex2=0x%08x pal=0x%08x anim=0x%08x s2p=0x%08x ss=0x%08x\n",
-               tex1N64, tex2N64, palN64, animN64, s2pN64, ssN64);
-    }
-
     cutsceneExecutors[index].bytecodePtr += 4;
     texture1Vaddr = (u8*)readCutsceneDataPtr(cutsceneExecutors[index].bytecodePtr);
 
@@ -1627,9 +1579,6 @@ void cutsceneHandlerDMASprite(u16 index) {
 
     cutsceneExecutors[index].bytecodePtr += 4;
     spritesheetIndexVaddr = (u32*)readCutsceneDataPtr(cutsceneExecutors[index].bytecodePtr);
-
-    printf("[DMA_SPRITE] PC ptrs: tex1=%p tex2=%p pal=%p anim=%p s2p=%p ss=%p\n",
-           texture1Vaddr, texture2Vaddr, paletteVaddr, animationVaddr, spriteToPaletteVaddr, spritesheetIndexVaddr);
 
     cutsceneExecutors[index].bytecodePtr += 4;
 #else
