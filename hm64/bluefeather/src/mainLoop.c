@@ -6,6 +6,7 @@
 
 #include <libultraship/bridge/windowbridge.h>
 
+#include "nualstl_n.h"
 #include "system/audio.h"
 #include "system/controller.h"
 #include "system/cutscene.h"
@@ -140,7 +141,9 @@ bool HM64_HostAdvanceFrame(int pendingGfx) {
     }
 
     gfxRetraceCallback(pendingGfx);
-    return HM64_MainLoopStep();
+    const bool stepped = HM64_MainLoopStep();
+    nuAuStlTick();
+    return stepped;
 }
 
 void mainLoop(void) {

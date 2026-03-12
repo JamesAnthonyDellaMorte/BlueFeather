@@ -1,4 +1,3 @@
-// libmus.h - PC replacement for N64 libmus
 #ifndef _LIBMUS_H_
 #define _LIBMUS_H_
 
@@ -31,61 +30,37 @@ typedef struct {
 } musConfig;
 
 #define MUSCONTROL_RAM (1 << 0)
+
 #define MUSFLAG_EFFECTS 1
 #define MUSFLAG_SONGS 2
 
-// Stub functions
-static inline int MusInitialize(musConfig* config) {
-    (void)config;
-    return 0;
-}
+int MusInitialize(musConfig* config);
 
-static inline void MusSetMasterVolume(unsigned long flags, int volume) {
-    (void)flags;
-    (void)volume;
-}
+void MusSetMasterVolume(unsigned long flags, int volume);
 
-static inline unsigned long MusStartSong(void* song) {
-    (void)song;
-    return 0;
-}
+unsigned long MusStartSong(void* addr);
+unsigned long MusStartEffect(int number);
+unsigned long MusStartEffect2(int number, int volume, int pan, int restartflag, int priority);
 
-static inline void MusStop(unsigned long flags, int speed) {
-    (void)flags;
-    (void)speed;
-}
+void MusStop(unsigned long flags, int speed);
+int MusAsk(unsigned long flags);
 
-static inline int MusHandleStop(unsigned long handle, int speed) {
-    (void)handle;
-    (void)speed;
-    return 0;
-}
+int MusHandleStop(unsigned long handle, int speed);
+int MusHandleAsk(unsigned long handle);
+int MusHandleSetVolume(unsigned long handle, int volume);
+int MusHandleSetPan(unsigned long handle, int pan);
+int MusHandleSetFreqOffset(unsigned long handle, float offset);
+int MusHandleSetTempo(unsigned long handle, int tempo);
+int MusHandleSetReverb(unsigned long handle, int reverb);
 
-static inline int MusHandleAsk(unsigned long handle) {
-    (void)handle;
-    return 0;
-}
-
-static inline int MusHandleSetVolume(unsigned long handle, int volume) {
-    (void)handle;
-    (void)volume;
-    return 0;
-}
-
-static inline int MusHandleSetPan(unsigned long handle, int pan) {
-    (void)handle;
-    (void)pan;
-    return 0;
-}
-
-static inline int MusHandleSetFreqOffset(unsigned long handle, float offset) {
-    (void)handle;
-    (void)offset;
-    return 0;
-}
+void MusBankInitialize(void* pbank, void* wbank);
+unsigned long MusBankStartSong(void* ipbank, void* addr);
+unsigned long MusBankStartEffect(void* ipbank, int number);
+unsigned long MusBankStartEffect2(void* ipbank, int number, int volume, int pan, int restartflag, int priority);
+void* MusHandleGetPtrAddr(int handle);
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif // _LIBMUS_H_
+#endif

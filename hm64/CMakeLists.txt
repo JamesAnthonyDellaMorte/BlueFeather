@@ -45,8 +45,10 @@ set(HM64_PORT_SOURCES
     ${BLUEFEATHER_ROOT}/src/hm64_gu_compat.c
     ${BLUEFEATHER_ROOT}/src/hm64_ram.cpp
     ${BLUEFEATHER_ROOT}/src/hm64_title_globals.c
+    ${BLUEFEATHER_ROOT}/src/libmus.cpp
     ${BLUEFEATHER_ROOT}/src/nugfx.cpp
     ${BLUEFEATHER_ROOT}/src/ultra64_compat.cpp
+    ${HM64_DECOMP_ROOT}/lib/libmus/src/player.c
 )
 
 set(HM64_RUNTIME_SOURCES
@@ -125,6 +127,8 @@ set(HM64_COMMON_INCLUDE_DIRS
     ${BLUEFEATHER_ROOT}/include
     ${HM64_ROOT}/include
     ${HM64_ROOT}/src
+    ${HM64_DECOMP_ROOT}/lib/libmus/include/PR
+    ${HM64_DECOMP_ROOT}/lib/libmus/src
     ${LIBULTRASHIP_DIR}/include
     ${LIBULTRASHIP_DIR}/include/libultraship
 )
@@ -149,6 +153,11 @@ add_custom_command(
 list(APPEND HM64_PORT_SOURCES ${HM64_ROM_SYMBOL_ASM})
 
 add_executable(${GAME_SHORT_NAME} ${HM64_PORT_SOURCES} ${HM64_RUNTIME_SOURCES})
+
+set_source_files_properties(${HM64_DECOMP_ROOT}/lib/libmus/src/player.c PROPERTIES
+    COMPILE_DEFINITIONS "NU_SYSTEM;_AUDIOVISIBLE"
+    COMPILE_OPTIONS "-include;math.h"
+)
 
 target_include_directories(${GAME_SHORT_NAME} PRIVATE ${HM64_COMMON_INCLUDE_DIRS})
 
