@@ -45,7 +45,7 @@ jobs:
           ln -sfn "${GITHUB_WORKSPACE}/hm64-decomp-src" "${GITHUB_WORKSPACE}/../hm64-decomp"
 
       - name: Configure
-        run: cmake --preset debug
+        run: cmake --preset debug -DBLUEFEATHER_BUILD_RUNTIME_ASSETS=OFF
 
       - name: Build
-        run: cmake --build --preset debug --parallel 3
+        run: cmake --build --preset debug --parallel 3 --target BlueFeather

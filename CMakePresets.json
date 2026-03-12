@@ -10,7 +10,12 @@
       "name": "base",
       "hidden": true,
       "generator": "Ninja",
+      "environment": {
+        "CLICOLOR_FORCE": "1",
+        "FORCE_COLOR": "1"
+      },
       "cacheVariables": {
+        "CMAKE_COLOR_DIAGNOSTICS": "ON",
         "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
         "CMAKE_TOOLCHAIN_FILE": "${sourceDir}/CMake/HideSystemSpdlog.cmake",
         "CMAKE_OSX_DEPLOYMENT_TARGET": "14.0"
@@ -43,7 +48,16 @@
   ],
   "buildPresets": [
     {
+      "name": "build-base",
+      "hidden": true,
+      "environment": {
+        "CLICOLOR_FORCE": "1",
+        "FORCE_COLOR": "1"
+      }
+    },
+    {
       "name": "release",
+      "inherits": "build-base",
       "configurePreset": "release",
       "targets": [
         "BlueFeather"
@@ -51,6 +65,7 @@
     },
     {
       "name": "relwithdeb",
+      "inherits": "build-base",
       "configurePreset": "relwithdeb",
       "targets": [
         "BlueFeather"
@@ -58,6 +73,7 @@
     },
     {
       "name": "debug",
+      "inherits": "build-base",
       "configurePreset": "debug",
       "targets": [
         "BlueFeather"

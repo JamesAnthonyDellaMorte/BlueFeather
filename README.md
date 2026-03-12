@@ -97,7 +97,7 @@ Important source layout:
 - `hm64/src` and `hm64/include`: imported HM64 game code
 - `hm64/bluefeather/src` and `hm64/bluefeather/include`: BlueFeather port code
 - `libultraship`: platform, windowing, rendering, audio, and archive runtime
-- `OTRExporter`: asset packaging pipeline
+- `Torch`: archive packaging tool for `.o2r` assets
 
 Useful commands:
 
@@ -110,4 +110,4 @@ cmake --build --preset debug
 
 BlueFeather follows the licensing terms of the HM64 decomp project it is built from.
 
-`libultraship` and `OTRExporter` are separate dependencies with their own licenses.
+`libultraship` and `Torch` are separate dependencies with their own licenses.

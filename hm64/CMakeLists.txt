@@ -7,9 +7,37 @@ set(HM64_ROOT ${CMAKE_CURRENT_SOURCE_DIR})
 set(BLUEFEATHER_ROOT ${HM64_ROOT}/bluefeather)
 set(BLUEFEATHER_PROJECT_ROOT ${HM64_ROOT}/..)
 set(HM64_DECOMP_ROOT ${BLUEFEATHER_PROJECT_ROOT}/../hm64-decomp)
-set(BLUEFEATHER_ASSET_TOOL_TARGET BlueFeatherAssetTool)
+set(HM64_GENERATED_DIR "${CMAKE_CURRENT_BINARY_DIR}/generated")
+set(HM64_RUNTIME_ARCHIVE_TABLE "${HM64_GENERATED_DIR}/runtime_archive_rom_table.h")
+option(BLUEFEATHER_BUILD_RUNTIME_ASSETS "Stage and pack runtime O2R assets during the build" ON)
 
 find_package(Python3 COMPONENTS Interpreter REQUIRED)
+include(ExternalProject)
+
+ExternalProject_Add(TorchExternal
+    PREFIX TorchExternal
+    SOURCE_DIR ${BLUEFEATHER_PROJECT_ROOT}/Torch
+    BUILD_BYPRODUCTS ${CMAKE_CURRENT_BINARY_DIR}/TorchExternal/src/TorchExternal-build/torch
+    CMAKE_ARGS
+        -DCMAKE_INSTALL_PREFIX=${CMAKE_BINARY_DIR}/Torch
+        -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
+        -DCMAKE_OSX_DEPLOYMENT_TARGET=${CMAKE_OSX_DEPLOYMENT_TARGET}
+        -DUSE_STANDALONE=ON
+        -DBUILD_STORMLIB=OFF
+        -DBUILD_SM64=OFF
+        -DBUILD_MK64=OFF
+        -DBUILD_SF64=OFF
+        -DBUILD_FZERO=OFF
+        -DBUILD_MARIO_ARTIST=OFF
+        -DBUILD_NAUDIO=ON
+)
+
+ExternalProject_Get_Property(TorchExternal install_dir)
+if(MSVC)
+    set(TORCH_EXECUTABLE ${install_dir}/src/TorchExternal-build/$<CONFIGURATION>/torch)
+else()
+    set(TORCH_EXECUTABLE ${install_dir}/src/TorchExternal-build/torch)
+endif()
 
 set(HM64_PORT_SOURCES
     ${BLUEFEATHER_ROOT}/src/main.cpp
@@ -104,7 +132,7 @@ set(HM64_COMMON_INCLUDE_DIRS
 set(HM64_ROM_SYMBOL_ASM "${CMAKE_CURRENT_BINARY_DIR}/generated/rom_symbols.c")
 add_custom_command(
     OUTPUT ${HM64_ROM_SYMBOL_ASM}
-    COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_CURRENT_BINARY_DIR}/generated
+    COMMAND ${CMAKE_COMMAND} -E make_directory ${HM64_GENERATED_DIR}
     COMMAND ${Python3_EXECUTABLE}
         ${HM64_ROOT}/tools/generate_rom_symbol_asm.py
         --ld-header ${HM64_ROOT}/include/ld_symbols.h
@@ -165,126 +193,128 @@ set_target_properties(${GAME_SHORT_NAME} PROPERTIES
     OUTPUT_NAME_DEBUG "${GAME_SHORT_NAME}-debug"
 )
 
-file(GLOB_RECURSE HM64_ASSET_FILES CONFIGURE_DEPENDS
-    "${HM64_ROOT}/assets/*"
-)
-list(FILTER HM64_ASSET_FILES EXCLUDE REGEX "/assets/custom(/|$)")
-file(GLOB_RECURSE HM64_SHADER_FILES CONFIGURE_DEPENDS
-    "${LIBULTRASHIP_DIR}/src/fast/shaders/*"
-)
-file(GLOB_RECURSE HM64_TOOL_FILES CONFIGURE_DEPENDS
-    "${HM64_ROOT}/tools/libhm64/*"
-)
-file(GLOB HM64_DECOMP_AUDIO_FILES CONFIGURE_DEPENDS
-    "${HM64_DECOMP_ROOT}/bin/audio/waveTable*.bin"
-)
+if(BLUEFEATHER_BUILD_RUNTIME_ASSETS)
+    file(GLOB_RECURSE HM64_ASSET_FILES CONFIGURE_DEPENDS
+        "${HM64_DECOMP_ROOT}/assets/*"
+    )
+    file(GLOB_RECURSE HM64_SHADER_FILES CONFIGURE_DEPENDS
+        "${LIBULTRASHIP_DIR}/src/fast/shaders/*"
+    )
+    file(GLOB_RECURSE HM64_TOOL_FILES CONFIGURE_DEPENDS
+        "${HM64_ROOT}/tools/libhm64/*"
+    )
+    file(GLOB HM64_DECOMP_AUDIO_FILES CONFIGURE_DEPENDS
+        "${HM64_DECOMP_ROOT}/bin/audio/waveTable*.bin"
+    )
 
-set(HM64_BASE_CUSTOM_ASSET_DIR "${CMAKE_CURRENT_BINARY_DIR}/custom_base_assets")
-set(HM64_RUNTIME_ARCHIVE_TABLE "${CMAKE_CURRENT_BINARY_DIR}/generated/runtime_archive_rom_table.h")
-set(HM64_BASE_CUSTOM_ASSET_STAMP "${CMAKE_CURRENT_BINARY_DIR}/stage_base_custom_assets.stamp")
-add_custom_command(
-    OUTPUT ${HM64_BASE_CUSTOM_ASSET_STAMP} ${HM64_RUNTIME_ARCHIVE_TABLE}
-    COMMAND ${CMAKE_COMMAND} -E rm -rf ${HM64_BASE_CUSTOM_ASSET_DIR}
-    COMMAND ${Python3_EXECUTABLE}
-        ${HM64_ROOT}/tools/build_custom_assets.py
-        --output-dir ${HM64_BASE_CUSTOM_ASSET_DIR}
-        --table-header ${HM64_RUNTIME_ARCHIVE_TABLE}
-    COMMAND ${CMAKE_COMMAND} -E touch ${HM64_BASE_CUSTOM_ASSET_STAMP}
-    DEPENDS
-        ${HM64_ROOT}/tools/build_custom_assets.py
-        ${HM64_ASSET_FILES}
-        ${HM64_SHADER_FILES}
-        ${HM64_TOOL_FILES}
-        ${HM64_DECOMP_AUDIO_FILES}
-        ${HM64_ROOT}/include/ld_symbols.h
-        ${HM64_DECOMP_ROOT}/config/us/splat.us.yaml
-    COMMENT "Staging archive-backed HM64 runtime assets"
-    VERBATIM
-)
-add_custom_target(StageHm64BaseAssets DEPENDS ${HM64_BASE_CUSTOM_ASSET_STAMP} ${HM64_RUNTIME_ARCHIVE_TABLE})
+    set(HM64_BASE_CUSTOM_ASSET_DIR "${CMAKE_CURRENT_BINARY_DIR}/custom_base_assets")
+    set(HM64_BASE_CUSTOM_ASSET_STAMP "${CMAKE_CURRENT_BINARY_DIR}/stage_base_custom_assets.stamp")
+    add_custom_command(
+        OUTPUT ${HM64_BASE_CUSTOM_ASSET_STAMP} ${HM64_RUNTIME_ARCHIVE_TABLE}
+        COMMAND ${CMAKE_COMMAND} -E rm -rf ${HM64_BASE_CUSTOM_ASSET_DIR}
+        COMMAND ${Python3_EXECUTABLE}
+            ${HM64_ROOT}/tools/build_custom_assets.py
+            --output-dir ${HM64_BASE_CUSTOM_ASSET_DIR}
+            --table-header ${HM64_RUNTIME_ARCHIVE_TABLE}
+        COMMAND ${CMAKE_COMMAND} -E touch ${HM64_BASE_CUSTOM_ASSET_STAMP}
+        DEPENDS
+            ${HM64_ROOT}/tools/build_custom_assets.py
+            ${HM64_ASSET_FILES}
+            ${HM64_SHADER_FILES}
+            ${HM64_TOOL_FILES}
+            ${HM64_DECOMP_AUDIO_FILES}
+            ${HM64_ROOT}/include/ld_symbols.h
+            ${HM64_DECOMP_ROOT}/config/us/splat.us.yaml
+        COMMENT "Staging archive-backed HM64 runtime assets"
+        VERBATIM
+    )
+    add_custom_target(StageHm64BaseAssets DEPENDS ${HM64_BASE_CUSTOM_ASSET_STAMP} ${HM64_RUNTIME_ARCHIVE_TABLE})
 
-set(BLUEFEATHER_PORT_CUSTOM_ASSET_DIR "${CMAKE_CURRENT_BINARY_DIR}/custom_port_assets")
-set(BLUEFEATHER_PORT_CUSTOM_ASSET_STAMP "${CMAKE_CURRENT_BINARY_DIR}/stage_port_custom_assets.stamp")
-add_custom_command(
-    OUTPUT ${BLUEFEATHER_PORT_CUSTOM_ASSET_STAMP}
-    COMMAND ${CMAKE_COMMAND} -E rm -rf ${BLUEFEATHER_PORT_CUSTOM_ASSET_DIR}
-    COMMAND ${CMAKE_COMMAND} -E make_directory ${BLUEFEATHER_PORT_CUSTOM_ASSET_DIR}
-    COMMAND ${CMAKE_COMMAND} -E copy_directory
-        ${LIBULTRASHIP_DIR}/src/fast/shaders
-        ${BLUEFEATHER_PORT_CUSTOM_ASSET_DIR}/shaders
-    COMMAND ${CMAKE_COMMAND} -E touch ${BLUEFEATHER_PORT_CUSTOM_ASSET_STAMP}
-    DEPENDS ${HM64_SHADER_FILES}
-    COMMENT "Staging BlueFeather port assets"
-    VERBATIM
-)
-add_custom_target(StageBlueFeatherPortAssets DEPENDS ${BLUEFEATHER_PORT_CUSTOM_ASSET_STAMP})
+    set(BLUEFEATHER_PORT_CUSTOM_ASSET_DIR "${CMAKE_CURRENT_BINARY_DIR}/custom_port_assets")
+    set(BLUEFEATHER_PORT_CUSTOM_ASSET_STAMP "${CMAKE_CURRENT_BINARY_DIR}/stage_port_custom_assets.stamp")
+    add_custom_command(
+        OUTPUT ${BLUEFEATHER_PORT_CUSTOM_ASSET_STAMP}
+        COMMAND ${CMAKE_COMMAND} -E rm -rf ${BLUEFEATHER_PORT_CUSTOM_ASSET_DIR}
+        COMMAND ${CMAKE_COMMAND} -E make_directory ${BLUEFEATHER_PORT_CUSTOM_ASSET_DIR}
+        COMMAND ${CMAKE_COMMAND} -E copy_directory
+            ${LIBULTRASHIP_DIR}/src/fast/shaders
+            ${BLUEFEATHER_PORT_CUSTOM_ASSET_DIR}/shaders
+        COMMAND ${CMAKE_COMMAND} -E touch ${BLUEFEATHER_PORT_CUSTOM_ASSET_STAMP}
+        DEPENDS ${HM64_SHADER_FILES}
+        COMMENT "Staging BlueFeather port assets"
+        VERBATIM
+    )
+    add_custom_target(StageBlueFeatherPortAssets DEPENDS ${BLUEFEATHER_PORT_CUSTOM_ASSET_STAMP})
 
-set(HM64_BASE_O2R_FILE "${CMAKE_CURRENT_BINARY_DIR}/${HM64_BASE_ASSET_ARCHIVE}")
-add_custom_command(
-    OUTPUT ${HM64_BASE_O2R_FILE}
-    COMMAND ${CMAKE_COMMAND} -E rm -f ${HM64_BASE_O2R_FILE}
-    COMMAND ${Python3_EXECUTABLE}
-        ${BLUEFEATHER_PROJECT_ROOT}/OTRExporter/extract_assets.py
-        --asset-tool "$<TARGET_FILE:${BLUEFEATHER_ASSET_TOOL_TARGET}>"
-        --norom
-        --custom-otr-file ${HM64_BASE_O2R_FILE}
-        --custom-assets-path ${HM64_BASE_CUSTOM_ASSET_DIR}
-    DEPENDS
-        ${BLUEFEATHER_PROJECT_ROOT}/OTRExporter/extract_assets.py
-        ${HM64_BASE_CUSTOM_ASSET_STAMP}
-        ${BLUEFEATHER_ASSET_TOOL_TARGET}
-    WORKING_DIRECTORY ${HM64_ROOT}
-    COMMENT "Generating ${HM64_BASE_ASSET_ARCHIVE}"
-    VERBATIM
-)
-add_custom_target(GenerateHm64Otr DEPENDS ${HM64_BASE_O2R_FILE})
-add_dependencies(GenerateHm64Otr StageHm64BaseAssets)
+    set(HM64_BASE_O2R_FILE "${CMAKE_CURRENT_BINARY_DIR}/${HM64_BASE_ASSET_ARCHIVE}")
+    add_custom_command(
+        OUTPUT ${HM64_BASE_O2R_FILE}
+        COMMAND ${CMAKE_COMMAND} -E rm -f ${HM64_BASE_O2R_FILE}
+        COMMAND ${TORCH_EXECUTABLE}
+            pack
+            ${HM64_BASE_CUSTOM_ASSET_DIR}
+            ${HM64_BASE_O2R_FILE}
+            o2r
+        DEPENDS
+            ${HM64_BASE_CUSTOM_ASSET_STAMP}
+            TorchExternal
+        WORKING_DIRECTORY ${HM64_ROOT}
+        COMMENT "Generating ${HM64_BASE_ASSET_ARCHIVE}"
+        VERBATIM
+    )
+    add_custom_target(GenerateHm64Otr DEPENDS ${HM64_BASE_O2R_FILE})
+    add_dependencies(GenerateHm64Otr StageHm64BaseAssets)
+    add_dependencies(GenerateHm64Otr TorchExternal)
 
-set(BLUEFEATHER_PORT_O2R_FILE "${CMAKE_CURRENT_BINARY_DIR}/${BLUEFEATHER_PORT_ASSET_ARCHIVE}")
-add_custom_command(
-    OUTPUT ${BLUEFEATHER_PORT_O2R_FILE}
-    COMMAND ${CMAKE_COMMAND} -E rm -f ${BLUEFEATHER_PORT_O2R_FILE}
-    COMMAND ${Python3_EXECUTABLE}
-        ${BLUEFEATHER_PROJECT_ROOT}/OTRExporter/extract_assets.py
-        --asset-tool "$<TARGET_FILE:${BLUEFEATHER_ASSET_TOOL_TARGET}>"
-        --norom
-        --custom-otr-file ${BLUEFEATHER_PORT_O2R_FILE}
-        --custom-assets-path ${BLUEFEATHER_PORT_CUSTOM_ASSET_DIR}
-    DEPENDS
-        ${BLUEFEATHER_PROJECT_ROOT}/OTRExporter/extract_assets.py
-        ${BLUEFEATHER_PORT_CUSTOM_ASSET_STAMP}
-        ${BLUEFEATHER_ASSET_TOOL_TARGET}
-    WORKING_DIRECTORY ${HM64_ROOT}
-    COMMENT "Generating ${BLUEFEATHER_PORT_ASSET_ARCHIVE}"
-    VERBATIM
-)
-add_custom_target(GenerateBlueFeatherOtr DEPENDS ${BLUEFEATHER_PORT_O2R_FILE})
-add_dependencies(GenerateBlueFeatherOtr StageBlueFeatherPortAssets)
+    set(BLUEFEATHER_PORT_O2R_FILE "${CMAKE_CURRENT_BINARY_DIR}/${BLUEFEATHER_PORT_ASSET_ARCHIVE}")
+    add_custom_command(
+        OUTPUT ${BLUEFEATHER_PORT_O2R_FILE}
+        COMMAND ${CMAKE_COMMAND} -E rm -f ${BLUEFEATHER_PORT_O2R_FILE}
+        COMMAND ${TORCH_EXECUTABLE}
+            pack
+            ${BLUEFEATHER_PORT_CUSTOM_ASSET_DIR}
+            ${BLUEFEATHER_PORT_O2R_FILE}
+            o2r
+            --version 1.0.0
+        DEPENDS
+            ${BLUEFEATHER_PORT_CUSTOM_ASSET_STAMP}
+            TorchExternal
+        WORKING_DIRECTORY ${HM64_ROOT}
+        COMMENT "Generating ${BLUEFEATHER_PORT_ASSET_ARCHIVE}"
+        VERBATIM
+    )
+    add_custom_target(GenerateBlueFeatherOtr DEPENDS ${BLUEFEATHER_PORT_O2R_FILE})
+    add_dependencies(GenerateBlueFeatherOtr StageBlueFeatherPortAssets)
+    add_dependencies(GenerateBlueFeatherOtr TorchExternal)
 
-add_dependencies(${GAME_SHORT_NAME} GenerateHm64Otr)
-add_dependencies(${GAME_SHORT_NAME} GenerateBlueFeatherOtr)
+    add_dependencies(${GAME_SHORT_NAME} GenerateHm64Otr)
+    add_dependencies(${GAME_SHORT_NAME} GenerateBlueFeatherOtr)
 
-add_custom_target(ExtractAssets DEPENDS ${HM64_BASE_O2R_FILE} ${BLUEFEATHER_PORT_O2R_FILE})
-add_dependencies(ExtractAssets GenerateHm64Otr)
-add_dependencies(ExtractAssets GenerateBlueFeatherOtr)
+    add_custom_target(ExtractAssets DEPENDS ${HM64_BASE_O2R_FILE} ${BLUEFEATHER_PORT_O2R_FILE})
+    add_dependencies(ExtractAssets GenerateHm64Otr)
+    add_dependencies(ExtractAssets GenerateBlueFeatherOtr)
 
-set(HM64_RUNTIME_ASSET_STAMP "${CMAKE_CURRENT_BINARY_DIR}/copy_o2r.stamp")
-add_custom_command(
-    OUTPUT ${HM64_RUNTIME_ASSET_STAMP}
-    COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different
-        ${HM64_BASE_O2R_FILE}
-        ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${HM64_BASE_ASSET_ARCHIVE}
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different
-        ${BLUEFEATHER_PORT_O2R_FILE}
-        ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${BLUEFEATHER_PORT_ASSET_ARCHIVE}
-    COMMAND ${CMAKE_COMMAND} -E touch ${HM64_RUNTIME_ASSET_STAMP}
-    DEPENDS ${HM64_BASE_O2R_FILE} ${BLUEFEATHER_PORT_O2R_FILE}
-    COMMENT "Copying O2R archives to build output"
-    VERBATIM
-)
-add_custom_target(copy_assets DEPENDS ${HM64_RUNTIME_ASSET_STAMP})
-add_dependencies(${GAME_SHORT_NAME} copy_assets)
+    set(HM64_RUNTIME_ASSET_STAMP "${CMAKE_CURRENT_BINARY_DIR}/copy_o2r.stamp")
+    add_custom_command(
+        OUTPUT ${HM64_RUNTIME_ASSET_STAMP}
+        COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            ${HM64_BASE_O2R_FILE}
+            ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${HM64_BASE_ASSET_ARCHIVE}
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            ${BLUEFEATHER_PORT_O2R_FILE}
+            ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${BLUEFEATHER_PORT_ASSET_ARCHIVE}
+        COMMAND ${CMAKE_COMMAND} -E touch ${HM64_RUNTIME_ASSET_STAMP}
+        DEPENDS ${HM64_BASE_O2R_FILE} ${BLUEFEATHER_PORT_O2R_FILE}
+        COMMENT "Copying O2R archives to build output"
+        VERBATIM
+    )
+    add_custom_target(copy_assets DEPENDS ${HM64_RUNTIME_ASSET_STAMP})
+    add_dependencies(${GAME_SHORT_NAME} copy_assets)
+else()
+    file(MAKE_DIRECTORY "${HM64_GENERATED_DIR}")
+    file(WRITE "${HM64_RUNTIME_ARCHIVE_TABLE}" "#ifndef BLUEFEATHER_RUNTIME_ARCHIVE_ROM_TABLE_H\n#define BLUEFEATHER_RUNTIME_ARCHIVE_ROM_TABLE_H\n\n#include <cstddef>\n#include <cstdint>\n\nstruct MWRuntimeArchiveRomRange {\n    uintptr_t Start;\n    uintptr_t End;\n    const char* Path;\n};\n\nstatic constexpr MWRuntimeArchiveRomRange kMWRuntimeArchiveRomRanges[] = {};\n\n#endif\n")
+endif()
 
 set(HM64_RUNTIME_CONFIG_STAMP "${CMAKE_CURRENT_BINARY_DIR}/copy_config.stamp")
 add_custom_command(
@@ -304,23 +334,25 @@ add_dependencies(${GAME_SHORT_NAME} copy_config)
 if(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
     set(APP_RESOURCES ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/$<TARGET_BUNDLE_DIR_NAME:${GAME_SHORT_NAME}>/Contents/Resources)
 
-    set(HM64_BUNDLE_ASSET_STAMP "${CMAKE_CURRENT_BINARY_DIR}/copy_o2r_to_bundle.stamp")
-    add_custom_command(
-        OUTPUT ${HM64_BUNDLE_ASSET_STAMP}
-        COMMAND ${CMAKE_COMMAND} -E make_directory ${APP_RESOURCES}
-        COMMAND ${CMAKE_COMMAND} -E copy_if_different
-            ${HM64_BASE_O2R_FILE}
-            ${APP_RESOURCES}/${HM64_BASE_ASSET_ARCHIVE}
-        COMMAND ${CMAKE_COMMAND} -E copy_if_different
-            ${BLUEFEATHER_PORT_O2R_FILE}
-            ${APP_RESOURCES}/${BLUEFEATHER_PORT_ASSET_ARCHIVE}
-        COMMAND ${CMAKE_COMMAND} -E touch ${HM64_BUNDLE_ASSET_STAMP}
-        DEPENDS ${HM64_BASE_O2R_FILE} ${BLUEFEATHER_PORT_O2R_FILE}
-        COMMENT "Copying O2R archives to app bundle"
-        VERBATIM
-    )
-    add_custom_target(copy_assets_to_bundle DEPENDS ${HM64_BUNDLE_ASSET_STAMP})
-    add_dependencies(${GAME_SHORT_NAME} copy_assets_to_bundle)
+    if(BLUEFEATHER_BUILD_RUNTIME_ASSETS)
+        set(HM64_BUNDLE_ASSET_STAMP "${CMAKE_CURRENT_BINARY_DIR}/copy_o2r_to_bundle.stamp")
+        add_custom_command(
+            OUTPUT ${HM64_BUNDLE_ASSET_STAMP}
+            COMMAND ${CMAKE_COMMAND} -E make_directory ${APP_RESOURCES}
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                ${HM64_BASE_O2R_FILE}
+                ${APP_RESOURCES}/${HM64_BASE_ASSET_ARCHIVE}
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                ${BLUEFEATHER_PORT_O2R_FILE}
+                ${APP_RESOURCES}/${BLUEFEATHER_PORT_ASSET_ARCHIVE}
+            COMMAND ${CMAKE_COMMAND} -E touch ${HM64_BUNDLE_ASSET_STAMP}
+            DEPENDS ${HM64_BASE_O2R_FILE} ${BLUEFEATHER_PORT_O2R_FILE}
+            COMMENT "Copying O2R archives to app bundle"
+            VERBATIM
+        )
+        add_custom_target(copy_assets_to_bundle DEPENDS ${HM64_BUNDLE_ASSET_STAMP})
+        add_dependencies(${GAME_SHORT_NAME} copy_assets_to_bundle)
+    endif()
 
     set(HM64_BUNDLE_CONFIG_STAMP "${CMAKE_CURRENT_BINARY_DIR}/copy_config_to_bundle.stamp")
     add_custom_command(
@@ -343,13 +375,15 @@ install(TARGETS ${GAME_SHORT_NAME}
     BUNDLE DESTINATION .
 )
 
-install(FILES ${HM64_BASE_O2R_FILE}
-    DESTINATION share/${GAME_SHORT_NAME}
-)
+if(BLUEFEATHER_BUILD_RUNTIME_ASSETS)
+    install(FILES ${HM64_BASE_O2R_FILE}
+        DESTINATION share/${GAME_SHORT_NAME}
+    )
 
-install(FILES ${BLUEFEATHER_PORT_O2R_FILE}
-    DESTINATION share/${GAME_SHORT_NAME}
-)
+    install(FILES ${BLUEFEATHER_PORT_O2R_FILE}
+        DESTINATION share/${GAME_SHORT_NAME}
+    )
+endif()
 
 install(FILES ${BLUEFEATHER_PROJECT_ROOT}/bluefeather.json
     DESTINATION share/${GAME_SHORT_NAME}

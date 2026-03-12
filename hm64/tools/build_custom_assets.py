@@ -17,6 +17,7 @@ TOOLS_ROOT = Path(__file__).resolve().parent
 HM64_ROOT = TOOLS_ROOT.parent
 BLUEFEATHER_PROJECT_ROOT = HM64_ROOT.parent
 HM64_DECOMP_ROOT = BLUEFEATHER_PROJECT_ROOT.parent / "hm64-decomp"
+HM64_IMPORTED_ASSETS_ROOT = HM64_DECOMP_ROOT / "assets"
 LD_SYMBOL_HEADER = HM64_ROOT / "include" / "ld_symbols.h"
 SPLAT_CONFIG = HM64_DECOMP_ROOT / "config" / "us" / "splat.us.yaml"
 sys.path.insert(0, str(TOOLS_ROOT))
@@ -265,7 +266,7 @@ def stage_spec_copy_assets(spec_path: Path, output_root: Path, source_resolver) 
 
 def stage_font_assets(output_root: Path) -> list[RuntimeAssetEntry]:
     entries: list[RuntimeAssetEntry] = []
-    font_assets_root = HM64_ROOT / "assets/font"
+    font_assets_root = HM64_IMPORTED_ASSETS_ROOT / "font"
 
     with tempfile.TemporaryDirectory() as temp_dir_name:
         temp_dir = Path(temp_dir_name)
@@ -297,7 +298,7 @@ def stage_sprite_assets(output_root: Path) -> list[RuntimeAssetEntry]:
     with tempfile.TemporaryDirectory() as temp_dir_name:
         sprite_work_root = Path(temp_dir_name)
         for info in get_all_sprites():
-            source_dir = HM64_ROOT / "assets/sprites" / info.subdir / info.label
+            source_dir = HM64_IMPORTED_ASSETS_ROOT / "sprites" / info.subdir / info.label
             staged_output = sprite_work_root / info.label
             if not assemble_sprite(source_dir, staged_output):
                 raise RuntimeError(f"Failed to assemble sprite asset {source_dir}")
@@ -399,37 +400,47 @@ def stage_all_assets(output_root: Path, table_header: Path) -> None:
         temp_dir = Path(temp_dir_name)
         entries.extend(
             stage_spec_asm_assets_by_order(
-                HM64_ROOT / "assets/cutscenes/cutscenes.spec",
-                HM64_ROOT / "assets/cutscenes",
+                HM64_IMPORTED_ASSETS_ROOT / "cutscenes/cutscenes.spec",
+                HM64_IMPORTED_ASSETS_ROOT / "cutscenes",
                 HM64_ROOT / "tools/libhm64/data/cutscene_addresses.csv",
                 output_root,
                 temp_dir,
             )
         )
         entries.extend(
-            stage_spec_asm_assets(HM64_ROOT / "assets/dialogues/dialogues.spec", HM64_ROOT / "assets/dialogues", output_root, temp_dir)
+            stage_spec_asm_assets(
+                HM64_IMPORTED_ASSETS_ROOT / "dialogues/dialogues.spec",
+                HM64_IMPORTED_ASSETS_ROOT / "dialogues",
+                output_root,
+                temp_dir,
+            )
         )
         entries.extend(
-            stage_spec_asm_assets(HM64_ROOT / "assets/text/texts.spec", HM64_ROOT / "assets/text", output_root, temp_dir)
+            stage_spec_asm_assets(
+                HM64_IMPORTED_ASSETS_ROOT / "text/texts.spec",
+                HM64_IMPORTED_ASSETS_ROOT / "text",
+                output_root,
+                temp_dir,
+            )
         )
 
     entries.extend(
         stage_spec_copy_assets(
-            HM64_ROOT / "assets/maps/maps.spec",
+            HM64_IMPORTED_ASSETS_ROOT / "maps/maps.spec",
             output_root,
-            lambda spec_entry: HM64_ROOT / "assets" / archive_path_from_include(spec_entry.include).relative_to(RUNTIME_ROM_ROOT),
+            lambda spec_entry: HM64_IMPORTED_ASSETS_ROOT / archive_path_from_include(spec_entry.include).relative_to(RUNTIME_ROM_ROOT),
         )
     )
     entries.extend(
         stage_spec_copy_assets(
-            HM64_ROOT / "assets/audio/sequences.spec",
+            HM64_IMPORTED_ASSETS_ROOT / "audio/sequences.spec",
             output_root,
-            lambda spec_entry: HM64_ROOT / "assets" / archive_path_from_include(spec_entry.include).relative_to(RUNTIME_ROM_ROOT),
+            lambda spec_entry: HM64_IMPORTED_ASSETS_ROOT / archive_path_from_include(spec_entry.include).relative_to(RUNTIME_ROM_ROOT),
         )
     )
     entries.extend(
         stage_spec_copy_assets(
-            HM64_ROOT / "assets/audio/waveTable.spec",
+            HM64_IMPORTED_ASSETS_ROOT / "audio/waveTable.spec",
             output_root,
             lambda spec_entry: HM64_DECOMP_ROOT / "bin" / "audio" / f"{spec_entry.name}.bin",
         )
