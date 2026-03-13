@@ -207,7 +207,7 @@ std::unique_ptr<HostSongData> BuildHostSongData(uintptr_t romAddr, size_t seqSiz
     }
 
     if (drumTableOffset != 0 && drumTableOffset < adsrOffset && adsrOffset <= rawSize) {
-        const size_t drumCount = std::min<size_t>(256, (adsrOffset - drumTableOffset) / sizeof(uint32_t));
+        const size_t drumCount = (std::min<size_t>)(256, (adsrOffset - drumTableOffset) / sizeof(uint32_t));
         for (size_t i = 0; i < drumCount; i++) {
             songData->drumData[i] = ReadBigU32(raw, drumTableOffset + (i * 4), rawSize);
         }
@@ -516,7 +516,7 @@ void MixAudioTickLocked() {
     s_player->handler(s_player->clientData);
 
     const int outputRate = GetOutputSampleRate();
-    const int channels = std::max(2, GetOutputChannels());
+    const int channels = (std::max)(2, GetOutputChannels());
     s_outputSampleAccumulator += static_cast<double>(outputRate) / 60.0;
     const int sampleCount = static_cast<int>(s_outputSampleAccumulator);
     s_outputSampleAccumulator -= sampleCount;
@@ -536,7 +536,7 @@ void MixAudioTickLocked() {
             continue;
         }
 
-        const double step = std::max(0.0, static_cast<double>(voice->pitch) * kNativeSampleRate / outputRate);
+        const double step = (std::max)(0.0, static_cast<double>(voice->pitch) * kNativeSampleRate / outputRate);
         if (step <= 0.0) {
             continue;
         }

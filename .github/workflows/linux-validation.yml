@@ -38,6 +38,9 @@ jobs:
             g++ \
             cmake \
             ninja-build \
+            zipcmp \
+            zipmerge \
+            ziptool \
             python3 \
             ccache \
             pkg-config \

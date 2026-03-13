@@ -53,7 +53,7 @@ typedef struct {
     volatile u16	button;		/* A,B,C,Z,L,R,START,PAD ,button 	*/
     s8	stick_x;		/* real-use range  -61 <= stick X <= 61 */
     s8	stick_y;		/* real-use range  -63 <= stick Y <= 63 */
-    u8	errno;		/* error*/
+    u8	err_no;		/* error*/
     u16	trigger;		/* Trigger data of the button */
 } NUContDataPatch;
 

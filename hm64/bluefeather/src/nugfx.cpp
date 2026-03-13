@@ -476,6 +476,7 @@ extern "C" void nuContDataGetEx(void* contData, u32 padNo) {
     dst->button = pads[padNo].button;
     dst->stick_x = pads[padNo].stick_x;
     dst->stick_y = pads[padNo].stick_y;
+    dst->err_no = 0;
 }
 
 extern "C" void nuContDataGetExAll(void* contData) {
@@ -495,6 +496,7 @@ extern "C" void nuContDataGetExAll(void* contData) {
         dst[i].button = pads[i].button;
         dst[i].stick_x = pads[i].stick_x;
         dst[i].stick_y = pads[i].stick_y;
+        dst[i].err_no = 0;
     }
 }
 

@@ -48,7 +48,7 @@ typedef struct {
     u16 button;
     s8 stick_x;
     s8 stick_y;
-    u8 errno;
+    u8 err_no;
     u16 trigger;
 } NUContData;
 
