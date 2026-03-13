@@ -81,8 +81,17 @@ def resolve_range(name: str, ranges):
 
 
 def emit_symbol(lines, symbol_name: str, value: int):
-    asm_symbol = f"_{symbol_name}"
-    lines.append(f'__asm__(".globl {asm_symbol}\\n.set {asm_symbol}, 0x{value:08X}");')
+    macho_symbol = f"_{symbol_name}"
+    elf_symbol = symbol_name
+    lines.extend(
+        [
+            "#if defined(__APPLE__)",
+            f'__asm__(".globl {macho_symbol}\\n.set {macho_symbol}, 0x{value:08X}");',
+            "#else",
+            f'__asm__(".globl {elf_symbol}\\n.set {elf_symbol}, 0x{value:08X}");',
+            "#endif",
+        ]
+    )
 
 
 def render_asm(symbols, ranges):

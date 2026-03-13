@@ -62,6 +62,7 @@ _packages/
 *.otr
 *.o2r
 *.bin
+torch.hash.yml
 
 # Runtime / save files
 *.sav
@@ -72,7 +73,11 @@ imgui.ini
 logs/
 
 # HM64 decompilation tooling
-hm64/assets/
+hm64/assets/*
+!hm64/assets/yaml/
+!hm64/assets/yaml/us/
+!hm64/assets/yaml/us/runtime/
+!hm64/assets/yaml/us/runtime/rom.yml
 hm64/tools/gcc-2.7.2/
 
 # Reference repos (not part of the build)

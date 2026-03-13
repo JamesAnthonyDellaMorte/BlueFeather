@@ -17,8 +17,7 @@
       "cacheVariables": {
         "CMAKE_COLOR_DIAGNOSTICS": "ON",
         "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
-        "CMAKE_TOOLCHAIN_FILE": "${sourceDir}/CMake/HideSystemSpdlog.cmake",
-        "CMAKE_OSX_DEPLOYMENT_TARGET": "14.0"
+        "CMAKE_TOOLCHAIN_FILE": "${sourceDir}/CMake/HideSystemSpdlog.cmake"
       }
     },
     {

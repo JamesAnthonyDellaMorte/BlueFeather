@@ -20,12 +20,6 @@ jobs:
         with:
           submodules: recursive
 
-      - name: Checkout hm64-decomp
-        uses: actions/checkout@v4
-        with:
-          repository: harvestwhisperer/hm64-decomp
-          path: hm64-decomp-src
-
       - name: Configure ccache
         uses: hendrikmuhs/ccache-action@v1.2
         with:
@@ -40,12 +34,8 @@ jobs:
         run: |
           brew install cmake ninja python ccache sdl2 glew libzip tinyxml2 nlohmann-json
 
-      - name: Recreate sibling hm64-decomp layout
-        run: |
-          ln -sfn "${GITHUB_WORKSPACE}/hm64-decomp-src" "${GITHUB_WORKSPACE}/../hm64-decomp"
-
       - name: Configure
-        run: cmake --preset debug -DBLUEFEATHER_BUILD_RUNTIME_ASSETS=OFF
+        run: cmake --preset debug
 
       - name: Build
         run: cmake --build --preset debug --parallel 3 --target BlueFeather

@@ -1,0 +1,68 @@
+name: linux-validation
+
+on:
+  push:
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  build-linux:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout BlueFeather
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Configure ccache
+        uses: hendrikmuhs/ccache-action@v1.2
+        with:
+          create-symlink: true
+          save: ${{ github.ref_name == github.event.repository.default_branch }}
+          key: ${{ runner.os }}-bluefeather-${{ github.ref }}-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-bluefeather-${{ github.ref }}
+            ${{ runner.os }}-bluefeather
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            gcc \
+            g++ \
+            cmake \
+            ninja-build \
+            python3 \
+            ccache \
+            pkg-config \
+            libsdl2-dev \
+            libglew-dev \
+            libpng-dev \
+            libzip-dev \
+            libtinyxml2-dev \
+            nlohmann-json3-dev \
+            libgl1-mesa-dev
+
+      - name: Install latest tinyxml2
+        run: |
+          export PATH="/usr/lib/ccache:/usr/local/opt/ccache/libexec:$PATH"
+          wget https://github.com/leethomason/tinyxml2/archive/refs/tags/10.0.0.tar.gz
+          tar -xzf 10.0.0.tar.gz
+          cd tinyxml2-10.0.0
+          mkdir -p build
+          cd build
+          cmake ..
+          make -j"$(nproc)"
+          sudo make install
+
+      - name: Configure
+        run: cmake --preset debug
+
+      - name: Build
+        run: cmake --build --preset debug --parallel 3 --target BlueFeather

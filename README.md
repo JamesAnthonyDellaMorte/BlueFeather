@@ -11,7 +11,7 @@ BlueFeather is still in active early development. The project is focused on brin
 
 At the moment, BlueFeather should be treated as a development snapshot rather than a finished way to play Harvest Moon 64.
 
-BlueFeather does not include copyrighted game assets. To build and run the port, you need this repository, its submodules, and a matching `hm64-decomp` checkout beside it.
+BlueFeather does not include copyrighted game assets. You are required to provide a supported Harvest Moon 64 ROM.
 
 # Quick Start
 
@@ -28,16 +28,21 @@ If you already cloned the repo:
 git submodule update --init --recursive
 ```
 
-### 2. Place `hm64-decomp` next to this repository
+### 2. Verify your ROM is in `.z64` format
 
-BlueFeather expects this layout during configure and build:
+BlueFeather expects a big-endian `.z64` ROM. If your dump is in `.n64` format, convert it before continuing.
+
+### 3. Place your ROM in the repository root
+
+Put your supported ROM at:
 
 ```text
-../BlueFeather
-../hm64-decomp
+./baserom.us.z64
 ```
 
-### 3. Install prerequisites
+BlueFeather's Torch metadata is repo-owned, and the base archive is generated directly from this ROM in the same way the Harbour Masters golden repos generate their base archives.
+
+### 4. Install prerequisites
 
 macOS dependencies:
 
@@ -45,7 +50,7 @@ macOS dependencies:
 brew install cmake ninja python sdl2 glew libzip tinyxml2 nlohmann-json
 ```
 
-### 4. Build BlueFeather
+### 5. Build BlueFeather
 
 ```bash
 cmake --preset debug
@@ -62,7 +67,37 @@ cmake --preset relwithdeb
 cmake --build --preset relwithdeb
 ```
 
-### 5. Launch the game
+### 6. Generate the asset archives
+
+BlueFeather follows the Harbour Masters pattern:
+
+- `hm64.o2r` is generated from `baserom.us.z64` through Torch
+- `BlueFeather.o2r` is packed from the repo-owned `port/` asset tree
+
+This two-archive layout is intentional and matches the Harbour Masters ports:
+
+- base archive: the original game data converted from the ROM
+- port archive: BlueFeather-owned shaders and other port-specific assets
+
+That is the same model used by the golden repos:
+
+- `mk64.o2r` + `spaghetti.o2r`
+- `sf64.o2r` + `starship.o2r`
+
+Generate both archives with:
+
+```bash
+cmake --build --preset debug --target ExtractAssets
+```
+
+You can also generate them individually:
+
+```bash
+cmake --build --preset debug --target GenerateHm64Otr
+cmake --build --preset debug --target GenerateBlueFeatherOtr
+```
+
+### 7. Launch the game
 
 Debug build:
 
@@ -78,13 +113,23 @@ Release build:
 
 # Build Output
 
-The build generates and stages these runtime files automatically:
+BlueFeather's normal executable build and asset extraction are separate, matching the Harbour Masters repos:
 
-- `hm64.o2r`
-- `BlueFeather.o2r`
-- `bluefeather.json`
+- `cmake --build --preset debug` builds the app
+- `cmake --build --preset debug --target ExtractAssets` generates:
+  - `hm64.o2r`
+  - `BlueFeather.o2r`
 
-On macOS they are copied both to the build output directory and into the app bundle resources.
+The generated archives are copied into the build directory. On macOS, helper targets are also available to copy them into the app bundle resources if you want to run directly from the bundle.
+
+When you run `ExtractAssets`, BlueFeather stages the archives where the app expects them by default:
+
+- `build-debug/bin/hm64.o2r`
+- `build-debug/bin/BlueFeather.o2r`
+- `build-debug/bin/BlueFeather-debug.app/Contents/Resources/hm64.o2r`
+- `build-debug/bin/BlueFeather-debug.app/Contents/Resources/BlueFeather.o2r`
+
+This mirrors the Harbour Masters pattern: build the app separately, then generate and stage the archives for the runtime location the app already searches.
 
 # Configuration
 
