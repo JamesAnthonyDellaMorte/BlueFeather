@@ -10,6 +10,7 @@
 #include <fast/interpreter.h>
 #include <spdlog/spdlog.h>
 #include <ship/Context.h>
+#include <ship/controller/controldeck/ControlDeck.h>
 #include <ship/resource/ResourceManager.h>
 
 #include "generated/runtime_archive_rom_table.h"
@@ -428,20 +429,73 @@ bool FlushPendingDisplayLists() {
 }
 } // namespace
 
+static void HM64_RefreshGamepadState() {
+    auto context = Ship::Context::GetInstance();
+    auto controlDeck = context ? context->GetControlDeck() : nullptr;
+    if (controlDeck == nullptr) {
+        return;
+    }
+
+    auto deviceManager = controlDeck->GetConnectedPhysicalDeviceManager();
+    if (deviceManager != nullptr) {
+        deviceManager->RefreshConnectedSDLGamepads();
+    }
+
+    auto controller = controlDeck->GetControllerByPort(0);
+    if (controller != nullptr && controller->HasConfig() &&
+        !controller->HasMappingsForPhysicalDeviceType(Ship::PhysicalDeviceType::SDLGamepad)) {
+        controller->AddDefaultMappings(Ship::PhysicalDeviceType::SDLGamepad);
+    }
+}
+
 // Controller data
 extern "C" u8 nuContInit(void) {
-    // Pretend controller 1 is available until proper input bridging is in place.
     std::memset(nuContStatus, 0, sizeof(nuContStatus));
-    return 1;
+    u8 bits = 0;
+    osContInit(nullptr, &bits, nuContStatus);
+    HM64_RefreshGamepadState();
+    nuContStatus[0].type = CONT_TYPE_NORMAL;
+    nuContStatus[0].status = 0;
+    nuContStatus[0].err_no = 0;
+    return bits;
 }
 
 extern "C" void nuContDataGetEx(void* contData, u32 padNo) {
-    (void)padNo;
     std::memset(contData, 0, sizeof(NUContData));
+
+    auto context = Ship::Context::GetInstance();
+    auto controlDeck = context ? context->GetControlDeck() : nullptr;
+    if (controlDeck == nullptr || padNo >= NU_CONT_MAXCONTROLLERS) {
+        return;
+    }
+
+    OSContPad pads[NU_CONT_MAXCONTROLLERS] = {};
+    controlDeck->WriteToPad(pads);
+
+    NUContData* dst = static_cast<NUContData*>(contData);
+    dst->button = pads[padNo].button;
+    dst->stick_x = pads[padNo].stick_x;
+    dst->stick_y = pads[padNo].stick_y;
 }
 
 extern "C" void nuContDataGetExAll(void* contData) {
     std::memset(contData, 0, sizeof(NUContData) * NU_CONT_MAXCONTROLLERS);
+
+    auto context = Ship::Context::GetInstance();
+    auto controlDeck = context ? context->GetControlDeck() : nullptr;
+    if (controlDeck == nullptr) {
+        return;
+    }
+
+    OSContPad pads[NU_CONT_MAXCONTROLLERS] = {};
+    controlDeck->WriteToPad(pads);
+
+    NUContData* dst = static_cast<NUContData*>(contData);
+    for (u32 i = 0; i < NU_CONT_MAXCONTROLLERS; i++) {
+        dst[i].button = pads[i].button;
+        dst[i].stick_x = pads[i].stick_x;
+        dst[i].stick_y = pads[i].stick_y;
+    }
 }
 
 extern "C" void nuContPakOpen(NUContPakFile* file, u32 contNo) {

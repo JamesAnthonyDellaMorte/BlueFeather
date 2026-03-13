@@ -325,6 +325,22 @@ else()
     file(WRITE "${HM64_RUNTIME_ARCHIVE_TABLE}" "#ifndef BLUEFEATHER_RUNTIME_ARCHIVE_ROM_TABLE_H\n#define BLUEFEATHER_RUNTIME_ARCHIVE_ROM_TABLE_H\n\n#include <cstddef>\n#include <cstdint>\n\nstruct MWRuntimeArchiveRomRange {\n    uintptr_t Start;\n    uintptr_t End;\n    const char* Path;\n};\n\nstatic constexpr MWRuntimeArchiveRomRange kMWRuntimeArchiveRomRanges[] = {};\n\n#endif\n")
 endif()
 
+set(GAMECONTROLLERDB_FILE "${CMAKE_CURRENT_BINARY_DIR}/gamecontrollerdb.txt")
+if(NOT EXISTS "${GAMECONTROLLERDB_FILE}")
+    file(
+        DOWNLOAD
+        "https://raw.githubusercontent.com/mdqinc/SDL_GameControllerDB/master/gamecontrollerdb.txt"
+        "${GAMECONTROLLERDB_FILE}"
+        STATUS GAMECONTROLLERDB_DOWNLOAD_STATUS
+        TLS_VERIFY ON
+    )
+    list(GET GAMECONTROLLERDB_DOWNLOAD_STATUS 0 GAMECONTROLLERDB_STATUS_CODE)
+    if(NOT GAMECONTROLLERDB_STATUS_CODE EQUAL 0)
+        file(REMOVE "${GAMECONTROLLERDB_FILE}")
+        message(WARNING "Failed to download gamecontrollerdb.txt (${GAMECONTROLLERDB_DOWNLOAD_STATUS})")
+    endif()
+endif()
+
 set(HM64_RUNTIME_CONFIG_STAMP "${CMAKE_CURRENT_BINARY_DIR}/copy_config.stamp")
 add_custom_command(
     OUTPUT ${HM64_RUNTIME_CONFIG_STAMP}
@@ -339,6 +355,23 @@ add_custom_command(
 )
 add_custom_target(copy_config DEPENDS ${HM64_RUNTIME_CONFIG_STAMP})
 add_dependencies(${GAME_SHORT_NAME} copy_config)
+
+if(EXISTS "${GAMECONTROLLERDB_FILE}")
+    set(HM64_RUNTIME_CONTROLLERDB_STAMP "${CMAKE_CURRENT_BINARY_DIR}/copy_controllerdb.stamp")
+    add_custom_command(
+        OUTPUT ${HM64_RUNTIME_CONTROLLERDB_STAMP}
+        COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            ${GAMECONTROLLERDB_FILE}
+            ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/gamecontrollerdb.txt
+        COMMAND ${CMAKE_COMMAND} -E touch ${HM64_RUNTIME_CONTROLLERDB_STAMP}
+        DEPENDS ${GAMECONTROLLERDB_FILE}
+        COMMENT "Copying gamecontrollerdb.txt"
+        VERBATIM
+    )
+    add_custom_target(copy_controllerdb DEPENDS ${HM64_RUNTIME_CONTROLLERDB_STAMP})
+    add_dependencies(${GAME_SHORT_NAME} copy_controllerdb)
+endif()
 
 if(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
     set(APP_RESOURCES ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/$<TARGET_BUNDLE_DIR_NAME:${GAME_SHORT_NAME}>/Contents/Resources)
@@ -377,6 +410,23 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
     )
     add_custom_target(copy_config_to_bundle DEPENDS ${HM64_BUNDLE_CONFIG_STAMP})
     add_dependencies(${GAME_SHORT_NAME} copy_config_to_bundle)
+
+    if(EXISTS "${GAMECONTROLLERDB_FILE}")
+        set(HM64_BUNDLE_CONTROLLERDB_STAMP "${CMAKE_CURRENT_BINARY_DIR}/copy_controllerdb_to_bundle.stamp")
+        add_custom_command(
+            OUTPUT ${HM64_BUNDLE_CONTROLLERDB_STAMP}
+            COMMAND ${CMAKE_COMMAND} -E make_directory ${APP_RESOURCES}
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                ${GAMECONTROLLERDB_FILE}
+                ${APP_RESOURCES}/gamecontrollerdb.txt
+            COMMAND ${CMAKE_COMMAND} -E touch ${HM64_BUNDLE_CONTROLLERDB_STAMP}
+            DEPENDS ${GAMECONTROLLERDB_FILE}
+            COMMENT "Copying gamecontrollerdb.txt to app bundle"
+            VERBATIM
+        )
+        add_custom_target(copy_controllerdb_to_bundle DEPENDS ${HM64_BUNDLE_CONTROLLERDB_STAMP})
+        add_dependencies(${GAME_SHORT_NAME} copy_controllerdb_to_bundle)
+    endif()
 endif()
 
 install(TARGETS ${GAME_SHORT_NAME}
