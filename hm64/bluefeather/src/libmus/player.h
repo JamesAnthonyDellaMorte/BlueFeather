@@ -1,6 +1,8 @@
 #ifndef _PLAYER_H_
 #define _PLAYER_H_
 
+#include <stdint.h>
+
 #include "libmus.h"
 #include "libmus_data.h"
 
@@ -11,14 +13,15 @@
 typedef struct 
 { 
   long		number_of_channels;
+  unsigned long flags;
 #ifdef SUPPORT_SONGWAVELOOKUP
   long 		number_of_waves;
 #endif
-  char 		**ChannelData;
-  char 		**VolumeData;
-  char 		**PitchBendData;
-  char 		*EnvelopeData;
-  unsigned long *DrumData;
+  unsigned char **ChannelData;
+  unsigned char **VolumeData;
+  unsigned char **PitchBendData;
+  unsigned char *EnvelopeData;
+  unsigned char **DrumData;
 #ifdef SUPPORT_SONGWAVELOOKUP
   short 	*WaveLookup;
 #endif
@@ -29,6 +32,8 @@ typedef struct
 #else
 #define SONGTPTRS	6
 #endif
+
+#define SONGFLAG_HOST_REMAPPED (1u << 0)
 
 /* flags for sample pointer bank file */
 #define PTRFLAG_REMAPPED	(1<<31)
@@ -179,6 +184,5 @@ typedef	struct
 
 
 #endif /* _PLAYER_H_ */
-
 
 

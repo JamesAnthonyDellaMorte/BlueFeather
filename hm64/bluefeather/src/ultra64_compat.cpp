@@ -1,6 +1,7 @@
 // ultra64_compat.cpp - Implementation of extra N64 functions for PC
 
 #include "ultra64_compat.h"
+#include <cstdlib>
 #include <iostream>
 #include <cstring>
 
@@ -12,9 +13,9 @@ long long int gspF3DEX2_fifoTextStart[1] = {};
 long long int gspF3DEX2_fifoDataStart[1] = {};
 
 // Assertion handler
-void __assert(const char* exp, const char* file, s32 line) {
+void __assert(const char* exp, const char* file, int line) noexcept {
     std::cerr << "[ASSERT] " << exp << " at " << file << ":" << line << std::endl;
-    // In debug, we could break here
+    std::abort();
 }
 
 void osStopThread(OSThread* thread) {

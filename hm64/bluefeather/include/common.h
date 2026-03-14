@@ -105,6 +105,18 @@ static inline u32 hm64ReadRawU32(const void* ptr) {
 #ifdef __assert
 #undef __assert
 #endif
-void __assert(const char* exp, const char* filename, int line);     
+#ifdef __cplusplus
+#define HM64_COMMON_ASSERT_NOEXCEPT noexcept
+#else
+#define HM64_COMMON_ASSERT_NOEXCEPT
+#endif
+#if defined(__GNUC__) || defined(__clang__)
+#define HM64_COMMON_NORETURN __attribute__((noreturn))
+#else
+#define HM64_COMMON_NORETURN
+#endif
+void __assert(const char* exp, const char* filename, int line) HM64_COMMON_ASSERT_NOEXCEPT HM64_COMMON_NORETURN;
+#undef HM64_COMMON_ASSERT_NOEXCEPT
+#undef HM64_COMMON_NORETURN
 
 #endif

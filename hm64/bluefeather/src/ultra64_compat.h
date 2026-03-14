@@ -35,13 +35,22 @@
 
 #ifdef __cplusplus
 extern "C" {
+#define HM64_ASSERT_NOEXCEPT noexcept
+#else
+#define HM64_ASSERT_NOEXCEPT
+#endif
+
+#if defined(__GNUC__) || defined(__clang__)
+#define HM64_NORETURN __attribute__((noreturn))
+#else
+#define HM64_NORETURN
 #endif
 
 // Assertion — undefine the macOS SDK macro so we can declare the N64 shim
 #ifdef __assert
 #undef __assert
 #endif
-void __assert(const char* exp, const char* file, s32 line);
+void __assert(const char* exp, const char* file, int line) HM64_ASSERT_NOEXCEPT HM64_NORETURN;
 
 // Virtual/physical address conversion (if not provided)
 uintptr_t osVirtualToPhysical(void* addr);
@@ -57,5 +66,8 @@ extern OSViMode osViModeTable[56];
 #ifdef __cplusplus
 }
 #endif
+
+#undef HM64_ASSERT_NOEXCEPT
+#undef HM64_NORETURN
 
 #endif // _ULTRA64_COMPAT_H_

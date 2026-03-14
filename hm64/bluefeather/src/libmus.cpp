@@ -31,10 +31,10 @@ constexpr int kNativeSampleRate = NU_AU_OUTPUT_RATE;
 
 struct HostSongData {
     std::vector<uint8_t> raw;
-    std::vector<char*> channelData;
-    std::vector<char*> volumeData;
-    std::vector<char*> pitchBendData;
-    std::vector<unsigned long> drumData;
+    std::vector<unsigned char*> channelData;
+    std::vector<unsigned char*> volumeData;
+    std::vector<unsigned char*> pitchBendData;
+    std::vector<unsigned char*> drumData;
     song_t song = {};
 };
 
@@ -168,11 +168,11 @@ bool CopyRomRange(uintptr_t romAddr, size_t size, std::vector<uint8_t>& out) {
     return true;
 }
 
-char* OffsetToRawPtr(std::vector<uint8_t>& raw, uint32_t offset) {
+unsigned char* OffsetToRawPtr(std::vector<uint8_t>& raw, uint32_t offset) {
     if (offset == 0 || offset >= raw.size()) {
         return nullptr;
     }
-    return reinterpret_cast<char*>(raw.data() + offset);
+    return raw.data() + offset;
 }
 
 std::unique_ptr<HostSongData> BuildHostSongData(uintptr_t romAddr, size_t seqSize) {
@@ -197,7 +197,7 @@ std::unique_ptr<HostSongData> BuildHostSongData(uintptr_t romAddr, size_t seqSiz
     songData->channelData.assign(channelCount, nullptr);
     songData->volumeData.assign(channelCount, nullptr);
     songData->pitchBendData.assign(channelCount, nullptr);
-    songData->drumData.assign(256, 0);
+    songData->drumData.assign(256, nullptr);
 
     for (uint32_t i = 0; i < channelCount; i++) {
         songData->channelData[i] = OffsetToRawPtr(songData->raw, ReadBigU32(raw, trackTableOffset + (i * 4), rawSize));
@@ -209,11 +209,12 @@ std::unique_ptr<HostSongData> BuildHostSongData(uintptr_t romAddr, size_t seqSiz
     if (drumTableOffset != 0 && drumTableOffset < adsrOffset && adsrOffset <= rawSize) {
         const size_t drumCount = (std::min<size_t>)(256, (adsrOffset - drumTableOffset) / sizeof(uint32_t));
         for (size_t i = 0; i < drumCount; i++) {
-            songData->drumData[i] = ReadBigU32(raw, drumTableOffset + (i * 4), rawSize);
+            songData->drumData[i] = OffsetToRawPtr(songData->raw, ReadBigU32(raw, drumTableOffset + (i * 4), rawSize));
         }
     }
 
     songData->song.number_of_channels = channelCount;
+    songData->song.flags = SONGFLAG_HOST_REMAPPED;
     songData->song.ChannelData = songData->channelData.data();
     songData->song.VolumeData = songData->volumeData.data();
     songData->song.PitchBendData = songData->pitchBendData.data();

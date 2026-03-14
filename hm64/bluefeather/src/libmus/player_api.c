@@ -198,26 +198,28 @@ void MusSetMasterVolume(unsigned long flags, int volume)
 unsigned long MusStartSong(void *addr)
 {
   song_t *song_addr;
-  unsigned long handle, *work_addr;
+  unsigned long handle;
   int i, count;
   channel_t *cp;
 
 
   song_addr = addr;
-  work_addr = addr;
-  count = *work_addr++;
-#ifdef SUPPORT_SONGWAVELOOKUP
-  work_addr++;
-#endif
-  /* remap song if necessary */
-  if (*work_addr<0x400)
-  {
+  count = (int)song_addr->number_of_channels;
+
+  if (count <= 0) {
+    return 0;
+  }
+
+  /* BlueFeather builds host-native songs before libmus sees them. */
+  if (!(song_addr->flags & SONGFLAG_HOST_REMAPPED)) {
     /* convert main offsets to pointers */
-    __MusIntRemapPtrs(work_addr, addr, SONGTPTRS);
+    __MusIntRemapPtrs(&song_addr->ChannelData, addr, SONGTPTRS);
     /* convert channel, volume and pitch bend offsets to pointers */
     __MusIntRemapPtrs(song_addr->ChannelData,    addr, count);
     __MusIntRemapPtrs(song_addr->VolumeData,     addr, count);
     __MusIntRemapPtrs(song_addr->PitchBendData,  addr, count);
+    __MusIntRemapPtrs(song_addr->DrumData,       addr, 256);
+    song_addr->flags |= SONGFLAG_HOST_REMAPPED;
   }
 
   /* get next handle */

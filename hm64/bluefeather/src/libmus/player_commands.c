@@ -456,10 +456,7 @@ static unsigned char *Fstereo(channel_t *cp, unsigned char *ptr)
  */
 static unsigned char *Fdrums(channel_t *cp, unsigned char *ptr)
 {
-  unsigned long addr;
-
-  addr = (unsigned long)cp->song_addr+(cp->song_addr->DrumData[*ptr++]);
-  cp->pdrums = (unsigned char *)addr;
+  cp->pdrums = cp->song_addr->DrumData[*ptr++];
   return (ptr);
 }
 

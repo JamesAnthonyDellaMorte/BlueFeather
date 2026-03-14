@@ -1,4 +1,5 @@
 #include <ultra64.h>
+#include <stdint.h>
 
 /* include current configuration settings */
 #include "libmus_config.h"
@@ -1113,7 +1114,7 @@ static void __MusIntRemapPtrBank(char *pptr, char *wptr)
   ptr_bank_t *ptrfile_addr;
   unsigned char *chardetune, charwork;
   float *floatdetune, floatwork;
-  unsigned long base;
+  uintptr_t base;
 
   ptrfile_addr = (ptr_bank_t *)pptr;
   /* return if already remapped */
@@ -1143,18 +1144,20 @@ static void __MusIntRemapPtrBank(char *pptr, char *wptr)
     /* remap pointers inside ALWaveTable structures */
     if(!ptrfile_addr->wave_list[i]->flags)
     {
-      base = (unsigned long)ptrfile_addr->wave_list[i]->base;
+      base = (uintptr_t)ptrfile_addr->wave_list[i]->base;
       if ((base&0xff000000)!=0xff000000) /* not n64dd sample */
       {
-	base += (unsigned long)wptr;
+	base += (uintptr_t)wptr;
 	ptrfile_addr->wave_list[i]->base = (u8 *)base;	
       }
       ptrfile_addr->wave_list[i]->flags = 1;
       
       if(ptrfile_addr->wave_list[i]->waveInfo.adpcmWave.loop)			
-	ptrfile_addr->wave_list[i]->waveInfo.adpcmWave.loop = (ALADPCMloop *)((u32)(ptrfile_addr->wave_list[i]->waveInfo.adpcmWave.loop)+(u32)(pptr));
+	ptrfile_addr->wave_list[i]->waveInfo.adpcmWave.loop =
+            (ALADPCMloop*)((uintptr_t)(ptrfile_addr->wave_list[i]->waveInfo.adpcmWave.loop) + (uintptr_t)(pptr));
       if(ptrfile_addr->wave_list[i]->type == AL_ADPCM_WAVE)			
-	ptrfile_addr->wave_list[i]->waveInfo.adpcmWave.book = (ALADPCMBook *)((u32)(ptrfile_addr->wave_list[i]->waveInfo.adpcmWave.book)+(u32)(pptr));			
+	ptrfile_addr->wave_list[i]->waveInfo.adpcmWave.book =
+            (ALADPCMBook*)((uintptr_t)(ptrfile_addr->wave_list[i]->waveInfo.adpcmWave.book) + (uintptr_t)(pptr));			
     }	
   }
   /* flush data cache so the new sample pointers are visible to the RSP */
@@ -1367,11 +1370,11 @@ static void __MusIntMemSet(void *dest, unsigned char value, unsigned long length
 
 static void __MusIntRemapPtrs(void *addr, void *offset, int count)
 {
-  unsigned long *dest, add;
+  uintptr_t *dest, add;
   int i;
 
-  dest = (unsigned long *)addr;
-  add = (unsigned long)offset;
+  dest = (uintptr_t *)addr;
+  add = (uintptr_t)offset;
   for (i=0; i<count; i++)
     if (dest[i])
       dest[i]+=add;
