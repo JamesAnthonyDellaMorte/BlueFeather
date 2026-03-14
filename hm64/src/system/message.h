@@ -171,7 +171,7 @@ typedef struct {
     u32 romIndexEnd;
     u8* vaddrTexture;
     u16* vaddrPalette;
-    AnimationFrameMetadata* vaddrAnimationFrameMetadata;;
+    AnimationFrameMetadata* vaddrAnimationFrameMetadata;
     u8* vaddrTextureToPaletteLookup;
     u32 unk_20;
     Vec3f coordinates;
@@ -316,6 +316,5 @@ extern TextAddresses textAddresses[TOTAL_TEXTS];
 
 extern CharacterAvatar characterAvatars[1];
 extern DialogueWindow dialogueWindows[3];
-extern OverlayIcon overlayIcons[2];
 
 #endif

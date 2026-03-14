@@ -518,7 +518,7 @@ u8 D_80113C40[] = {
 static const u8 houseConstructionDays[6];
 static const u16 lifeEventHouseConstructionBits[6];
 static const u8 animalLocationsHouseConstruction[6];
-static const u16 mailTextIndices[79];
+static const u16 mailTextIndices[80];
 
 static const s16 houseExtensionPrices[6];     
 static const s16 houseExtensionLumberCosts[6];
@@ -1925,8 +1925,10 @@ void pinkOverlayMenuCallback() {
                             case CHICKEN_TYPE:
                                 initializeChicken(gSelectedAnimalIndex);
                                 break;
-                            case COW_TYPE ... SHEEP_TYPE:
-                                initializeFarmAnimal(gSelectedAnimalIndex);
+                            default:
+                                if (HM64_IN_RANGE(selectedAnimalType, COW_TYPE, SHEEP_TYPE)) {
+                                    initializeFarmAnimal(gSelectedAnimalIndex);
+                                }
                                 break;
                         }
                         
@@ -2763,23 +2765,22 @@ void endOfFestivalDayCallback1(void) {
         setMessageBoxSpriteIndices(MAIN_MESSAGE_BOX_INDEX, 1, 0, 0);
         setMessageBoxInterpolationWithFlags(MAIN_MESSAGE_BOX_INDEX, -4, 0);
         
-        switch (gCutsceneIndex) {
-            case 129 ... 130:
-            case 139:              
-            case 405 ... 409:
-                initializeMessageBox(MAIN_MESSAGE_BOX_INDEX, FESTIVALS_TEXT_INDEX, 77, 0);
-                break;
-            case SEA_FESTIVAL:
-            case EGG_FESTIVAL:
-            case NEW_YEAR_FESTIVAL:
-                initializeMessageBox(MAIN_MESSAGE_BOX_INDEX, FESTIVALS_TEXT_INDEX, 74, 0);
-                break;
-            case 416:
-                initializeMessageBox(MAIN_MESSAGE_BOX_INDEX, FESTIVALS_TEXT_INDEX, 76, 0);
-                break;
-            default:
-                initializeMessageBox(MAIN_MESSAGE_BOX_INDEX, FESTIVALS_TEXT_INDEX, 75, 0);
-                break;
+        if (HM64_IN_RANGE(gCutsceneIndex, 129, 130) || gCutsceneIndex == 139 || HM64_IN_RANGE(gCutsceneIndex, 405, 409)) {
+            initializeMessageBox(MAIN_MESSAGE_BOX_INDEX, FESTIVALS_TEXT_INDEX, 77, 0);
+        } else {
+            switch (gCutsceneIndex) {
+                case SEA_FESTIVAL:
+                case EGG_FESTIVAL:
+                case NEW_YEAR_FESTIVAL:
+                    initializeMessageBox(MAIN_MESSAGE_BOX_INDEX, FESTIVALS_TEXT_INDEX, 74, 0);
+                    break;
+                case 416:
+                    initializeMessageBox(MAIN_MESSAGE_BOX_INDEX, FESTIVALS_TEXT_INDEX, 76, 0);
+                    break;
+                default:
+                    initializeMessageBox(MAIN_MESSAGE_BOX_INDEX, FESTIVALS_TEXT_INDEX, 75, 0);
+                    break;
+            }
         }
         
         setMainLoopCallbackFunctionIndex(END_OF_FESTIVAL_DAY_2);
@@ -3146,15 +3147,10 @@ void clearHeldItemsAtEndOfDay(void) {
         
         clearHeldItemSlot(gPlayer.itemInfoIndex);
 
-        switch (gPlayer.heldItem) {
-            case 0x60 ... 0x6F:
-                resetChickenLocation(0xFF, gPlayer.heldAnimalIndex);
-                break;
-            case 0x58 ... 0x5F:
-                setDogLocation(0xFF);
-                break;
-            default:
-                break;
+        if (HM64_IN_RANGE(gPlayer.heldItem, 0x60, 0x6F)) {
+            resetChickenLocation(0xFF, gPlayer.heldAnimalIndex);
+        } else if (HM64_IN_RANGE(gPlayer.heldItem, 0x58, 0x5F)) {
+            setDogLocation(0xFF);
         }
         
         gPlayer.heldItem = 0;
@@ -3168,7 +3164,7 @@ void clearHeldItemsAtEndOfDay(void) {
 
 bool checkBacheloretteReadyForMarriage(void) {
     
-    bool result;
+    bool result = FALSE;
 
     result = npcAffection[MARIA] >= MARRIAGE_READY_AFFECTION_THRESHOLD;
     
@@ -3650,7 +3646,7 @@ void setRecipes(void) {
 
 u8 handleHouseConstruction(u8 day) {
 
-    u8 result;
+    u8 result = FALSE;
     
     u8 buffer1[6];
     u16 buffer2[8];
@@ -4075,7 +4071,7 @@ static const u8 animalLocationsHouseConstruction[6] = { FARM, FARM, HOUSE, FARM,
 // INCLUDE_RODATA("asm/nonmatchings/game/game", mailTextIndices);
 
 // text indices for letters
-static const u16 mailTextIndices[79] = { 
+static const u16 mailTextIndices[80] = { 
      0, 1, 2, 3, 4, 5, 
      6, 7, 8, 9, 10, 11, 
      12, 13, 14, 15, 16, 
@@ -4091,5 +4087,5 @@ static const u16 mailTextIndices[79] = {
      44, 45, 46, 47, 47, 
      48, 49, 50, 51, 52, 
      53, 54, 55, 56, 57,
-     0, 0, 0, 0
+     0, 0, 0
 };

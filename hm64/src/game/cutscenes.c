@@ -4218,7 +4218,6 @@ void handleCutsceneCompletion(void) {
                         case 129:
                         case 130:
                         case 139:
-                        case 239 ... 243:
                             if (gCutsceneCompletionFlags & 0x40000000) {
                                 setMainLoopCallbackFunctionIndex(END_OF_FESTIVAL_DAY_1);
                             }
@@ -4227,8 +4226,14 @@ void handleCutsceneCompletion(void) {
                         case 171:
                             break;
                         
-                        case 250 ... 256:
-                            setMainLoopCallbackFunctionIndex(END_OF_FESTIVAL_DAY_1);
+                        default:
+                            if (HM64_IN_RANGE(gCutsceneIndex, 239, 243)) {
+                                if (gCutsceneCompletionFlags & 0x40000000) {
+                                    setMainLoopCallbackFunctionIndex(END_OF_FESTIVAL_DAY_1);
+                                }
+                            } else if (HM64_IN_RANGE(gCutsceneIndex, 250, 256)) {
+                                setMainLoopCallbackFunctionIndex(END_OF_FESTIVAL_DAY_1);
+                            }
                             break;
                         
                     }
@@ -5286,13 +5291,13 @@ void handleCutsceneCompletion(void) {
 
                         break;
 
-                    case 1601 ... 1611:
-                        gCutsceneIndex = 1600;
-                        loadCutscene(FALSE); 
-                        break;
-
                     default:
-                        gCutsceneIndex = 0xFFFF;
+                        if (HM64_IN_RANGE(gCutsceneIndex, 1601, 1611)) {
+                            gCutsceneIndex = 1600;
+                            loadCutscene(FALSE); 
+                        } else {
+                            gCutsceneIndex = 0xFFFF;
+                        }
                         break;
                     
                 }
@@ -5832,18 +5837,16 @@ void loadCutscene(bool morningVisit) {
 
             // farm visits
             switch (gCutsceneIndex) {
-
                 case 220:
                     gCameraRotationOffset = 0;
                     setInitialMapRotation(MAIN_MAP_INDEX, SOUTH);
                     break;
-                case 228 ... 238:
-                    gCameraRotationOffset = 0;
-                    setInitialMapRotation(MAIN_MAP_INDEX, SOUTH);
-                    break;
                 default:
+                    if (HM64_IN_RANGE(gCutsceneIndex, 228, 238)) {
+                        gCameraRotationOffset = 0;
+                        setInitialMapRotation(MAIN_MAP_INDEX, SOUTH);
+                    }
                     break;
-            
             }
             
         } 
@@ -5862,32 +5865,30 @@ void loadCutscene(bool morningVisit) {
 
     initializeCutscene(bytecodeSegmentIndex);
     
-    switch (gCutsceneIndex) {
-        case STARRY_NIGHT_MOON_MOUNTAIN:
-        case MARIA_WEDDING ... KAREN_WEDDING:
-        case STARRY_NIGHT_FESTIVAL:
-        case 523:
-        case 756:
-        case SOWING_FESTIVAL_POTION_SHOP_DEALER ... SOWING_FESTIVAL_HARRIS:
-        case HORSE_RACE_SQUARE: 
-        case FLOWER_FESTIVAL:
-        case 1050:
-        case SEA_FESTIVAL:
-        case COW_FESTIVAL:
-        case 1200:
-        case EGG_FESTIVAL:
-        case DOG_RACE_SQUARE:
-        case 1350 ... 1352:
-        case NEW_YEAR_FESTIVAL:
-        case FUNERAL:
-        case OPENING_LOGOS:
-        case DEMO_CUTSCENE_1: 
-        case DEMO_CUTSCENE_2:
-        case DEMO_CUTSCENE_3:
-        case EVALUATION:
-        case HOW_TO_PLAY_CUTSCENE:
-            setDailyEventBit(0x4B);
-            break;
+    if (gCutsceneIndex == STARRY_NIGHT_MOON_MOUNTAIN ||
+        HM64_IN_RANGE(gCutsceneIndex, MARIA_WEDDING, KAREN_WEDDING) ||
+        gCutsceneIndex == STARRY_NIGHT_FESTIVAL ||
+        gCutsceneIndex == 523 ||
+        gCutsceneIndex == 756 ||
+        HM64_IN_RANGE(gCutsceneIndex, SOWING_FESTIVAL_POTION_SHOP_DEALER, SOWING_FESTIVAL_HARRIS) ||
+        gCutsceneIndex == HORSE_RACE_SQUARE ||
+        gCutsceneIndex == FLOWER_FESTIVAL ||
+        gCutsceneIndex == 1050 ||
+        gCutsceneIndex == SEA_FESTIVAL ||
+        gCutsceneIndex == COW_FESTIVAL ||
+        gCutsceneIndex == 1200 ||
+        gCutsceneIndex == EGG_FESTIVAL ||
+        gCutsceneIndex == DOG_RACE_SQUARE ||
+        HM64_IN_RANGE(gCutsceneIndex, 1350, 1352) ||
+        gCutsceneIndex == NEW_YEAR_FESTIVAL ||
+        gCutsceneIndex == FUNERAL ||
+        gCutsceneIndex == OPENING_LOGOS ||
+        gCutsceneIndex == DEMO_CUTSCENE_1 ||
+        gCutsceneIndex == DEMO_CUTSCENE_2 ||
+        gCutsceneIndex == DEMO_CUTSCENE_3 ||
+        gCutsceneIndex == EVALUATION ||
+        gCutsceneIndex == HOW_TO_PLAY_CUTSCENE) {
+        setDailyEventBit(0x4B);
     }
     
 }

@@ -84,7 +84,7 @@ void readControllerData(void) {
     
     for (i = 0; i < NU_CONT_MAXCONTROLLERS; i++) {
         
-        if (!nuContStatus[i].errno) {
+        if (!nuContStatus[i].err_no) {
             
             if ((frameCount % mainLoopUpdateRate) == 0) {
                 
@@ -293,7 +293,7 @@ void calculateAnalogStickDirection(u8 controllerIndex) {
 
 bool func_8004D788(u8 contIndex) {
     
-    bool result;
+    bool result = FALSE;
     u32 error;
     
     bool temp;

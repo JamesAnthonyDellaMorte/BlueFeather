@@ -146,7 +146,7 @@ u8 gridIndexToTileIndexX[20 * 24] = {
     0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F, 0x10, 0x11, 0x12, 0x13,
 };
 
-u8 gridIndexToTileIndexZ[20 * 24] = {
+u8 gridIndexToTileIndexZ[(20 * 24) + 4] = {
     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
     0x00, 0x00, 0x00, 0x00, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01,
     0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02,
@@ -194,8 +194,8 @@ static const Gfx D_8011EDA8;
 static const Gfx D_8011EDD0;
 static const Gfx D_8011EDD8;
 
-static const char D_8011EDB0[];
-static const char D_8011EDB4[];
+static const char D_8011EDB0[3];
+static const char D_8011EDB4[16];
 
 static inline u16 swap16TileIndex(u16 halfwordValue) {
 
@@ -297,7 +297,7 @@ bool setupMap(u16 mapIndex,
     void* coreMapObjectsPalettes, 
     u8 *mapAdditionsMetadataPtr) {
 
-    bool result;
+    bool result = FALSE;
 
     u16 i, k, l, m, n, o, p, q, j, r;
 
@@ -643,7 +643,7 @@ bool adjustMapRGBA(u16 mapIndex, s8 arg1, s8 arg2, s8 arg3, s8 arg4) {
 
 bool setMapRGBAWithTransition(u16 mapIndex, u8 r, u8 g, u8 b, u8 a, s16 rate) {
 
-    bool result;
+    bool result = FALSE;
 
     f32 temp;
 
@@ -1625,10 +1625,10 @@ void setGridToTileTextureMappings(u16 mapIndex) {
 
                 // FIXME: dead code
                 if (previousGridPositionForTileTexture[temp] == 0xFFFF) {
-                    __asm__ __volatile__("" : : : "memory");
+                    HM64_COMPILER_BARRIER();
                     mainMap[mapIndex].textureToFirstGrid[temp] = gridPosition;
                 } else {
-                    __asm__ __volatile__("" : : : "memory");
+                    HM64_COMPILER_BARRIER();
                     mainMap[mapIndex].nextGridPositionWithSharedTile[previousGridPositionForTileTexture[temp]] = gridPosition;
                 }
                 
@@ -1654,7 +1654,7 @@ void setGridToTileTextureMappings(u16 mapIndex) {
         if (previousGridPositionForTileTexture[i] != 0xFFFF) {
             
             // FIXME: dead code
-            __asm__ __volatile__("" : : : "memory");
+            HM64_COMPILER_BARRIER();
             mainMap[mapIndex].nextGridPositionWithSharedTile[previousGridPositionForTileTexture[i]] = 0xFFFF;
 
         } 
@@ -1948,7 +1948,7 @@ u16* getTileVtxPtrFromCount(u16 count, void* vtxDataPtr) {
     u32 offset = ptr[count];
 #endif
     
-    return (u16*)(vtxDataPtr + offset);
+    return (u16*)((u8*)vtxDataPtr + offset);
 
 }
 
@@ -2168,7 +2168,7 @@ u16 buildTileRenderingCommands(Gfx* dl, MainMap* mainMap, TileRenderingInfo tile
             *dl++ = D_8011EDA0;
     
             // FIXME
-            asm("");
+            HM64_COMPILER_BARRIER();
     
             gDPSetPrimColor(&dl2[1], 0, 0, tileRenderingInfo[i].data1[0], tileRenderingInfo[i].data2[0], tileRenderingInfo[i].data3[0], 255);
             
@@ -2181,7 +2181,7 @@ u16 buildTileRenderingCommands(Gfx* dl, MainMap* mainMap, TileRenderingInfo tile
             
             // FIXME: no idea what's going on here
             // have to manually use the stack DL with the triangle macros
-            __asm__ __volatile__("" : : : "memory");
+            HM64_COMPILER_BARRIER();
             
             {
                 
@@ -2436,7 +2436,7 @@ u32* func_800387F8(u16 arg0, u32* arg1) {
 
 bool updateGroundObjects(u16 mapIndex) {
 
-    bool result;
+    bool result = FALSE;
 
     if (mapIndex == MAIN_MAP_INDEX && (mainMap[mapIndex].mapState.flags & MAP_ACTIVE)) {
         
@@ -2828,7 +2828,7 @@ void setupCoreMapObjectSprites(MainMap* mainMap) {
                     
             }
                 
-            asm("");
+            HM64_COMPILER_BARRIER();
             
             j++;
             total = mainMap->coreMapObjectsMetadata[i].repeatObjectCount;  

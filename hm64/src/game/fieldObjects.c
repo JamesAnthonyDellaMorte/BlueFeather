@@ -772,7 +772,7 @@ void setDefaultGroundObjectsForLevel(void) {
 
 u8 getGroundObjectMapAdditionIndex(u8 index) {
 
-    u8 result;
+    u8 result = 0;
 
     if (index >= MAX_FIELD_OBJECTS) {
         result = 0;
@@ -789,7 +789,7 @@ u8 getGroundObjectMapAdditionIndex(u8 index) {
 // unused
 u8 getGroundObjectSpriteIndex(u8 index) {
 
-    u8 result;
+    u8 result = 0;
 
     if (index >= MAX_FIELD_OBJECTS) {
         result = 0;
@@ -805,7 +805,7 @@ u8 getGroundObjectSpriteIndex(u8 index) {
 
 u8 getHeldItemIndexFromGroundObject(u8 index) {
 
-    u8 result;
+    u8 result = 0;
 
     if (index >= MAX_FIELD_OBJECTS) {
         result = 0;
@@ -821,7 +821,7 @@ u8 getHeldItemIndexFromGroundObject(u8 index) {
 
 u8 getGroundObjectToolInteractionFlags(u8 groundObjectIndex) {
 
-    u8 result;
+    u8 result = 0;
 
     if (groundObjectIndex >= MAX_FIELD_OBJECTS) {
         result = 0;
@@ -838,7 +838,7 @@ u8 getGroundObjectToolInteractionFlags(u8 groundObjectIndex) {
 
 u8 getGroundObjectPlayerInteractionsFlags(u8 index) {
 
-    u8 result;
+    u8 result = 0;
 
     if (index >= MAX_FIELD_OBJECTS) {
         result = 0;
@@ -1147,7 +1147,7 @@ void addGroundObjectToMapFromPlayerPosition(u8 groundObjectIndex, f32 arg1, u8 a
 
 static inline u8 subtractX(u8 x) {
 
-    u8 result;
+    u8 result = 0;
     
     result = x - groundObjectsGridX; 
     
@@ -1157,7 +1157,7 @@ static inline u8 subtractX(u8 x) {
 
 static inline u8 subtractZ(u8 z) {
 
-    u8 result;
+    u8 result = 0;
     
     result = z - groundObjectsGridZ; 
     
@@ -1256,110 +1256,75 @@ void updateFieldObjectsOvernight(void) {
     
                         case SPRING:
 
-                            switch (currentGroundObject) {
-    
-                                case GRASS_PLANTED_STAGE_1 ... GRASS_RIPE:
-                                    currentGroundObject = GRASS_CUT;
-                                    break;
-                                
-                                case TILLED ... TILLED_WATERED:
-                                    
-                                    if (getRandomNumberInRange(0, 5) >= 3) {
-                                        currentGroundObject = BASE_TILE;
-                                    }
-                                    
-                                    break;
-
-                                case 0xD7 ... 0xD8:
-                                    currentGroundObject = TILLED;
-                                    break;
-                                    
+                            if (HM64_IN_RANGE(currentGroundObject, GRASS_PLANTED_STAGE_1, GRASS_RIPE)) {
+                                currentGroundObject = GRASS_CUT;
+                            } else if (HM64_IN_RANGE(currentGroundObject, TILLED, TILLED_WATERED)) {
+                                if (getRandomNumberInRange(0, 5) >= 3) {
+                                    currentGroundObject = BASE_TILE;
+                                }
+                            } else if (HM64_IN_RANGE(currentGroundObject, 0xD7, 0xD8)) {
+                                currentGroundObject = TILLED;
                             }
     
                             break;
                         
                         case SUMMER:
                         
-                            switch (currentGroundObject) {
-    
-                                case TURNIP_PLANTED_STAGE_1 ... TURNIP_PLANTED_STAGE_2_WATERED:
-                                case CABBAGE_PLANTED_STAGE_1 ... CABBAGE_PLANTED_STAGE_3_WATERED:
-                                case POTATO_PLANTED_STAGE_1 ... POTATO_PLANTED_STAGE_3_WATERED:
-                                case 0xD7 ... 0xD8:
-                                    currentGroundObject = TILLED;
-                                    break;
-                                
-                                case TURNIP_SPROUT_STAGE_1 ... TURNIP_RIPE_WATERED:
-                                    currentGroundObject = TURNIP_DEAD;
-                                    break;
-                                case POTATO_SPROUT_STAGE_1 ... POTATO_RIPE_WATERED:
-                                    currentGroundObject = POTATO_DEAD;
-                                    break;
-                                case CABBAGE_SPROUT_STAGE_1 ... CABBAGE_RIPE_WATERED:
-                                    currentGroundObject = CABBAGE_DEAD;
-                                    break;
-                                
+                            if (HM64_IN_RANGE(currentGroundObject, TURNIP_PLANTED_STAGE_1, TURNIP_PLANTED_STAGE_2_WATERED) ||
+                                HM64_IN_RANGE(currentGroundObject, CABBAGE_PLANTED_STAGE_1, CABBAGE_PLANTED_STAGE_3_WATERED) ||
+                                HM64_IN_RANGE(currentGroundObject, POTATO_PLANTED_STAGE_1, POTATO_PLANTED_STAGE_3_WATERED) ||
+                                HM64_IN_RANGE(currentGroundObject, 0xD7, 0xD8)) {
+                                currentGroundObject = TILLED;
+                            } else if (HM64_IN_RANGE(currentGroundObject, TURNIP_SPROUT_STAGE_1, TURNIP_RIPE_WATERED)) {
+                                currentGroundObject = TURNIP_DEAD;
+                            } else if (HM64_IN_RANGE(currentGroundObject, POTATO_SPROUT_STAGE_1, POTATO_RIPE_WATERED)) {
+                                currentGroundObject = POTATO_DEAD;
+                            } else if (HM64_IN_RANGE(currentGroundObject, CABBAGE_SPROUT_STAGE_1, CABBAGE_RIPE_WATERED)) {
+                                currentGroundObject = CABBAGE_DEAD;
                             }
 
                             break;
                         
                         case AUTUMN:
     
-                            switch (currentGroundObject) {
-
-                                case TURNIP_PLANTED_STAGE_1 ... TURNIP_PLANTED_STAGE_2_WATERED:
-                                case CABBAGE_PLANTED_STAGE_1 ... CABBAGE_PLANTED_STAGE_3_WATERED:
-                                case POTATO_PLANTED_STAGE_1 ... POTATO_PLANTED_STAGE_3_WATERED:
-                                case TOMATO_PLANTED_STAGE_1 ...TOMATO_PLANTED_STAGE_2_WATERED:
-                                case CORN_PLANTED_STAGE_1 ... CORN_PLANTED_STAGE_3_WATERED:
-                                case MOONDROP_PLANTED_STAGE_1 ... MOONDROP_PLANTED_STAGE_2_WATERED:
-                                case PINK_CAT_MINT_PLANTED_STAGE_1 ... PINK_CAT_MINT_PLANTED_STAGE_3_WATERED:
-                                case 0xD7 ... 0xD8:
-                                    currentGroundObject = TILLED;
-                                    break;
-                                
-                                case TOMATO_SPROUT_STAGE_1 ... TOMATO_RIPE_WATERED:
-                                    currentGroundObject = TOMATO_DEAD;
-                                    break;
-                                
-                                case CORN_SPROUT_STAGE_1 ... CORN_RIPE_WATERED:
-                                    currentGroundObject = CORN_DEAD;
-                                    break;
-
-                                case MOONDROP_SPROUT_STAGE_1 ... MOONDROP_RIPE_WATERED:
-                                    currentGroundObject = MOONDROP_DEAD;
-                                    break;
-                                
-                                case PINK_CAT_MINT_SPROUT_STAGE_1 ... PINK_CAT_MINT_RIPE_WATERED:
-                                    currentGroundObject = PINK_CAT_MINT_DEAD;
-                                    break;
-                                    
-                                
+                            if (HM64_IN_RANGE(currentGroundObject, TURNIP_PLANTED_STAGE_1, TURNIP_PLANTED_STAGE_2_WATERED) ||
+                                HM64_IN_RANGE(currentGroundObject, CABBAGE_PLANTED_STAGE_1, CABBAGE_PLANTED_STAGE_3_WATERED) ||
+                                HM64_IN_RANGE(currentGroundObject, POTATO_PLANTED_STAGE_1, POTATO_PLANTED_STAGE_3_WATERED) ||
+                                HM64_IN_RANGE(currentGroundObject, TOMATO_PLANTED_STAGE_1, TOMATO_PLANTED_STAGE_2_WATERED) ||
+                                HM64_IN_RANGE(currentGroundObject, CORN_PLANTED_STAGE_1, CORN_PLANTED_STAGE_3_WATERED) ||
+                                HM64_IN_RANGE(currentGroundObject, MOONDROP_PLANTED_STAGE_1, MOONDROP_PLANTED_STAGE_2_WATERED) ||
+                                HM64_IN_RANGE(currentGroundObject, PINK_CAT_MINT_PLANTED_STAGE_1, PINK_CAT_MINT_PLANTED_STAGE_3_WATERED) ||
+                                HM64_IN_RANGE(currentGroundObject, 0xD7, 0xD8)) {
+                                currentGroundObject = TILLED;
+                            } else if (HM64_IN_RANGE(currentGroundObject, TOMATO_SPROUT_STAGE_1, TOMATO_RIPE_WATERED)) {
+                                currentGroundObject = TOMATO_DEAD;
+                            } else if (HM64_IN_RANGE(currentGroundObject, CORN_SPROUT_STAGE_1, CORN_RIPE_WATERED)) {
+                                currentGroundObject = CORN_DEAD;
+                            } else if (HM64_IN_RANGE(currentGroundObject, MOONDROP_SPROUT_STAGE_1, MOONDROP_RIPE_WATERED)) {
+                                currentGroundObject = MOONDROP_DEAD;
+                            } else if (HM64_IN_RANGE(currentGroundObject, PINK_CAT_MINT_SPROUT_STAGE_1, PINK_CAT_MINT_RIPE_WATERED)) {
+                                currentGroundObject = PINK_CAT_MINT_DEAD;
                             }
                             
                             break;
                         
                         case WINTER:
 
-                            switch (currentGroundObject) {
-
-                                case TILLED:
-                                case WEED:
-                                case TURNIP_PLANTED_STAGE_1 ... TURNIP_PLANTED_STAGE_2_WATERED:
-                                case TURNIP_DEAD ... POTATO_PLANTED_STAGE_3_WATERED:
-                                case POTATO_DEAD ... EGGPLANT_RIPE_WATERED:
-                                case CABBAGE_PLANTED_STAGE_1 ... CABBAGE_PLANTED_STAGE_3_WATERED:
-                                case CABBAGE_DEAD:
-                                case TOMATO_PLANTED_STAGE_1 ... TOMATO_PLANTED_STAGE_2_WATERED:
-                                case TOMATO_DEAD ... CORN_PLANTED_STAGE_3_WATERED:
-                                case CORN_DEAD:
-                                case MOONDROP_PLANTED_STAGE_1 ... MOONDROP_PLANTED_STAGE_2_WATERED:
-                                case MOONDROP_DEAD ... PINK_CAT_MINT_PLANTED_STAGE_3_WATERED:
-                                case PINK_CAT_MINT_DEAD:
-                                case 0xD7 ... 0xD8:
-                                    currentGroundObject = BASE_TILE;
-                                    break;
-                                
+                            if (currentGroundObject == TILLED ||
+                                currentGroundObject == WEED ||
+                                HM64_IN_RANGE(currentGroundObject, TURNIP_PLANTED_STAGE_1, TURNIP_PLANTED_STAGE_2_WATERED) ||
+                                HM64_IN_RANGE(currentGroundObject, TURNIP_DEAD, POTATO_PLANTED_STAGE_3_WATERED) ||
+                                HM64_IN_RANGE(currentGroundObject, POTATO_DEAD, EGGPLANT_RIPE_WATERED) ||
+                                HM64_IN_RANGE(currentGroundObject, CABBAGE_PLANTED_STAGE_1, CABBAGE_PLANTED_STAGE_3_WATERED) ||
+                                currentGroundObject == CABBAGE_DEAD ||
+                                HM64_IN_RANGE(currentGroundObject, TOMATO_PLANTED_STAGE_1, TOMATO_PLANTED_STAGE_2_WATERED) ||
+                                HM64_IN_RANGE(currentGroundObject, TOMATO_DEAD, CORN_PLANTED_STAGE_3_WATERED) ||
+                                currentGroundObject == CORN_DEAD ||
+                                HM64_IN_RANGE(currentGroundObject, MOONDROP_PLANTED_STAGE_1, MOONDROP_PLANTED_STAGE_2_WATERED) ||
+                                HM64_IN_RANGE(currentGroundObject, MOONDROP_DEAD, PINK_CAT_MINT_PLANTED_STAGE_3_WATERED) ||
+                                currentGroundObject == PINK_CAT_MINT_DEAD ||
+                                HM64_IN_RANGE(currentGroundObject, 0xD7, 0xD8)) {
+                                currentGroundObject = BASE_TILE;
                             }
                             
                             break;
@@ -1579,15 +1544,10 @@ void randomlyCutGrass(u8 randomRange) {
     
         for (j = 0; j < FIELD_WIDTH; j++) {
             
-            switch (farmFieldTiles[i][j]) {
-                case GRASS_SPROUT_STAGE_1 ... GRASS_RIPE:
-                    if (!getRandomNumberInRange(0, randomRange)) {
-                        setFieldTile(FARM, GRASS_CUT, j, i);    
-                    }
-                    break;
-                default:
-                    break;
-                
+            if (HM64_IN_RANGE(farmFieldTiles[i][j], GRASS_SPROUT_STAGE_1, GRASS_RIPE)) {
+                if (!getRandomNumberInRange(0, randomRange)) {
+                    setFieldTile(FARM, GRASS_CUT, j, i);    
+                }
             }
             
             
@@ -1633,16 +1593,11 @@ void randomlyDestroyCrops(u8 randomRange) {
     
         for (j = 0; j < FIELD_WIDTH; j++) {
             
-            switch (farmFieldTiles[i][j]) {
-                case TURNIP_PLANTED_STAGE_1 ... CORN_DEAD:
-                case MOONDROP_PLANTED_STAGE_1 ... BLUE_MIST_FLOWER_RIPE_WATERED:
-                    if (!getRandomNumberInRange(0, randomRange)) {
-                        setFieldTile(FARM, TILLED, j, i);    
-                    }
-                    break;
-                default:
-                    break;
-                
+            if (HM64_IN_RANGE(farmFieldTiles[i][j], TURNIP_PLANTED_STAGE_1, CORN_DEAD) ||
+                HM64_IN_RANGE(farmFieldTiles[i][j], MOONDROP_PLANTED_STAGE_1, BLUE_MIST_FLOWER_RIPE_WATERED)) {
+                if (!getRandomNumberInRange(0, randomRange)) {
+                    setFieldTile(FARM, TILLED, j, i);    
+                }
             }
             
         }
@@ -1702,16 +1657,11 @@ void randomlyResetGreenhouseTiles(u8 randomRange) {
     
         for (j = 0; j < FIELD_WIDTH; j++) {
             
-            switch (greenhouseFieldTiles[i][j]) {
-                case TURNIP_PLANTED_STAGE_1 ... CORN_DEAD:
-                case MOONDROP_PLANTED_STAGE_1 ... BLUE_MIST_FLOWER_RIPE_WATERED:
-                    if (!getRandomNumberInRange(0, randomRange)) {
-                        setFieldTile(GREENHOUSE, TILLED, j, i);    
-                    }
-                    break;
-                default:
-                    break;
-                
+            if (HM64_IN_RANGE(greenhouseFieldTiles[i][j], TURNIP_PLANTED_STAGE_1, CORN_DEAD) ||
+                HM64_IN_RANGE(greenhouseFieldTiles[i][j], MOONDROP_PLANTED_STAGE_1, BLUE_MIST_FLOWER_RIPE_WATERED)) {
+                if (!getRandomNumberInRange(0, randomRange)) {
+                    setFieldTile(GREENHOUSE, TILLED, j, i);    
+                }
             }
             
         }
@@ -1773,13 +1723,8 @@ u16 getFarmGrassTilesSum(void) {
     
         for (j = 0; j < FIELD_WIDTH; j++) {
 
-            switch (farmFieldTiles[i][j]) {
-                case GRASS_PLANTED_STAGE_1 ... GRASS_CUT:
-                    count++;
-                    break;
-                default:
-                    break;
-                
+            if (HM64_IN_RANGE(farmFieldTiles[i][j], GRASS_PLANTED_STAGE_1, GRASS_CUT)) {
+                count++;
             }
             
         }
@@ -1832,13 +1777,8 @@ u16 getFarmMoondropFlowerCount(void) {
     
         for (j = 0; j < FIELD_WIDTH; j++) {
             
-            switch (farmFieldTiles[i][j]) {
-                case MOONDROP_RIPE ... MOONDROP_RIPE_WATERED:
-                    count++;
-                    break;
-                default:
-                    break;
-                
+            if (HM64_IN_RANGE(farmFieldTiles[i][j], MOONDROP_RIPE, MOONDROP_RIPE_WATERED)) {
+                count++;
             }
             
             
@@ -1891,13 +1831,8 @@ u16 getGreenhouseMoondropFlowerCount(void) {
     
         for (j = 0; j < FIELD_WIDTH; j++) {
             
-            switch (greenhouseFieldTiles[i][j]) {
-                case MOONDROP_RIPE ... MOONDROP_RIPE_WATERED:
-                    count++;
-                    break;
-                default:
-                    break;
-                
+            if (HM64_IN_RANGE(greenhouseFieldTiles[i][j], MOONDROP_RIPE, MOONDROP_RIPE_WATERED)) {
+                count++;
             }
             
             
@@ -1947,12 +1882,8 @@ u16 getFarmPinkCatMintFlowersCount(void) {
 
     for (i = 0; i < FIELD_HEIGHT; i++) {
         for (j = 0; j < FIELD_WIDTH; j++) {
-            switch (farmFieldTiles[i][j]) {
-                case PINK_CAT_MINT_RIPE ... PINK_CAT_MINT_RIPE_WATERED:
-                    count++;
-                    break;
-                default:
-                    break;
+            if (HM64_IN_RANGE(farmFieldTiles[i][j], PINK_CAT_MINT_RIPE, PINK_CAT_MINT_RIPE_WATERED)) {
+                count++;
             }
         }
     }
@@ -1969,12 +1900,8 @@ u16 getGreenhousePinkCatMintFlowersCount(void) {
 
     for (i = 0; i < FIELD_HEIGHT; i++) {
         for (j = 0; j < FIELD_WIDTH; j++) {
-            switch (greenhouseFieldTiles[i][j]) {
-                case PINK_CAT_MINT_RIPE ... PINK_CAT_MINT_RIPE_WATERED:
-                    count++;
-                    break;
-                default:
-                    break;
+            if (HM64_IN_RANGE(greenhouseFieldTiles[i][j], PINK_CAT_MINT_RIPE, PINK_CAT_MINT_RIPE_WATERED)) {
+                count++;
             }
         }
     }
@@ -1996,18 +1923,11 @@ void removePinkCatMintFlowerFromFarm(void) {
     
         for (j = 0; j < FIELD_WIDTH; j++) {
 
-            switch (farmFieldTiles[i][j]) {
-
-                case PINK_CAT_MINT_RIPE ... PINK_CAT_MINT_RIPE_WATERED:
-                    if (!found) {
-                        addGroundObjectToMap(FARM, TILLED, j, i);
-                        found = TRUE;
-                    }
-                    break;
-
-                default:
-                    break;
-                
+            if (HM64_IN_RANGE(farmFieldTiles[i][j], PINK_CAT_MINT_RIPE, PINK_CAT_MINT_RIPE_WATERED)) {
+                if (!found) {
+                    addGroundObjectToMap(FARM, TILLED, j, i);
+                    found = TRUE;
+                }
             }
             
         }

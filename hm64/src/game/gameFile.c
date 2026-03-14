@@ -1727,7 +1727,7 @@ bool loadGameFromSram(u8 saveSlot, bool gamePakEnabled) {
     u8 row, col;
     u16 idx;
 
-    bool result;
+    bool result = FALSE;
 
     // Get SRAM address (each save is 0x1000 bytes)
     devAddr = (saveSlot << 12) + 0x08000000;

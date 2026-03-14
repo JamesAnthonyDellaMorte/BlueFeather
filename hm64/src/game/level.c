@@ -460,8 +460,8 @@ static u8 unused[] = {
     0, 0, 0, 0, 0, 0, 0, 0, 0, 
 };
 
-static const Vec3f chickenFeedCoordinates[];
-static const Vec3f barnFodderCoordinates[];
+static const Vec3f chickenFeedCoordinates[6];
+static const Vec3f barnFodderCoordinates[9];
 
 // forward declaration
 void loadLevelGroundObjects(u16 mapIndex);
@@ -1427,7 +1427,7 @@ void setBarnFodderSprite(u8 arg0) {
 }
 */
 
-static const Vec3f chickenFeedCoordinates[] = {
+static const Vec3f chickenFeedCoordinates[6] = {
     { -120, 0, 56 },
     { -120, 0, 24 },
     { -120, 0, -8 },
@@ -1440,7 +1440,7 @@ static const Vec3f chickenFeedCoordinates[] = {
 
 //INCLUDE_RODATA("asm/nonmatchings/game/level", barnFodderCoordinates);
 
-static const Vec3f barnFodderCoordinates[] = {
+static const Vec3f barnFodderCoordinates[9] = {
     { -136.0f, 0.0f, 88.0f },
     { -136.0f, 0.0f, 24.0f },
     { -136.0f, 0.0f, -40.0f },

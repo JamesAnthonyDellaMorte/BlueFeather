@@ -17,7 +17,7 @@ void setupInterpolator(Interpolator* interpolator, u32 currentValue, u32 max, s1
 
 bool interpolateToTarget(Interpolator* interpolator) {
 
-    bool result;
+    bool result = FALSE;
     s32 temp;
 
     result = FALSE;

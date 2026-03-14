@@ -147,7 +147,7 @@ u8* characterAvatarsAnimationsPtr;
 
 CharacterAvatar characterAvatars[1];
 DialogueWindow dialogueWindows[3];
-OverlayIcon overlayIcons[2];
+static OverlayIcon gMessageOverlayIcons[2];
 
 // rodata
 static const u32 powersOfTen[8];
@@ -380,11 +380,11 @@ bool initializeMessageBox(u16 messageBoxIndex, u16 textAddressesIndex, u16 textI
             }
 
             if (messageBoxes[messageBoxIndex].flags & MESSAGE_BOX_HAS_OVERLAY_ICON) {
-                dmaSprite(overlayIcons[messageBoxes[messageBoxIndex].overlayIconIndex].spriteIndex, overlayIcons[messageBoxes[messageBoxIndex].overlayIconIndex].romTextureStart, overlayIcons[messageBoxes[messageBoxIndex].overlayIconIndex].romTextureEnd, overlayIcons[messageBoxes[messageBoxIndex].overlayIconIndex].romIndexStart, overlayIcons[messageBoxes[messageBoxIndex].overlayIconIndex].romIndexEnd, NULL, NULL, overlayIcons[messageBoxes[messageBoxIndex].overlayIconIndex].vaddrTexture, NULL, overlayIcons[messageBoxes[messageBoxIndex].overlayIconIndex].vaddrPalette, overlayIcons[messageBoxes[messageBoxIndex].overlayIconIndex].vaddrAnimationFrameMetadata, overlayIcons[messageBoxes[messageBoxIndex].overlayIconIndex].vaddrTextureToPaletteLookup, overlayIcons[messageBoxes[messageBoxIndex].overlayIconIndex].unk_20, 0, 0);
-                setBilinearFiltering(overlayIcons[messageBoxes[messageBoxIndex].overlayIconIndex].spriteIndex, TRUE);
-                setSpriteColor(overlayIcons[messageBoxes[messageBoxIndex].overlayIconIndex].spriteIndex, 255, 255, 255, 255);
-                setSpriteAnchorAlignment(overlayIcons[messageBoxes[messageBoxIndex].overlayIconIndex].spriteIndex, SPRITE_ANCHOR_CENTER, SPRITE_ANCHOR_CENTER);;
-                setSpriteBlendMode(overlayIcons[messageBoxes[messageBoxIndex].overlayIconIndex].spriteIndex, SPRITE_BLEND_ALPHA_DECAL);
+                dmaSprite(gMessageOverlayIcons[messageBoxes[messageBoxIndex].overlayIconIndex].spriteIndex, gMessageOverlayIcons[messageBoxes[messageBoxIndex].overlayIconIndex].romTextureStart, gMessageOverlayIcons[messageBoxes[messageBoxIndex].overlayIconIndex].romTextureEnd, gMessageOverlayIcons[messageBoxes[messageBoxIndex].overlayIconIndex].romIndexStart, gMessageOverlayIcons[messageBoxes[messageBoxIndex].overlayIconIndex].romIndexEnd, NULL, NULL, gMessageOverlayIcons[messageBoxes[messageBoxIndex].overlayIconIndex].vaddrTexture, NULL, gMessageOverlayIcons[messageBoxes[messageBoxIndex].overlayIconIndex].vaddrPalette, gMessageOverlayIcons[messageBoxes[messageBoxIndex].overlayIconIndex].vaddrAnimationFrameMetadata, gMessageOverlayIcons[messageBoxes[messageBoxIndex].overlayIconIndex].vaddrTextureToPaletteLookup, gMessageOverlayIcons[messageBoxes[messageBoxIndex].overlayIconIndex].unk_20, 0, 0);
+                setBilinearFiltering(gMessageOverlayIcons[messageBoxes[messageBoxIndex].overlayIconIndex].spriteIndex, TRUE);
+                setSpriteColor(gMessageOverlayIcons[messageBoxes[messageBoxIndex].overlayIconIndex].spriteIndex, 255, 255, 255, 255);
+                setSpriteAnchorAlignment(gMessageOverlayIcons[messageBoxes[messageBoxIndex].overlayIconIndex].spriteIndex, SPRITE_ANCHOR_CENTER, SPRITE_ANCHOR_CENTER);;
+                setSpriteBlendMode(gMessageOverlayIcons[messageBoxes[messageBoxIndex].overlayIconIndex].spriteIndex, SPRITE_BLEND_ALPHA_DECAL);
             }
 
             if (messageBoxes[messageBoxIndex].flags & MESSAGE_BOX_HAS_CHARACTER_AVATAR) {
@@ -533,7 +533,7 @@ bool setMessageBoxRGBAWithTransition(u16 index, u8 r, u8 g, u8 b, u8 a, s16 rate
             }
 
             if (messageBoxes[index].flags & MESSAGE_BOX_HAS_OVERLAY_ICON) {
-                updateSpriteRGBA(overlayIcons[messageBoxes[index].overlayIconIndex].spriteIndex, 
+                updateSpriteRGBA(gMessageOverlayIcons[messageBoxes[index].overlayIconIndex].spriteIndex, 
                     r, g, b, a, temp);
             }
             
@@ -552,7 +552,7 @@ bool setMessageBoxRGBAWithTransition(u16 index, u8 r, u8 g, u8 b, u8 a, s16 rate
 // unused
 bool setMessageBoxAlphaWithTransition(u16 index, u8 arg1, s16 arg2) {
 
-    bool result;
+    bool result = FALSE;
     s16 temp;
     f32 tempF;
 
@@ -975,26 +975,26 @@ bool setOverlayIconSprite(u16 index, u16 spriteIndex, u32 romTextureStart, u32 r
     
     if (index < 2) {
 
-        overlayIcons[index].romTextureStart = romTextureStart;
-        overlayIcons[index].romTextureEnd = romTextureEnd;
-        overlayIcons[index].romIndexStart = romIndexStart;
-        overlayIcons[index].romIndexEnd = romIndexEnd;
+        gMessageOverlayIcons[index].romTextureStart = romTextureStart;
+        gMessageOverlayIcons[index].romTextureEnd = romTextureEnd;
+        gMessageOverlayIcons[index].romIndexStart = romIndexStart;
+        gMessageOverlayIcons[index].romIndexEnd = romIndexEnd;
 
-        overlayIcons[index].vaddrTexture = resolveMessagePointer(vaddrTexture);
-        overlayIcons[index].vaddrPalette = resolveMessagePointer(vaddrPalette);
-        overlayIcons[index].vaddrAnimationFrameMetadata = resolveMessagePointer(vaddrAnimationFrameMetadata);
-        overlayIcons[index].vaddrTextureToPaletteLookup = resolveMessagePointer(vaddrTextureToPaletteLookup);
+        gMessageOverlayIcons[index].vaddrTexture = resolveMessagePointer(vaddrTexture);
+        gMessageOverlayIcons[index].vaddrPalette = resolveMessagePointer(vaddrPalette);
+        gMessageOverlayIcons[index].vaddrAnimationFrameMetadata = resolveMessagePointer(vaddrAnimationFrameMetadata);
+        gMessageOverlayIcons[index].vaddrTextureToPaletteLookup = resolveMessagePointer(vaddrTextureToPaletteLookup);
 
-        overlayIcons[index].unk_20 = argA;
-        overlayIcons[index].spriteIndex = spriteIndex;
+        gMessageOverlayIcons[index].unk_20 = argA;
+        gMessageOverlayIcons[index].spriteIndex = spriteIndex;
 
-        overlayIcons[index].spriteOffset = offset;
+        gMessageOverlayIcons[index].spriteOffset = offset;
         
-        overlayIcons[index].flag = flag;
+        gMessageOverlayIcons[index].flag = flag;
 
-        overlayIcons[index].coordinates.x = x;
-        overlayIcons[index].coordinates.y = y;
-        overlayIcons[index].coordinates.z = z;
+        gMessageOverlayIcons[index].coordinates.x = x;
+        gMessageOverlayIcons[index].coordinates.y = y;
+        gMessageOverlayIcons[index].coordinates.z = z;
         
         result = TRUE;
         
@@ -1835,22 +1835,22 @@ void updateMessageBoxText(u16 index) {
                     
                     if ((messageBoxes[index].flags & MESSAGE_BOX_HAS_OVERLAY_ICON) && !(messageBoxes[index].flags & MESSAGE_BOX_MODE_NO_INPUT)) {
                         
-                        startSpriteAnimation(overlayIcons[messageBoxes[index].overlayIconIndex].spriteIndex, 
-                                overlayIcons[messageBoxes[index].overlayIconIndex + 1].spriteOffset, 
-                                overlayIcons[messageBoxes[index].overlayIconIndex + 1].flag
+                        startSpriteAnimation(gMessageOverlayIcons[messageBoxes[index].overlayIconIndex].spriteIndex, 
+                                gMessageOverlayIcons[messageBoxes[index].overlayIconIndex + 1].spriteOffset, 
+                                gMessageOverlayIcons[messageBoxes[index].overlayIconIndex + 1].flag
                         );
                         
-                        setSpriteViewSpacePosition(overlayIcons[messageBoxes[index].overlayIconIndex].spriteIndex, 
-                        messageBoxes[index].viewSpacePosition.x + overlayIcons[messageBoxes[index].overlayIconIndex].coordinates.x,
-                            messageBoxes[index].viewSpacePosition.y + overlayIcons[messageBoxes[index].overlayIconIndex].coordinates.y,
-                            messageBoxes[index].viewSpacePosition.z + overlayIcons[messageBoxes[index].overlayIconIndex].coordinates.z + 1.0f);
+                        setSpriteViewSpacePosition(gMessageOverlayIcons[messageBoxes[index].overlayIconIndex].spriteIndex, 
+                        messageBoxes[index].viewSpacePosition.x + gMessageOverlayIcons[messageBoxes[index].overlayIconIndex].coordinates.x,
+                            messageBoxes[index].viewSpacePosition.y + gMessageOverlayIcons[messageBoxes[index].overlayIconIndex].coordinates.y,
+                            messageBoxes[index].viewSpacePosition.z + gMessageOverlayIcons[messageBoxes[index].overlayIconIndex].coordinates.z + 1.0f);
                             
                     }
                     
                     if ((messageBoxes[index].flags & MESSAGE_BOX_BUTTON_PRESSED) || (messageBoxes[index].flags & MESSAGE_BOX_SILENT)) {
                         
                         // FIXME: dead code
-                        __asm__ __volatile__("" : : : "memory");
+                        HM64_COMPILER_BARRIER();
                         
                         messageBoxes[index].flags &= ~0x4000;
                         messageBoxes[index].flags |= MESSAGE_BOX_TEXT_COMPLETE;
@@ -1859,7 +1859,7 @@ void updateMessageBoxText(u16 index) {
                             resetMessageBoxAnimation(index);
                         }
                         
-                        resetAnimationState(overlayIcons[messageBoxes[index].overlayIconIndex].spriteIndex);
+                        resetAnimationState(gMessageOverlayIcons[messageBoxes[index].overlayIconIndex].spriteIndex);
                         
                         // play close sound effect
                         if (!(messageBoxes[index].flags & MESSAGE_BOX_SILENT) && (messageBoxes[index].characterPrintSfx != 0xFF)) {
@@ -1892,11 +1892,11 @@ void updateMessageBoxText(u16 index) {
                 
                 if (messageBoxes[index].flags & MESSAGE_BOX_HAS_OVERLAY_ICON) {
                     
-                    startSpriteAnimation(overlayIcons[messageBoxes[index].overlayIconIndex].spriteIndex, overlayIcons[messageBoxes[index].overlayIconIndex].spriteOffset, overlayIcons[messageBoxes[index].overlayIconIndex].flag);
-                    setSpriteViewSpacePosition(overlayIcons[messageBoxes[index].overlayIconIndex].spriteIndex,
-                    messageBoxes[index].viewSpacePosition.x + overlayIcons[messageBoxes[index].overlayIconIndex].coordinates.x,
-                    messageBoxes[index].viewSpacePosition.y + overlayIcons[messageBoxes[index].overlayIconIndex].coordinates.y,
-                    messageBoxes[index].viewSpacePosition.z + overlayIcons[messageBoxes[index].overlayIconIndex].coordinates.z + 1.0f);
+                    startSpriteAnimation(gMessageOverlayIcons[messageBoxes[index].overlayIconIndex].spriteIndex, gMessageOverlayIcons[messageBoxes[index].overlayIconIndex].spriteOffset, gMessageOverlayIcons[messageBoxes[index].overlayIconIndex].flag);
+                    setSpriteViewSpacePosition(gMessageOverlayIcons[messageBoxes[index].overlayIconIndex].spriteIndex,
+                    messageBoxes[index].viewSpacePosition.x + gMessageOverlayIcons[messageBoxes[index].overlayIconIndex].coordinates.x,
+                    messageBoxes[index].viewSpacePosition.y + gMessageOverlayIcons[messageBoxes[index].overlayIconIndex].coordinates.y,
+                    messageBoxes[index].viewSpacePosition.z + gMessageOverlayIcons[messageBoxes[index].overlayIconIndex].coordinates.z + 1.0f);
                 
                 }
                 
@@ -1905,7 +1905,7 @@ void updateMessageBoxText(u16 index) {
                     messageBoxes[index].flags &= ~MESSAGE_BOX_BUTTON_PRESSED;
                     messageBoxes[index].flags &= ~MESSAGE_BOX_WAITING_WITH_ICON;
                     
-                    resetAnimationState(overlayIcons[messageBoxes[index].overlayIconIndex].spriteIndex);
+                    resetAnimationState(gMessageOverlayIcons[messageBoxes[index].overlayIconIndex].spriteIndex);
                     
                     if (messageBoxes[index].characterPrintSfx != 0xFF) {
                         setSfx(messageBoxes[index].unk_74 + 1);
@@ -2071,7 +2071,7 @@ u16 readCompressedCharacter(u16 index) {
 
 u8 readGameVariableChar(u16 index) {
 
-    u8 result;
+    u8 result = 0;
 
     result = gameVariableStrings[messageBoxes[index].gameVariableStringIndex].ptr[messageBoxes[index].gameVariableStringLength];
     
@@ -2386,8 +2386,7 @@ static const Gfx D_8011EEC0 = gsSPEndDisplayList();
 
 static inline u8 updateMessageBoxRGBA(u16 i) {
     
-    // bug: never initialized
-    u8 count;
+    u8 count = 0;
 
     if (messageBoxes[i].targetRGBA.r < messageBoxes[i].currentRGBA.r) {
 

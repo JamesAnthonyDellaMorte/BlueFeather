@@ -576,11 +576,11 @@ typedef struct {
 
 // 0x801808B0
 typedef struct {
-    void *bytecodePtr;
-    void *animationDataPtr;
-    void *returnPtr;
+    u8 *bytecodePtr;
+    u8 *animationDataPtr;
+    u8 *returnPtr;
     Vec3f targetPosition;
-    void* callbackBytecodePtr; // PC port: changed from u32 to void* for PC pointers
+    u8* callbackBytecodePtr; // PC port: changed from u32 to host bytecode pointer
     u16 entityCollidedWithIndex;
     u16 targetButtonMask;
     u16 idleAnimation;
@@ -606,7 +606,7 @@ typedef struct {
 
 extern void initializeCutsceneExecutors(void);
 extern void updateCutsceneExecutors(void);
-extern bool spawnCutsceneExecutor(u16 index, void *bytecodePtr);
+extern bool spawnCutsceneExecutor(u16 index, u8 *bytecodePtr);
 extern void deactivateCutsceneExecutors(void);   
 extern void pauseAllCutsceneExecutors(void);     
 extern void resumeCutsceneExecutors(void);    

@@ -46,7 +46,7 @@ typedef struct {
     u32 romIndexEnd;
     u32* vaddrIndex;
     u32* romStart;
-    u32* vaddr;
+    u8* vaddr;
     u16 textAddressesIndex;
     u16 selectionMenuTextAddressesIndex;
 } DialogueBytecodeAddressInfo;
@@ -95,7 +95,7 @@ typedef struct {
 	OverlayIcon dialogueButtonIcon1; // 0x801C3E6C
 	OverlayIcon dialogueButtonIcon2; // 0x801C3EA4
 	OverlayIcon dialogueButtonIcon3; // 0x801C3EDC
-	void* dialogueBytecodePointer; // 0x801C3F14
+	u8* dialogueBytecodePointer; // 0x801C3F14
 	DialogueSessionManager sessionManager; // 0x801C3F18
 } Dialogue;
 
@@ -108,7 +108,7 @@ typedef struct {
 extern bool setDialogueVariable(u16 index, void *address, u8 numSet, s32 max);
 extern void initializeDialogueSessionManagers();   
 extern bool initializeDialogueSessionManager(u16, u16, u16);
-extern bool setDialogueBytecodeAddressInfo(u16 index, u16 arg1, u16 arg2, u32 romStart, u32 romEnd, u32* vaddrIndex, u32 romIndex, void* vaddrBytecode);
+extern bool setDialogueBytecodeAddressInfo(u16 index, u16 arg1, u16 arg2, u32 romStart, u32 romEnd, u32* vaddrIndex, u32 romIndex, u8* vaddrBytecode);
 extern bool setSpecialDialogueBitsPointer(u32[]);
 extern bool setDialogueSfxIndices(u16, u32, u32, u32);
 extern bool setDialogueButtonIcon1(u16 index, u16 spriteIndex, u32 romTextureStart, u32 romTextureEnd, u32 romIndexStart, u32 romIndexEnd, u8* vaddrTexture, u8* vaddrTextureEnd, AnimationFrameMetadata* vaddrAnimationFrameMetadata, u8* vaddrTextureToPaletteLookup, u32 argA, u16 spriteOffset, u8 flag, f32 x, f32 y, f32 z);

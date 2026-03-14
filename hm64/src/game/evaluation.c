@@ -58,12 +58,8 @@ u16 calculateGrassScore(void) {
 
     for (i = 0; i < FIELD_HEIGHT; i++) {
         for (j = 0; j < FIELD_WIDTH; j++) {
-            switch (farmFieldTiles[i][j]) {
-                 default:
-                    break;
-                case GRASS_PLANTED_STAGE_1 ... GRASS_CUT:
-                    score++;
-                    break;
+            if (HM64_IN_RANGE(farmFieldTiles[i][j], GRASS_PLANTED_STAGE_1, GRASS_CUT)) {
+                score++;
             }
         }
     }

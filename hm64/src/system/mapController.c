@@ -30,7 +30,7 @@ void updateMapViewport(MapController*);
 void handleMapRotation(u16 mapIndex);
 
 // y rotations for maps
-static const f32 yRotationAngles[];
+static const f32 yRotationAngles[8];
                     
 //INCLUDE_ASM("asm/nonmatchings/system/mapController", initializeMapControllers);
 
@@ -106,7 +106,7 @@ bool setMapDataAddresses(u16 mapIndex, void *start, void *end) {
 
 bool initializeMapController(u16 index, u16 mapIndex, u32 *mapDataIndex) {
     
-    bool result;
+    bool result = FALSE;
 
     result = FALSE;
     
@@ -213,7 +213,9 @@ bool dmaMapAssets(u16 mainMapIndex, u16 levelMapIndex) {
         mapControllers[mainMapIndex].mapIndex = levelMapIndex;
         
         // mapDataIndex points at the host-side DMA buffer for the imported map blob.
-        nuPiReadRom(mapDataAddresses[levelMapIndex].romStart, mapControllers[mainMapIndex].mapDataIndex, mapDataAddresses[levelMapIndex].romEnd - mapDataAddresses[levelMapIndex].romStart);
+        nuPiReadRom(mapDataAddresses[levelMapIndex].romStart,
+            mapControllers[mainMapIndex].mapDataIndex,
+            (uintptr_t)mapDataAddresses[levelMapIndex].romEnd - (uintptr_t)mapDataAddresses[levelMapIndex].romStart);
  
         mapGrid = getAddress(mapControllers[mainMapIndex].mapDataIndex, 0);
         mesh = getAddress(mapControllers[mainMapIndex].mapDataIndex, 1);
@@ -357,7 +359,7 @@ bool setMapControllerRGBAWithTransition(u16 mapIndex, u8 r, u8 g, u8 b, u8 a, s1
 
 bool setInitialMapRotation(u16 mapIndex, u8 rotationIndex) {
     
-    bool result;
+    bool result = FALSE;
 
     f32 buffer[8];
     f32 *ptr;
@@ -723,4 +725,4 @@ void handleMapRotation(u16 mapIndex) {
 //INCLUDE_RODATA("asm/nonmatchings/systemmapController", yRotationAngles);
 
 // y rotation values
-static const f32 yRotationAngles[] = { 0, 45.0f, 90.0f, 135.0f, 180.0f, 225.0f, 270.0f, 315.0f };
+static const f32 yRotationAngles[8] = { 0, 45.0f, 90.0f, 135.0f, 180.0f, 225.0f, 270.0f, 315.0f };

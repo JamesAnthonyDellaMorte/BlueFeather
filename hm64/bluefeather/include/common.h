@@ -12,6 +12,10 @@
 #include <stdbool.h>
 #endif
 
+#if defined(_MSC_VER)
+#include <intrin.h>
+#endif
+
 #include <math.h>
 #include <string.h>
 
@@ -26,6 +30,18 @@
 #endif
 #ifndef FALSE
 #define FALSE 0
+#endif
+
+#ifndef HM64_IN_RANGE
+#define HM64_IN_RANGE(value, low, high) ((value) >= (low) && (value) <= (high))
+#endif
+
+#ifndef HM64_COMPILER_BARRIER
+#if defined(_MSC_VER)
+#define HM64_COMPILER_BARRIER() _ReadWriteBarrier()
+#else
+#define HM64_COMPILER_BARRIER() __asm__ __volatile__("" : : : "memory")
+#endif
 #endif
 
 typedef u32 Addr;
@@ -65,11 +81,19 @@ static inline u32 hm64ReadRawU32(const void* ptr) {
 }
 
 #ifndef BE16SWAP
+#if defined(_MSC_VER)
+#define BE16SWAP(x) _byteswap_ushort(x)
+#else
 #define BE16SWAP(x) __builtin_bswap16(x)
+#endif
 #endif
 
 #ifndef BE32SWAP
+#if defined(_MSC_VER)
+#define BE32SWAP(x) _byteswap_ulong(x)
+#else
 #define BE32SWAP(x) __builtin_bswap32(x)
+#endif
 #endif
 
 // libultraship names controller error fields err_no, while the HM64 codebase uses errno.

@@ -1,6 +1,10 @@
 #ifndef _SRAM_BUFFER_H_
 #define _SRAM_BUFFER_H_
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define SRAM_BUFFER 0x8030D000
 
 typedef struct {
@@ -248,5 +252,9 @@ typedef struct {
 } SramBuffer;
 
 extern SramBuffer sramBuffer;
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

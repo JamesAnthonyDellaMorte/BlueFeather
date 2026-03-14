@@ -144,6 +144,7 @@ set(HM64_COMMON_INCLUDE_DIRS
 )
 
 set(HM64_ROM_SYMBOL_ASM "${CMAKE_CURRENT_BINARY_DIR}/generated/rom_symbols.c")
+set(HM64_ROM_SYMBOL_HEADER "${CMAKE_CURRENT_BINARY_DIR}/generated/rom_symbol_overrides.h")
 file(GLOB_RECURSE HM64_RUNTIME_METADATA_INPUTS CONFIGURE_DEPENDS
     "${HM64_CONFIG_ROOT}/*"
     "${HM64_ROOT}/tools/libhm64/*"
@@ -162,14 +163,20 @@ add_custom_command(
 )
 add_custom_target(GenerateRuntimeArchiveTable DEPENDS ${HM64_RUNTIME_ARCHIVE_TABLE})
 
+if(MSVC)
+    set(HM64_ROM_SYMBOL_OUTPUT ${HM64_ROM_SYMBOL_HEADER})
+else()
+    set(HM64_ROM_SYMBOL_OUTPUT ${HM64_ROM_SYMBOL_ASM})
+endif()
+
 add_custom_command(
-    OUTPUT ${HM64_ROM_SYMBOL_ASM}
+    OUTPUT ${HM64_ROM_SYMBOL_OUTPUT}
     COMMAND ${CMAKE_COMMAND} -E make_directory ${HM64_GENERATED_DIR}
     COMMAND ${Python3_EXECUTABLE}
         ${HM64_ROOT}/tools/generate_rom_symbol_asm.py
         --ld-header ${HM64_ROOT}/include/ld_symbols.h
         --splat-config ${HM64_SPLAT_CONFIG}
-        --output ${HM64_ROM_SYMBOL_ASM}
+        --output ${HM64_ROM_SYMBOL_OUTPUT}
     DEPENDS
         ${HM64_ROOT}/tools/generate_rom_symbol_asm.py
         ${HM64_ROOT}/include/ld_symbols.h
@@ -178,14 +185,24 @@ add_custom_command(
     VERBATIM
 )
 
-list(APPEND HM64_PORT_SOURCES ${HM64_ROM_SYMBOL_ASM})
+add_custom_target(GenerateRomSymbols DEPENDS ${HM64_ROM_SYMBOL_OUTPUT})
+
+if(NOT MSVC)
+    list(APPEND HM64_PORT_SOURCES ${HM64_ROM_SYMBOL_ASM})
+endif()
 
 add_executable(${GAME_SHORT_NAME} ${HM64_PORT_SOURCES} ${HM64_RUNTIME_SOURCES})
-add_dependencies(${GAME_SHORT_NAME} GenerateRuntimeArchiveTable)
+add_dependencies(${GAME_SHORT_NAME} GenerateRuntimeArchiveTable GenerateRomSymbols)
+
+if(MSVC)
+    set(HM64_PLAYER_FORCED_INCLUDE "/FImath.h")
+else()
+    set(HM64_PLAYER_FORCED_INCLUDE "-include;math.h")
+endif()
 
 set_source_files_properties(${BLUEFEATHER_ROOT}/src/libmus/player.c PROPERTIES
     COMPILE_DEFINITIONS "NU_SYSTEM;_AUDIOVISIBLE"
-    COMPILE_OPTIONS "-include;math.h"
+    COMPILE_OPTIONS "${HM64_PLAYER_FORCED_INCLUDE}"
 )
 
 target_include_directories(${GAME_SHORT_NAME} PRIVATE ${HM64_COMMON_INCLUDE_DIRS})

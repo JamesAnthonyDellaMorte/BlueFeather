@@ -81,7 +81,7 @@ bool initializeDialogueSessionManager(u16 index, u16 mainMessageBoxIndex, u16 ov
 
 //INCLUDE_ASM("asm/nonmatchings/system/dialogue", setDialogueBytecodeAddressInfo);
 
-bool setDialogueBytecodeAddressInfo(u16 index, u16 textAddressesIndex, u16 selectionMenuTextAddressesIndex, u32 romIndexStart, u32 romIndexEnd, u32* vaddrIndex, u32 romStart, void* vaddr) {
+bool setDialogueBytecodeAddressInfo(u16 index, u16 textAddressesIndex, u16 selectionMenuTextAddressesIndex, u32 romIndexStart, u32 romIndexEnd, u32* vaddrIndex, u32 romStart, u8* vaddr) {
 
     bool result = FALSE;
     

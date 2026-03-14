@@ -50,9 +50,9 @@ void initializeNamingScreen(u8* name, u8 type) {
     (void)type;
 }
 
-u8 D_801890E8[31] = { 0 };
+u8 D_801890E8[32] = { 0 };
 u8 D_80189108[5][7] = { { 0 } };
-u8 D_80237420[31] = { 0 };
+u8 D_80237420[32] = { 0 };
 u32 D_80205204 = 0;
 
 u32 albumBits = 0;

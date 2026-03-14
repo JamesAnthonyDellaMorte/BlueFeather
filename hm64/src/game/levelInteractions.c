@@ -3232,7 +3232,7 @@ label3:
                     // show pink overlay message
                     showPinkOverlayText(temp);
                     result = 1;
-label4:
+label4: ;
                 }
                 
             }
@@ -3346,7 +3346,7 @@ label:
                         if (checkShopItemShouldBeDisplayed(0x37)) {
                             pauseAllCutsceneExecutors();   
                             handlePickUpShopItem(0x37);
-label5:
+label5: ;
                         }
                         
                         result = 2;

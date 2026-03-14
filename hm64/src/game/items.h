@@ -5,7 +5,7 @@
 
 #define TOTAL_ITEMS 67
 #define MAX_KEY_ITEMS 24 
-#define MAX_TOOLS 30
+#define MAX_TOOLS 32
 
   /* holdable item flags */
 #define ITEM_EATABLE                    0x0001  

@@ -331,7 +331,7 @@ void deactivateGlobalSprites(void) {
 // unused or inline
 bool func_8002B7A0(u16 spriteIndex, u8 animationModeOrFrameIndex) {
 
-    bool result;
+    bool result = FALSE;
 
     result = setupSpriteAnimation(spriteIndex, animationModeOrFrameIndex, globalSprites[spriteIndex].animationIndexPtr);
 
@@ -696,7 +696,7 @@ bool adjustSpriteRGBA(u16 index, s8 r, s8 g, s8 b, s8 a) {
 // fade out on screen transitions
 bool updateSpriteRGBA(u16 index, u8 r, u8 g, u8 b, u8 a, s16 rate) {
 
-    bool result;
+    bool result = FALSE;
     
     s16 absValueRate = getAbsoluteValue(rate);
     f32 tempFloat;
@@ -759,7 +759,7 @@ bool updateSpriteRGBA(u16 index, u8 r, u8 g, u8 b, u8 a, s16 rate) {
 
 bool updateSpriteAlpha(u16 index, u8 arg1, s16 rate) {
 
-    bool result;
+    bool result = FALSE;
 
     f32 tempF;
     s16 absValueRate = getAbsoluteValue(rate);
@@ -1021,7 +1021,7 @@ bool setSpritePaletteIndex(u16 index, u16 paletteIndex) {
 // seems like check fade out completed
 bool checkSpriteRGBAUpdateFinished(u16 index) {
 
-    bool result;
+    bool result = FALSE;
 
     result = FALSE;
     

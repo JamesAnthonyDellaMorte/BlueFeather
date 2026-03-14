@@ -359,7 +359,7 @@ bool findAndStopSfx(u32 sfxIndex) {
 
 bool setSfxVolume(u32 sfxIndex, s32 volume) {
 
-    bool result;
+    bool result = FALSE;
     u16 i = 0;
     
     result = FALSE;

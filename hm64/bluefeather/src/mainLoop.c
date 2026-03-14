@@ -263,7 +263,7 @@ void func_80026284(void) {
         func_80026248(1);
 
 loop_end:     
-
+        ;
     }
 
 }

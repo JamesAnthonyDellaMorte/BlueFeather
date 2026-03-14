@@ -6917,4 +6917,8 @@ extern Addr _youngCowTextureSegmentRomEnd;
 extern Addr _youngCowTextureSegmentRomStart;
 extern Addr _youngCowTextureSegmentStart;
 
+#if defined(_MSC_VER)
+#include "generated/rom_symbol_overrides.h"
+#endif
+
 #endif

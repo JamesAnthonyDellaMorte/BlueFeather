@@ -1,6 +1,10 @@
 #ifndef _FARM_RANKINGS_BUFFER_H_
 #define _FARM_RANKINGS_BUFFER_H_
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include "common.h"
 
 #define FARM_RANKINGS_BUFFER 0x8030E000
@@ -52,5 +56,9 @@ typedef struct {
 } FarmRankingsBuffer;
 
 extern FarmRankingsBuffer farmRankingsBuffer;
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

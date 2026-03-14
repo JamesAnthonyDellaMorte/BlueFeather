@@ -494,18 +494,14 @@ void setupPlayerEntity(u16 spawnPoint, u8 resetPlayer) {
 void initializePlayerHeldItem(void) {
 
     if (gPlayer.heldItem) {
-        
-        switch (gPlayer.heldItem) {
 
-            case DOG_HELD_ITEM ... 0x6F:
-            case BABY_HELD_ITEM ... 0xC9:
-            case PUPPY_1_HELD_ITEM ... 0xB2:
-                gPlayer.itemInfoIndex = initializeHeldItem(0, ITEM_STATE_HELD, gPlayer.heldItem, ITEM_CONTEXT_HAS_DIRECTION_FRAME, ITEM_CONTEXT_USE_ATTACHMENT);
-                break;
-            default:
-                gPlayer.itemInfoIndex = initializeHeldItem(0, ITEM_STATE_HELD, gPlayer.heldItem, 0, ITEM_CONTEXT_USE_ATTACHMENT);
-                break;
-            
+        if (HM64_IN_RANGE(gPlayer.heldItem, DOG_HELD_ITEM, 0x6F) ||
+            HM64_IN_RANGE(gPlayer.heldItem, BABY_HELD_ITEM, 0xC9) ||
+            HM64_IN_RANGE(gPlayer.heldItem, PUPPY_1_HELD_ITEM, 0xB2)) {
+            gPlayer.itemInfoIndex = initializeHeldItem(0, ITEM_STATE_HELD, gPlayer.heldItem,
+                                                       ITEM_CONTEXT_HAS_DIRECTION_FRAME, ITEM_CONTEXT_USE_ATTACHMENT);
+        } else {
+            gPlayer.itemInfoIndex = initializeHeldItem(0, ITEM_STATE_HELD, gPlayer.heldItem, 0, ITEM_CONTEXT_USE_ATTACHMENT);
         }
         
         setItemAttachmentOffset(0, 0, 14.0f, 20.0f);
@@ -1319,7 +1315,7 @@ void dismountHorse(void) {
 
     Vec3f vec1;
     Vec3f vec2;
-    u8 direction; // bug: not initialied
+    u8 direction = 0;
     bool set = FALSE;
     int groundObjectIndex;
     
@@ -1555,7 +1551,7 @@ static inline u8 checkStaminaExhaustionLevel(void) {
 
 u8 checkFatigueLevel(void) {
 
-    u8 result;
+    u8 result = 0;
      
     if (gPlayer.fatigueCounter == MAX_FATIGUE_POINTS) {
         result = 3;
@@ -1724,18 +1720,14 @@ void handlePickUpItemAction(void) {
         playSfx(PICKING_UP_SFX);
         startAction(PICKING_UP_ITEM, ANIM_PICKING_UP_ITEM);
 
-        switch (gPlayer.heldItem) {
-
-            case DOG_HELD_ITEM ... 0x6F:
-            case BABY_HELD_ITEM ... 0xC9:
-            case PUPPY_1_HELD_ITEM ... 0xB2:
-                gPlayer.itemInfoIndex = initializeHeldItem(0, ITEM_STATE_PICKUP, gPlayer.heldItem, ITEM_CONTEXT_HAS_DIRECTION_FRAME, ITEM_CONTEXT_USE_ATTACHMENT);
-                break;
-            default:
-                gPlayer.itemInfoIndex = initializeHeldItem(0, ITEM_STATE_PICKUP, gPlayer.heldItem, 0, ITEM_CONTEXT_USE_ATTACHMENT);
-                break;
-        
-            }
+        if (HM64_IN_RANGE(gPlayer.heldItem, DOG_HELD_ITEM, 0x6F) ||
+            HM64_IN_RANGE(gPlayer.heldItem, BABY_HELD_ITEM, 0xC9) ||
+            HM64_IN_RANGE(gPlayer.heldItem, PUPPY_1_HELD_ITEM, 0xB2)) {
+            gPlayer.itemInfoIndex = initializeHeldItem(0, ITEM_STATE_PICKUP, gPlayer.heldItem,
+                                                       ITEM_CONTEXT_HAS_DIRECTION_FRAME, ITEM_CONTEXT_USE_ATTACHMENT);
+        } else {
+            gPlayer.itemInfoIndex = initializeHeldItem(0, ITEM_STATE_PICKUP, gPlayer.heldItem, 0, ITEM_CONTEXT_USE_ATTACHMENT);
+        }
             
     }
     
@@ -2658,16 +2650,7 @@ void handleFishingAction(void) {
     
     if (gPlayer.actionPhase && checkButtonReleased(CONTROLLER_1, BUTTON_B)) {
 
-        switch (gPlayer.actionPhase) {
-            
-            case 3 ... 5:
-                gPlayer.actionPhase = 6;
-                break;
-            default:
-                gPlayer.actionPhase = 8;
-                break;
-
-        }
+        gPlayer.actionPhase = HM64_IN_RANGE(gPlayer.actionPhase, 3, 5) ? 6 : 8;
 
     }
     

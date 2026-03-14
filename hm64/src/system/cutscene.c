@@ -8,10 +8,6 @@
 #include "buffers/buffers.h"
 #include "system/globalSprites.h"
 
-// PC port: Define endianness macros for C
-#define BE16SWAP(x) __builtin_bswap16(x)
-#define BE32SWAP(x) __builtin_bswap32(x)
-
 #ifdef HM64_PC_PORT
 // Moonwright [Port] Cutscene bytecode is N64-authored big-endian data. Host builds must
 // read it explicitly instead of relying on raw struct field access.
@@ -577,7 +573,7 @@ void initializeCutsceneExecutors(void) {
 
 //INCLUDE_ASM("asm/nonmatchings/system/cutscene", spawnCutsceneExecutor);
 
-bool spawnCutsceneExecutor(u16 index, void *bytecodePtr) {
+bool spawnCutsceneExecutor(u16 index, u8 *bytecodePtr) {
     bool result = FALSE;
 
     if (index < MAX_BYTECODE_EXECUTORS) {
@@ -609,7 +605,7 @@ bool spawnCutsceneExecutor(u16 index, void *bytecodePtr) {
 //INCLUDE_ASM("asm/nonmatchings/system/cutscene", func_80046A58);
 
 // unused
-bool func_80046A58(u16 index, void* bytecodePtr) {
+bool func_80046A58(u16 index, u8* bytecodePtr) {
     
     bool result = FALSE;
 
@@ -812,7 +808,7 @@ void updateCutsceneExecutors(void) {
                 cutsceneExecutors[i].frameDelta.x = 0;
                 cutsceneExecutors[i].frameDelta.y = 0;
                 cutsceneExecutors[i].frameDelta.z = 0;
-                void* bytecodePtr = cutsceneExecutors[i].bytecodePtr;
+                u8* bytecodePtr = cutsceneExecutors[i].bytecodePtr;
 
                 // PC port: Use byte-wise reads for big-endian bytecode on little-endian PC
 #ifdef HM64_PC_PORT
@@ -869,7 +865,7 @@ void updateCutsceneSpriteAnimation(u16 index) {
     u8 flipFlags;
 
     // FIXME: fake
-    asm("");
+    HM64_COMPILER_BARRIER();
 
     if (cutsceneExecutors[index].animationFrameCounter == 0)  {
         
@@ -938,7 +934,7 @@ label:
                 if (flag == 0xFE) {
                     cutsceneExecutors[index].flags |= CUTSCENE_ASSET_BEHAVIOR_WALKING;
                     // FIXME: fake
-                    asm("");
+                    HM64_COMPILER_BARRIER();
                 } else {
                     cutsceneExecutors[index].flags &= ~CUTSCENE_ASSET_BEHAVIOR_WALKING;
                 }
@@ -1447,7 +1443,7 @@ void cutsceneHandlerSpawnExecutor(u16 index) {
     u16 executorIndex;
     s16 offset;
     u8* branchBase;
-    void* spawnedPtr;
+    u8* spawnedPtr;
     u8* bytecodePtr = cutsceneExecutors[index].bytecodePtr;
 
     cutsceneExecutors[index].bytecodePtr += 2;
@@ -1476,7 +1472,7 @@ void cutsceneHandlerSetOtherExecutorBytecodePtr(u16 index) {
     u16 executorIndex;
     s16 offset;
     u8* branchBase;
-    void* spawnedPtr;
+    u8* spawnedPtr;
     u8* bytecodePtr = cutsceneExecutors[index].bytecodePtr;
 
     cutsceneExecutors[index].bytecodePtr += 2;

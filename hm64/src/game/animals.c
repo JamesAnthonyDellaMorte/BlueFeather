@@ -9960,27 +9960,13 @@ bool handleBrushFarmAnimal(void) {
 
             if (!(gFarmAnimals[i].flags & FARM_ANIMAL_BRUSHED)) {
 
-                switch (gFarmAnimals[i].type) {
-
-                    case BABY_COW ... PREGNANT_COW:
-                        adjustFarmAnimalAffection(i, 2);
-                        setAnimalState(2, i, 0xFF, 0xFF, 0x11);
-                        gFarmAnimals[i].flags |= (FARM_ANIMAL_BRUSHED | FARM_ANIMAL_COLLISION_WITH_PLAYER);
-                        showAnimalExpressionBubble(COW_TYPE, i, 3);
-                        set = TRUE;
-                        break;
-
-                    case BABY_SHEEP ... SHEARED_SHEEP:
-                        adjustFarmAnimalAffection(i, 2);
-                        setAnimalState(2, i, 0xFF, 0xFF, 0x11);
-                        gFarmAnimals[i].flags |= (FARM_ANIMAL_BRUSHED | FARM_ANIMAL_COLLISION_WITH_PLAYER);
-                        showAnimalExpressionBubble(COW_TYPE, i, 3);
-                        set = TRUE;
-                        break;
-                    
-                    default:
-                        break;
-                    
+                if (HM64_IN_RANGE(gFarmAnimals[i].type, BABY_COW, PREGNANT_COW) ||
+                    HM64_IN_RANGE(gFarmAnimals[i].type, BABY_SHEEP, SHEARED_SHEEP)) {
+                    adjustFarmAnimalAffection(i, 2);
+                    setAnimalState(2, i, 0xFF, 0xFF, 0x11);
+                    gFarmAnimals[i].flags |= (FARM_ANIMAL_BRUSHED | FARM_ANIMAL_COLLISION_WITH_PLAYER);
+                    showAnimalExpressionBubble(COW_TYPE, i, 3);
+                    set = TRUE;
                 }
                 
             }
@@ -10059,16 +10045,11 @@ bool handleAnimalMedicineUse(void) {
 
             setAnimalState(2, i, 0xFF, 0xFF, 0);
 
-            switch (gFarmAnimals[i].type) {
-
-                case ADULT_COW:
-                case ADULT_SHEEP ... SHEARED_SHEEP:
-                    if (gFarmAnimals[i].condition == 3) {
-                        setAnimalState(2, i, 0xFF, 0, 0);
-                        set = TRUE;
-                    } 
-                    break;
-                
+            if (gFarmAnimals[i].type == ADULT_COW || HM64_IN_RANGE(gFarmAnimals[i].type, ADULT_SHEEP, SHEARED_SHEEP)) {
+                if (gFarmAnimals[i].condition == 3) {
+                    setAnimalState(2, i, 0xFF, 0, 0);
+                    set = TRUE;
+                }
             }
             
         }
@@ -10276,44 +10257,32 @@ bool handleHitFarmAnimalWithTool(void) {
 
             setAnimalState(2, i, 0xFF, 0xFF, 0);
 
-            switch (gFarmAnimals[i].type) {
+            if (HM64_IN_RANGE(gFarmAnimals[i].type, BABY_COW, PREGNANT_COW)) {
+                adjustFarmAnimalAffection(i, -10);
+                setAnimalState(2, i, 0xFF, 0xFF, 0x12);
 
-                case BABY_COW ... PREGNANT_COW:
-                    
-                    adjustFarmAnimalAffection(i, -10);
-                    setAnimalState(2, i, 0xFF, 0xFF, 0x12);
-                    
-                    gFarmAnimals[i].flags |= FARM_ANIMAL_COLLISION_WITH_PLAYER;
-                    
-                    showAnimalExpressionBubble(COW_TYPE, i, 0);
+                gFarmAnimals[i].flags |= FARM_ANIMAL_COLLISION_WITH_PLAYER;
 
-                    if (gFarmAnimals[i].type == ADULT_COW) {
-                        
-                        if (!(getRandomNumberInRange(0, 7))) {
-                            setAnimalState(2, i, 0xFF, 2, 0xFFU);
-                            adjustFarmAnimalAffection(i, -20);
-                            gHappiness += adjustValue(gHappiness, -5, 0xFF);
-                        }
-                        
+                showAnimalExpressionBubble(COW_TYPE, i, 0);
+
+                if (gFarmAnimals[i].type == ADULT_COW) {
+                    if (!(getRandomNumberInRange(0, 7))) {
+                        setAnimalState(2, i, 0xFF, 2, 0xFFU);
+                        adjustFarmAnimalAffection(i, -20);
+                        gHappiness += adjustValue(gHappiness, -5, 0xFF);
                     }
-                    
-                    result = TRUE;
-                    
-                    break;
+                }
 
-                case BABY_SHEEP ... SHEARED_SHEEP:
-                    
-                    adjustFarmAnimalAffection(i, -10);
-                    setAnimalState(2, i, 0xFF, 0xFF, 0x12);
-                    
-                    gFarmAnimals[i].flags |= FARM_ANIMAL_COLLISION_WITH_PLAYER;
-                    
-                    showAnimalExpressionBubble(COW_TYPE, i, 0);
-                    
-                    result = TRUE;
-                    
-                    break;                    
-                
+                result = TRUE;
+            } else if (HM64_IN_RANGE(gFarmAnimals[i].type, BABY_SHEEP, SHEARED_SHEEP)) {
+                adjustFarmAnimalAffection(i, -10);
+                setAnimalState(2, i, 0xFF, 0xFF, 0x12);
+
+                gFarmAnimals[i].flags |= FARM_ANIMAL_COLLISION_WITH_PLAYER;
+
+                showAnimalExpressionBubble(COW_TYPE, i, 0);
+
+                result = TRUE;
             }
             
         }

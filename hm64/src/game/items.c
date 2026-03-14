@@ -580,14 +580,14 @@ u8 itemFatigueReductionValue[] = {
 
 
 // rodata
-static const u8 D_80122340[];
-static const u8 D_80122344[];
-static const u8 D_80122348[];
-static const u8 D_8012234C[];
-static const u8 D_80122350[];
-static const u8 D_8012235C[];
-static const u8 D_80122368[];
-static const u8 D_80122374[];
+static const u8 D_80122340[4];
+static const u8 D_80122344[4];
+static const u8 D_80122348[4];
+static const u8 D_8012234C[4];
+static const u8 D_80122350[12];
+static const u8 D_8012235C[12];
+static const u8 D_80122368[12];
+static const u8 D_80122374[12];
 
 
 // forward declarations
@@ -1451,8 +1451,11 @@ void useHammer(void) {
                 case BROKEN_LOG:
                     addGroundObjectToMap(gBaseMapIndex, BASE_TILE, (u8)vec.x - groundObjectsGridX, (u8)vec.z - groundObjectsGridZ);
                     break;
-                
-                case BOULDER ... 0xC7:
+
+                default:
+                    if (!HM64_IN_RANGE(groundObjectIndex, BOULDER, 0xC7)) {
+                        break;
+                    }
                     
                     if (processBoulderHit(groundObjectIndex, (s16)vec.x / 32, (s16)vec.z / 32)) {
 
@@ -2700,37 +2703,25 @@ bool handlePickUpGroundItem(void) {
 
                 gPlayer.heldItem = heldItemIndex;
                 
-                switch (groundObjectIndex) {
+                if (HM64_IN_RANGE(groundObjectIndex, TOMATO_RIPE, TOMATO_RIPE_WATERED)) {
+                    addGroundObjectToMapFromPlayerPosition(0x5F, 1.0f, 8);
+                } else if (HM64_IN_RANGE(groundObjectIndex, CORN_RIPE, CORN_RIPE_WATERED)) {
+                    addGroundObjectToMapFromPlayerPosition(0x7A, 1.0f, 8);
+                } else if (HM64_IN_RANGE(groundObjectIndex, EGGPLANT_RIPE, EGGPLANT_RIPE_WATERED)) {
+                    addGroundObjectToMapFromPlayerPosition(0x2A, 1.0f, 8);
+                } else {
+                    switch (getGroundObjectMapAdditionIndex(groundObjectIndex)) {
 
-                    // replace with stalks
-                    case TOMATO_RIPE ... TOMATO_RIPE_WATERED:
-                        addGroundObjectToMapFromPlayerPosition(0x5F, 1.0f, 8);
-                        break;
-                    case CORN_RIPE ... CORN_RIPE_WATERED:
-                        addGroundObjectToMapFromPlayerPosition(0x7A, 1.0f, 8);
-                        break;
-                    case EGGPLANT_RIPE ... EGGPLANT_RIPE_WATERED:
-                        addGroundObjectToMapFromPlayerPosition(0x2A, 1.0f, 8);
-                        break;
-                    
-                    default:
-                        
-                        switch (getGroundObjectMapAdditionIndex(groundObjectIndex)) {
-
-                            case 4:
-                                addGroundObjectToMapFromPlayerPosition(TILLED, 1.0f, 8);
-                                break;
-                            case 5:
-                                addGroundObjectToMapFromPlayerPosition(TILLED_WATERED, 1.0f, 8);
-                                break;
-                            default:
-                                addGroundObjectToMapFromPlayerPosition(BASE_TILE, 1.0f, 8);
-                                break;
-                            
-                        }         
-
-                        break;
-
+                        case 4:
+                            addGroundObjectToMapFromPlayerPosition(TILLED, 1.0f, 8);
+                            break;
+                        case 5:
+                            addGroundObjectToMapFromPlayerPosition(TILLED_WATERED, 1.0f, 8);
+                            break;
+                        default:
+                            addGroundObjectToMapFromPlayerPosition(BASE_TILE, 1.0f, 8);
+                            break;
+                    }
                 }
                 
                 result = TRUE;
@@ -3089,13 +3080,10 @@ void showHeldItemText(u8 index) {
 
     u16 temp;
 
-    switch (index) {
-        case 0x60 ... 0x6F:
-            temp =  gPlayer.heldAnimalIndex + 0xF5;
-            break;
-        default:
-            temp = itemTextIndices[index];
-            break;
+    if (HM64_IN_RANGE(index, 0x60, 0x6F)) {
+        temp =  gPlayer.heldAnimalIndex + 0xF5;
+    } else {
+        temp = itemTextIndices[index];
     }
 
     showTextBox(1, SHOP_TEXT_INDEX, temp, 0, 2);

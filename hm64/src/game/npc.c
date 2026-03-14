@@ -1122,7 +1122,7 @@ u8 getNPCBabyCarryingState(u8 npcIndex) {
 
 void setMariaLocation(void) {
 
-     u8 result;
+     u8 result = 0;
 
     npcs[MARIA].wanderRadiusX = 64;
     npcs[MARIA].wanderRadiusZ = 64;
@@ -1572,7 +1572,7 @@ void setMariaLocation(void) {
 
 void setPopuriLocation(void) {
 
-    u8 result;
+    u8 result = 0;
 
     npcs[POPURI].wanderRadiusX = 64;
     npcs[POPURI].wanderRadiusZ = 64;
@@ -2057,7 +2057,7 @@ void setPopuriLocation(void) {
 
 void setElliLocation(void) {
 
-    u8 result;
+    u8 result = 0;
 
     npcs[ELLI].wanderRadiusX = 64;
     npcs[ELLI].wanderRadiusZ = 64;
@@ -2551,7 +2551,7 @@ void setElliLocation(void) {
 
 void setAnnLocation(void) {
 
-    u8 result;
+    u8 result = 0;
 
     npcs[ANN].wanderRadiusX = 64;
     npcs[ANN].wanderRadiusZ = 64;
@@ -3109,7 +3109,7 @@ void setAnnLocation(void) {
 
 void setKarenLocation(void) {
 
-    u8 result;
+    u8 result = 0;
 
     npcs[KAREN].wanderRadiusX = 64;
     npcs[KAREN].wanderRadiusZ = 64;
@@ -3900,28 +3900,18 @@ void setJeffLocation(void) {
 
     if (checkLifeEventBit(ELLI_JEFF_MARRIED)) {
 
-        switch (gDayOfWeek) {       
-
-            case TUESDAY ... SATURDAY:
-            case SUNDAY:
-                
-                if (8 < gHour && gHour < 17) {
-                    
-                    npcs[JEFF].levelIndex = BAKERY;
-                    npcs[JEFF].startingCoordinates.y = 0.0f;
-                    npcs[JEFF].direction = SOUTHWEST;
-                    npcs[JEFF].defaultAnimationMode = NPC_ANIMATION_IDLE;
-                    npcs[JEFF].startingCoordinates.x = -96.0f;
-                    npcs[JEFF].startingCoordinates.z = -96.0f;
-                    npcs[JEFF].flags |= NPC_ACTIVE;
-                    
-                }
-                
-                break;
-
-            case MONDAY:               
-
-                switch (gSeason) {
+        if (gDayOfWeek != MONDAY) {
+            if (8 < gHour && gHour < 17) {
+                npcs[JEFF].levelIndex = BAKERY;
+                npcs[JEFF].startingCoordinates.y = 0.0f;
+                npcs[JEFF].direction = SOUTHWEST;
+                npcs[JEFF].defaultAnimationMode = NPC_ANIMATION_IDLE;
+                npcs[JEFF].startingCoordinates.x = -96.0f;
+                npcs[JEFF].startingCoordinates.z = -96.0f;
+                npcs[JEFF].flags |= NPC_ACTIVE;
+            }
+        } else {
+            switch (gSeason) {
                     
                     case SPRING:
                     case SUMMER:
@@ -3955,53 +3945,31 @@ void setJeffLocation(void) {
                         }
                         
                         break;
-                }
-
-                break;
-
+            }
         }
         
     } else {
 
-        switch (gDayOfWeek) {       
-
-            case TUESDAY ... SATURDAY:
-            case SUNDAY:
-                
-                if (8 < gHour && gHour < 17) {
-                    
-                    npcs[JEFF].levelIndex = BAKERY;
-                    npcs[JEFF].startingCoordinates.y = 0.0f;
-                    npcs[JEFF].direction = SOUTHWEST;
-                    npcs[JEFF].defaultAnimationMode = NPC_ANIMATION_IDLE;
-                    npcs[JEFF].startingCoordinates.x = -96.0f;
-                    npcs[JEFF].startingCoordinates.z = -96.0f;
-                    npcs[JEFF].flags |= NPC_ACTIVE;
-                    
-                }
-
-                break;
-            
-            case MONDAY:         
-        
-                if (7 < gHour && gHour < 17 && gWeather == SUNNY) {
-
-                    if (npcs[JEFF].location < 2) {
-                        
-                        npcs[JEFF].levelIndex = MOUNTAIN_1;
-                        npcs[JEFF].startingCoordinates.y = 0.0f;
-                        npcs[JEFF].direction = NORTHWEST;
-                        npcs[JEFF].defaultAnimationMode = NPC_ANIMATION_LOCATION_SPECIAL;
-                        npcs[JEFF].startingCoordinates.x = -224.0f;
-                        npcs[JEFF].startingCoordinates.z = -128.0f;
-                        npcs[JEFF].flags |= NPC_ACTIVE;
-                            
-                    }
-            
-                }
-
-                break;
-
+        if (gDayOfWeek != MONDAY) {
+            if (8 < gHour && gHour < 17) {
+                npcs[JEFF].levelIndex = BAKERY;
+                npcs[JEFF].startingCoordinates.y = 0.0f;
+                npcs[JEFF].direction = SOUTHWEST;
+                npcs[JEFF].defaultAnimationMode = NPC_ANIMATION_IDLE;
+                npcs[JEFF].startingCoordinates.x = -96.0f;
+                npcs[JEFF].startingCoordinates.z = -96.0f;
+                npcs[JEFF].flags |= NPC_ACTIVE;
+            }
+        } else if (7 < gHour && gHour < 17 && gWeather == SUNNY) {
+            if (npcs[JEFF].location < 2) {
+                npcs[JEFF].levelIndex = MOUNTAIN_1;
+                npcs[JEFF].startingCoordinates.y = 0.0f;
+                npcs[JEFF].direction = NORTHWEST;
+                npcs[JEFF].defaultAnimationMode = NPC_ANIMATION_LOCATION_SPECIAL;
+                npcs[JEFF].startingCoordinates.x = -224.0f;
+                npcs[JEFF].startingCoordinates.z = -128.0f;
+                npcs[JEFF].flags |= NPC_ACTIVE;
+            }
         }
 
         if (17 < gHour && gHour < 24 && npcs[JEFF].location < 2) {
@@ -4694,38 +4662,27 @@ void setLilliaLocation(void) {
 
     if (gWeather != SUNNY) goto DEFAULT;
 
-    switch (gDayOfWeek) {
-
-        case SUNDAY:
-
-            if (8 < gHour && gHour < 17) { 
-                npcs[LILLIA].levelIndex = SQUARE;
-                npcs[LILLIA].startingCoordinates.y = 0;
-                npcs[LILLIA].direction = NORTHEAST;
-                npcs[LILLIA].defaultAnimationMode = NPC_ANIMATION_IDLE;
-                npcs[LILLIA].startingCoordinates.x = -144.0f;
-                npcs[LILLIA].startingCoordinates.z = 256.0f;
-                npcs[LILLIA].flags |= NPC_ACTIVE;
-            }
-            break;
-
-        default:
-            break;
-
-        case MONDAY ... SATURDAY:
+    if (gDayOfWeek == SUNDAY && gWeather == SUNNY) {
+        if (8 < gHour && gHour < 17) {
+            npcs[LILLIA].levelIndex = SQUARE;
+            npcs[LILLIA].startingCoordinates.y = 0;
+            npcs[LILLIA].direction = NORTHEAST;
+            npcs[LILLIA].defaultAnimationMode = NPC_ANIMATION_IDLE;
+            npcs[LILLIA].startingCoordinates.x = -144.0f;
+            npcs[LILLIA].startingCoordinates.z = 256.0f;
+            npcs[LILLIA].flags |= NPC_ACTIVE;
+        }
+    } else {
 DEFAULT:
-            if (8 < gHour && gHour < 17) {
-                npcs[LILLIA].levelIndex = FLOWER_SHOP;
-                npcs[LILLIA].startingCoordinates.y = 0;
-                npcs[LILLIA].direction = SOUTHWEST;
-                npcs[LILLIA].defaultAnimationMode = NPC_ANIMATION_IDLE;
-                npcs[LILLIA].startingCoordinates.x = 64.0f;
-                npcs[LILLIA].startingCoordinates.z = -128.0f;
-                npcs[LILLIA].flags |= NPC_ACTIVE;
-            }
-    
-            break;
-
+        if (8 < gHour && gHour < 17) {
+            npcs[LILLIA].levelIndex = FLOWER_SHOP;
+            npcs[LILLIA].startingCoordinates.y = 0;
+            npcs[LILLIA].direction = SOUTHWEST;
+            npcs[LILLIA].defaultAnimationMode = NPC_ANIMATION_IDLE;
+            npcs[LILLIA].startingCoordinates.x = 64.0f;
+            npcs[LILLIA].startingCoordinates.z = -128.0f;
+            npcs[LILLIA].flags |= NPC_ACTIVE;
+        }
     }
     
     npcs[LILLIA].animationMode = npcs[LILLIA].defaultAnimationMode;
@@ -5742,7 +5699,10 @@ void setMayLocation(void) {
     
                 break;
             
-            case MONDAY ... FRIDAY:
+            default:
+                if (!HM64_IN_RANGE(gDayOfWeek, MONDAY, FRIDAY)) {
+                    break;
+                }
 
                 if (7 < gHour && gHour < 15) {
         
@@ -5785,7 +5745,7 @@ void setMayLocation(void) {
                 }
             
                 break;
-            
+
         }
         
     } else if (npcs[MAY].location < 2) {
@@ -6097,25 +6057,18 @@ void setDukeLocation(void) {
     npcs[DUKE].idleAnimation = 0;
     npcs[DUKE].movingAnimation = 8;
 
-    switch (temp) {
-        
-        case MONDAY ... SATURDAY:
-            if NIGHTTIME {
-                npcs[DUKE].levelIndex = TAVERN;
-                npcs[DUKE].startingCoordinates.y = 0.0f;
-                npcs[DUKE].direction = 0;
-                npcs[DUKE].defaultAnimationMode = NPC_ANIMATION_IDLE;
-            
-                npcs[DUKE].startingCoordinates.x = -128.0f;
-                npcs[DUKE].startingCoordinates.z = -128.0f;
-            
-                npcs[DUKE].flags |= NPC_ACTIVE;
-            }
-            break;
+    if (temp != SUNDAY) {
+        if NIGHTTIME {
+            npcs[DUKE].levelIndex = TAVERN;
+            npcs[DUKE].startingCoordinates.y = 0.0f;
+            npcs[DUKE].direction = 0;
+            npcs[DUKE].defaultAnimationMode = NPC_ANIMATION_IDLE;
 
-        default:
-            break;
-        
+            npcs[DUKE].startingCoordinates.x = -128.0f;
+            npcs[DUKE].startingCoordinates.z = -128.0f;
+
+            npcs[DUKE].flags |= NPC_ACTIVE;
+        }
     }
 
     npcs[DUKE].animationMode =  npcs[DUKE].defaultAnimationMode;
@@ -9204,18 +9157,13 @@ bool findNPCToTalkTo(void) {
 
 bool getBlueFeatherResponse(int index, u16 arg1) {
 
-    bool result;
-    
-    int temp;
+    bool result = FALSE;
     // FIXME: likely a struct?
     u8 arr[8];
     
     arr[7] = index;
-    index = temp;
     index = arr[7];
-    
-    result = FALSE;
-    
+
     if (npcs[index].flags & NPC_ENTITY_LOADED) {
 
         // FIXME: fake match

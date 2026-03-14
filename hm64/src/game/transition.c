@@ -147,41 +147,32 @@ void loadLevel(u8 arg0) {
 
     if ((mapIndex == FARM || mapIndex == BARN) == 0 && mapIndex != COOP) {
 
-        switch (gCutsceneIndex) {
+        if (gCutsceneIndex == FIREWORKS_FESTIVAL ||
+            HM64_IN_RANGE(gCutsceneIndex, SOWING_FESTIVAL_POTION_SHOP_DEALER, SOWING_FESTIVAL_HARRIS) ||
+            HM64_IN_RANGE(gCutsceneIndex, HORSE_RACE_SQUARE, HORSE_RACE_STARTING_ANNOUNCEMENT) ||
+            gCutsceneIndex == FLOWER_FESTIVAL ||
+            gCutsceneIndex == VEGETABLE_FESTIVAL_SQUARE ||
+            gCutsceneIndex == FIREFLY_FESTIVAL ||
+            gCutsceneIndex == HARVEST_FESTIVAL ||
+            gCutsceneIndex == SEA_FESTIVAL ||
+            gCutsceneIndex == EGG_FESTIVAL ||
+            HM64_IN_RANGE(gCutsceneIndex, DOG_RACE_SQUARE, DOG_RACE_AFTER_RACE) ||
+            HM64_IN_RANGE(gCutsceneIndex, 1350, 1352) ||
+            gCutsceneIndex == NEW_YEAR_FESTIVAL) {
+            initializeEntityInstances(2);
+        } else {
+            switch (gCutsceneIndex) {
 
-            case FIREWORKS_FESTIVAL:
-            case SOWING_FESTIVAL_POTION_SHOP_DEALER ... SOWING_FESTIVAL_HARRIS:
-            case HORSE_RACE_SQUARE ... HORSE_RACE_STARTING_ANNOUNCEMENT:
-            case FLOWER_FESTIVAL:
-            case VEGETABLE_FESTIVAL_SQUARE:
-            case FIREFLY_FESTIVAL:
-            case HARVEST_FESTIVAL:
-            case SEA_FESTIVAL:
-            case EGG_FESTIVAL:
-            case DOG_RACE_SQUARE ... DOG_RACE_AFTER_RACE:
-            // spirit festival
-            case 1350 ... 1352:
-            case NEW_YEAR_FESTIVAL:
-                initializeEntityInstances(2);
-                break;            
+                case COW_FESTIVAL:
+                    initializeEntityInstances(3);
+                    break;
+                case HARVEST_FESTIVAL:
+                case SEA_FESTIVAL:
+                default:
+                    initializeEntityInstances(1);
+                    break;
 
-            default:
-
-                switch (gCutsceneIndex) {
-
-                    case COW_FESTIVAL:
-                        initializeEntityInstances(3);
-                        break;
-                    case HARVEST_FESTIVAL:
-                    case SEA_FESTIVAL:
-                    default:
-                        initializeEntityInstances(1);
-                        break;
-
-                }
-
-                break;
-
+            }
         }
         
     } else {
